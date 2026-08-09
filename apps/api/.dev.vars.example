@@ -1,0 +1,4 @@
+# Copy to .dev.vars and fill in from your Supabase project settings.
+# Leave unset to run against the in-memory seeded dataset.
+SUPABASE_URL=""
+SUPABASE_SERVICE_ROLE_KEY=""

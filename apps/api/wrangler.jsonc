@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mukhtalif-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  // Supabase URL and service-role key are secrets:
+  //   local dev  -> apps/api/.dev.vars (copy .dev.vars.example)
+  //   production -> wrangler secret put SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+  //
+  // Episode audio streams from R2. To enable it, create the bucket
+  // (wrangler r2 bucket create mukhtalif-audio) and uncomment:
+  // "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "mukhtalif-audio" }],
+  "observability": { "enabled": true }
+}

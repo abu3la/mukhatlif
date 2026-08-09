@@ -1,0 +1,168 @@
+/* Mukhtalif web primitives. Every value comes from the --mk-* tokens.
+   Layout is RTL-first: logical properties only, no left/right. */
+
+.mk-button {
+  font-family: var(--mk-font-sans);
+  font-size: var(--mk-text-body);
+  font-weight: var(--mk-weight-medium);
+  color: #fff;
+  background: var(--mk-color-ink);
+  border: 1px solid transparent;
+  border-radius: var(--mk-radius-pill);
+  padding: 9px var(--mk-space-lg);
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+.mk-button:hover {
+  background: #262b73;
+}
+.mk-button:focus-visible {
+  outline: 2px solid var(--mk-color-green-deep);
+  outline-offset: 2px;
+}
+.mk-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.mk-button--quiet {
+  color: var(--mk-color-ink);
+  background: transparent;
+}
+.mk-button--quiet:hover {
+  background: var(--mk-color-surface-sunken);
+}
+
+.mk-button--danger {
+  background: var(--mk-color-danger-ink);
+}
+.mk-button--danger:hover {
+  background: #a52624;
+}
+
+.mk-card {
+  background: var(--mk-color-surface);
+  border: 1px solid var(--mk-color-line);
+  border-radius: var(--mk-radius-md);
+  padding: var(--mk-space-lg);
+}
+
+.mk-badge {
+  display: inline-block;
+  font-size: var(--mk-text-caption);
+  font-weight: var(--mk-weight-medium);
+  color: #fff;
+  border-radius: var(--mk-radius-sm);
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.mk-premium {
+  font-size: var(--mk-text-caption);
+  font-weight: var(--mk-weight-medium);
+  color: var(--mk-color-green-ink);
+  margin-inline-start: var(--mk-space-sm);
+}
+
+.mk-episode-row {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-md);
+  padding-block: var(--mk-space-md);
+  border-block-end: 1px solid var(--mk-color-line);
+}
+.mk-episode-row:last-child {
+  border-block-end: none;
+}
+.mk-episode-row__text {
+  flex: 1;
+  min-width: 0;
+}
+.mk-episode-row__title {
+  margin: 0;
+  font-size: var(--mk-text-emphasis);
+  font-weight: var(--mk-weight-medium);
+  color: var(--mk-color-ink);
+}
+.mk-episode-row__meta {
+  margin: 4px 0 0;
+  font-size: var(--mk-text-caption);
+  color: var(--mk-color-ink-soft);
+}
+
+.mk-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mk-space-md);
+  margin-block-end: var(--mk-space-lg);
+}
+.mk-page-heading h1 {
+  margin: 0;
+  font-size: var(--mk-text-heading);
+  font-weight: var(--mk-weight-bold);
+  color: var(--mk-color-ink);
+  letter-spacing: -0.01em;
+}
+
+.mk-player {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-md);
+  background: var(--mk-color-night-surface);
+  color: var(--mk-color-ink-on-night);
+  border: 1px solid var(--mk-color-line-on-night);
+  border-radius: var(--mk-radius-md);
+  padding: var(--mk-space-md) var(--mk-space-lg);
+}
+.mk-player__toggle {
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  flex: none;
+  color: var(--mk-color-night);
+  background: var(--mk-color-green);
+  border: none;
+  border-radius: var(--mk-radius-pill);
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+.mk-player__toggle:hover {
+  background: #5ce69a;
+}
+.mk-player__toggle:focus-visible {
+  outline: 2px solid var(--mk-color-green);
+  outline-offset: 2px;
+}
+.mk-player__body {
+  flex: 1;
+  min-width: 0;
+}
+.mk-player__title {
+  margin: 0 0 6px;
+  font-size: var(--mk-text-body);
+  font-weight: var(--mk-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mk-player__timeline {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-sm);
+}
+.mk-player__timeline input[type='range'] {
+  flex: 1;
+  accent-color: var(--mk-color-green);
+}
+.mk-player__time {
+  font-size: var(--mk-text-caption);
+  color: var(--mk-color-muted-on-night);
+  font-variant-numeric: tabular-nums;
+}
+
+.mk-state-note {
+  font-size: var(--mk-text-body);
+  color: var(--mk-color-ink-soft);
+}
