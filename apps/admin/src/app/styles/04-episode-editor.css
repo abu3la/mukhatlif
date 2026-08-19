@@ -1,0 +1,149 @@
+.editor-grid,
+.profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: start;
+  gap: 24px;
+}
+
+.form-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 12px;
+}
+
+.publish-card,
+.contact-card {
+  position: sticky;
+  inset-block-start: 24px;
+  padding: 20px;
+}
+
+.publish-card h2,
+.contact-card h2 {
+  margin-block-end: 18px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.publish-block {
+  padding-block: 16px;
+  border-block-start: 1px solid var(--line);
+}
+
+.publish-block:first-of-type {
+  padding-block-start: 0;
+  border-block-start: 0;
+}
+
+.publish-status-row,
+.premium-toggle-row,
+.contact-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.publish-status-row > span:first-child,
+.premium-toggle-row strong,
+.contact-summary-row span:first-child {
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.premium-toggle-copy p {
+  margin-block-start: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.switch {
+  position: relative;
+  inline-size: 44px;
+  block-size: 28px;
+  flex: none;
+  padding: 0;
+  background: var(--line);
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.switch--on {
+  background: var(--green);
+}
+
+.switch:disabled {
+  opacity: 0.48;
+  cursor: default;
+}
+
+.switch__knob {
+  position: absolute;
+  inset-block-start: 5px;
+  inset-inline-start: 5px;
+  inline-size: 18px;
+  block-size: 18px;
+  background: var(--surface);
+  border: 1px solid rgba(23, 26, 86, 0.12);
+  border-radius: 50%;
+  transition: inset-inline-start 140ms ease;
+}
+
+.switch--on .switch__knob {
+  inset-inline-start: 21px;
+}
+
+.upload-zone {
+  display: grid;
+  place-items: center;
+  min-block-size: 126px;
+  padding: 24px;
+  background: var(--canvas);
+  border: 1px dashed var(--field-line);
+  border-radius: var(--radius-control);
+  text-align: center;
+}
+
+.upload-zone p {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.upload-zone small {
+  display: block;
+  margin-block-start: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.upload-file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-block-size: 62px;
+  padding: 10px 16px;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.upload-file-row span {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+}

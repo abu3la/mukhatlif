@@ -8,7 +8,7 @@ import {
   updateEpisodeSchema,
   updateEpisodeStatusSchema,
 } from '@mukhtalif/validation';
-import { requireAdmin, type AppEnv } from '../auth';
+import { hasPermission, requirePermission, type AppEnv } from '../auth';
 import { getRepository } from '../repo';
 
 const listQuerySchema = z.object({
@@ -19,55 +19,70 @@ const listQuerySchema = z.object({
 export const episodesRoute = new Hono<AppEnv>()
   .get('/', zValidator('query', listQuerySchema), async (c) => {
     const { showId, status } = c.req.valid('query');
-    const isAdmin = c.get('user')?.role === 'admin';
-    // Listeners only ever see the published catalog; admins can filter freely.
-    const effectiveStatus = isAdmin ? status : 'published';
+    const canViewStudioEpisodes = hasPermission(c.get('permissions'), 'episodes.view');
+    // Listeners only see the published catalog; editors and admins can filter freely.
+    const effectiveStatus = canViewStudioEpisodes ? status : 'published';
     const episodes = await getRepository(c.env).listEpisodes({ showId, status: effectiveStatus });
     return c.json(episodes);
   })
   .get('/:id', async (c) => {
     const episode = await getRepository(c.env).getEpisode(c.req.param('id'));
-    const isAdmin = c.get('user')?.role === 'admin';
-    if (!episode || (!isAdmin && episode.status !== 'published')) {
+    const canViewStudioEpisodes = hasPermission(c.get('permissions'), 'episodes.view');
+    if (!episode || (!canViewStudioEpisodes && episode.status !== 'published')) {
       return c.json({ error: 'Episode not found' }, 404);
     }
     return c.json(episode);
   })
-  .post('/', requireAdmin, zValidator('json', createEpisodeSchema), async (c) => {
-    const input = c.req.valid('json');
-    const repo = getRepository(c.env);
-    if (!(await repo.getShow(input.showId))) {
-      return c.json({ error: 'Unknown show' }, 422);
-    }
-    const episode = await repo.createEpisode(input);
-    return c.json(episode, 201);
-  })
-  .patch('/:id', requireAdmin, zValidator('json', updateEpisodeSchema), async (c) => {
-    const episode = await getRepository(c.env).updateEpisode(
-      c.req.param('id'),
-      c.req.valid('json'),
-    );
-    if (!episode) return c.json({ error: 'Episode not found' }, 404);
-    return c.json(episode);
-  })
-  .patch('/:id/status', requireAdmin, zValidator('json', updateEpisodeStatusSchema), async (c) => {
-    const { status, publishAt } = c.req.valid('json');
-    const repo = getRepository(c.env);
-    const current = await repo.getEpisode(c.req.param('id'));
-    if (!current) return c.json({ error: 'Episode not found' }, 404);
-    if (!canTransitionEpisode(current.status, status)) {
-      return c.json({ error: `Cannot move a ${current.status} episode to ${status}` }, 422);
-    }
-    if (status === 'scheduled' && !publishAt && !current.publishAt) {
-      return c.json({ error: 'Scheduling an episode requires a publishAt timestamp' }, 422);
-    }
-    // Publishing stamps the real go-live moment unless one was supplied.
-    const effectivePublishAt =
-      status === 'published' ? (publishAt ?? new Date().toISOString()) : publishAt;
-    const episode = await repo.updateEpisodeStatus(current.id, status, effectivePublishAt);
-    return c.json(episode);
-  })
-  .put('/:id/audio', requireAdmin, async (c) => {
+  .post(
+    '/',
+    requirePermission('episodes.manage'),
+    zValidator('json', createEpisodeSchema),
+    async (c) => {
+      const input = c.req.valid('json');
+      const repo = getRepository(c.env);
+      if (!(await repo.getShow(input.showId))) {
+        return c.json({ error: 'Unknown show' }, 422);
+      }
+      const episode = await repo.createEpisode(input);
+      return c.json(episode, 201);
+    },
+  )
+  .patch(
+    '/:id',
+    requirePermission('episodes.manage'),
+    zValidator('json', updateEpisodeSchema),
+    async (c) => {
+      const episode = await getRepository(c.env).updateEpisode(
+        c.req.param('id'),
+        c.req.valid('json'),
+      );
+      if (!episode) return c.json({ error: 'Episode not found' }, 404);
+      return c.json(episode);
+    },
+  )
+  .patch(
+    '/:id/status',
+    requirePermission('episodes.manage'),
+    zValidator('json', updateEpisodeStatusSchema),
+    async (c) => {
+      const { status, publishAt } = c.req.valid('json');
+      const repo = getRepository(c.env);
+      const current = await repo.getEpisode(c.req.param('id'));
+      if (!current) return c.json({ error: 'Episode not found' }, 404);
+      if (!canTransitionEpisode(current.status, status)) {
+        return c.json({ error: `Cannot move a ${current.status} episode to ${status}` }, 422);
+      }
+      if (status === 'scheduled' && !publishAt && !current.publishAt) {
+        return c.json({ error: 'Scheduling an episode requires a publishAt timestamp' }, 422);
+      }
+      // Publishing stamps the real go-live moment unless one was supplied.
+      const effectivePublishAt =
+        status === 'published' ? (publishAt ?? new Date().toISOString()) : publishAt;
+      const episode = await repo.updateEpisodeStatus(current.id, status, effectivePublishAt);
+      return c.json(episode);
+    },
+  )
+  .put('/:id/audio', requirePermission('episodes.manage'), async (c) => {
     const bucket = c.env.AUDIO;
     if (!bucket) {
       return c.json({ error: 'Audio storage is not configured (R2 binding missing)' }, 503);
@@ -85,13 +100,13 @@ export const episodesRoute = new Hono<AppEnv>()
   .get('/:id/audio', async (c) => {
     const repo = getRepository(c.env);
     const user = c.get('user');
-    const isAdmin = user?.role === 'admin';
+    const canViewStudioEpisodes = hasPermission(c.get('permissions'), 'episodes.view');
     const episode = await repo.getEpisode(c.req.param('id'));
-    if (!episode || (!isAdmin && episode.status !== 'published')) {
+    if (!episode || (!canViewStudioEpisodes && episode.status !== 'published')) {
       return c.json({ error: 'Episode not found' }, 404);
     }
 
-    if (episode.premium && !isAdmin) {
+    if (episode.premium && !canViewStudioEpisodes) {
       if (!user) return c.json({ error: 'Authentication required' }, 401);
       const subscription = await repo.getSubscriptionForUser(user.id);
       if (subscription?.status !== 'active') {

@@ -1,25 +1,48 @@
-import type {
-  Article,
-  ArticleStatus,
-  Episode,
-  EpisodeStatus,
-  Follow,
-  Plan,
-  PlaybackProgress,
-  Show,
-  Subscription,
-  SubscriptionStatus,
-  User,
+import {
+  PERMISSION_IDS,
+  ROLE_CREATED_AUDIT_ACTION,
+  ROLE_PERMISSION_AUDIT_ACTION,
+  STUDIO_MEMBER_ACCESS_AUDIT_ACTION,
+  STUDIO_MEMBER_INVITATION_AUDIT_ACTION,
+  isPermissionId,
+  normalizePermissionIds,
+  type Article,
+  type ArticleStatus,
+  type Episode,
+  type EpisodeStatus,
+  type Follow,
+  type Plan,
+  type PlaybackProgress,
+  type PermissionId,
+  type RoleCreatedAuditLog,
+  type RoleId,
+  type Show,
+  type RolePermissionAuditLog,
+  type RolePermissionMatrix,
+  type StudioRole,
+  type StudioMember,
+  type StudioMemberAccess,
+  type StudioMemberAccessAuditLog,
+  type StudioMemberInvitationAuditLog,
+  type Subscription,
+  type SubscriberUser,
+  type SubscriptionStatus,
+  type User,
 } from '@mukhtalif/types';
-import type {
-  CreateArticleInput,
-  CreateEpisodeInput,
-  CreateShowInput,
-  UpdateArticleInput,
-  UpdateEpisodeInput,
-  UpdateShowInput,
+import {
+  normalizeArticleAuthorDisplayName,
+  type CreateEpisodeInput,
+  type CreateShowInput,
+  type UpdateEpisodeInput,
+  type UpdateShowInput,
 } from '@mukhtalif/validation';
-import type { ArticleFilter, EpisodeFilter, Repository } from './types';
+import {
+  createArticleRecord,
+  mergeArticleUpdate,
+  refreshNeedsSync,
+} from '../publishing/article-record';
+import { documentFromPlainText } from '../publishing/rich-text';
+import type { ArticleFilter, EpisodeFilter, Repository, StoredMediaAsset } from './types';
 
 /**
  * Seeded development dataset mirroring supabase/migrations/0001_init.sql.
@@ -28,32 +51,97 @@ import type { ArticleFilter, EpisodeFilter, Repository } from './types';
  * player is exercisable before R2 is provisioned.
  */
 
-const users: User[] = [
-  {
-    id: 'usr-admin-1',
-    email: 'studio@mukhtalif.net',
-    displayName: 'فريق مختلف',
-    role: 'admin',
-    locale: 'ar',
-    createdAt: '2026-01-10T08:00:00Z',
-  },
+interface MemoryUser extends User {
+  authUserId: string | null;
+}
+
+const users: MemoryUser[] = [
   {
     id: 'usr-listener-1',
     email: 'sara@example.com',
     displayName: 'سارة الحربي',
-    role: 'listener',
     locale: 'ar',
+    authUserId: '33333333-3333-4333-8333-333333333333',
     createdAt: '2026-02-02T10:30:00Z',
   },
   {
     id: 'usr-listener-2',
     email: 'khalid@example.com',
     displayName: 'خالد العتيبي',
-    role: 'listener',
     locale: 'ar',
+    authUserId: null,
     createdAt: '2026-03-15T14:12:00Z',
   },
 ];
+
+interface MemoryStudioMember extends Omit<StudioMember, 'roleName'> {
+  authUserId: string;
+}
+
+const studioMembers: MemoryStudioMember[] = [
+  {
+    id: 'usr-admin-1',
+    email: 'studio@mukhtalif.net',
+    displayName: 'فريق مختلف',
+    role: 'admin',
+    locale: 'ar',
+    authUserId: '11111111-1111-4111-8111-111111111111',
+    createdAt: '2026-01-10T08:00:00Z',
+  },
+  {
+    id: 'usr-editor-1',
+    email: 'editor@mukhtalif.net',
+    displayName: 'محرر مختلف',
+    role: 'editor',
+    locale: 'ar',
+    authUserId: '22222222-2222-4222-8222-222222222222',
+    createdAt: '2026-01-11T08:00:00Z',
+  },
+];
+
+const studioMemberAccessAuditLogs: StudioMemberAccessAuditLog[] = [];
+const studioMemberInvitationAuditLogs: StudioMemberInvitationAuditLog[] = [];
+const roleCreatedAuditLogs: RoleCreatedAuditLog[] = [];
+const rolePermissionAuditLogs: RolePermissionAuditLog[] = [];
+
+type MemoryRole = Omit<StudioRole, 'permissions' | 'memberCount'>;
+
+const roleSeedCreatedAt = '2026-01-01T00:00:00Z';
+const roles: MemoryRole[] = [
+  {
+    id: 'admin',
+    name: 'المشرف العام',
+    description: 'صلاحيات النظام الكاملة والمحمية.',
+    isSystem: true,
+    isProtected: true,
+    createdAt: roleSeedCreatedAt,
+    updatedAt: roleSeedCreatedAt,
+  },
+  {
+    id: 'editor',
+    name: 'مدير المحتوى',
+    description: 'إدارة المحتوى والبرامج والحلقات.',
+    isSystem: true,
+    isProtected: false,
+    createdAt: roleSeedCreatedAt,
+    updatedAt: roleSeedCreatedAt,
+  },
+];
+
+const rolePermissionMatrix: RolePermissionMatrix = {
+  admin: [...PERMISSION_IDS],
+  editor: [
+    'overview.view',
+    'episodes.view',
+    'episodes.manage',
+    'shows.view',
+    'shows.manage',
+    'guests.view',
+    'guests.manage',
+    'articles.view',
+    'articles.manage',
+  ],
+};
 
 const shows: Show[] = [
   {
@@ -231,33 +319,45 @@ const episodes: Episode[] = [
   },
 ];
 
-const articles: Article[] = [
+const firstArticleBody =
+  'الأشهر الثلاثة الأولى تحدد صورتك المهنية لسنوات. في هذا المقال نلخص ما ينصح به ضيوف مختلف: افهم قبل أن تقترح، وابنِ علاقات قبل أن تحتاجها، ووثّق أثرك من الأسبوع الأول.';
+const firstArticle = createArticleRecord(
+  'art-1',
   {
-    id: 'art-1',
     slug: 'first-90-days',
-    titleAr: 'أول ٩٠ يومًا في وظيفتك الجديدة',
-    bodyAr:
-      'الأشهر الثلاثة الأولى تحدد صورتك المهنية لسنوات. في هذا المقال نلخص ما ينصح به ضيوف مختلف: افهم قبل أن تقترح، وابنِ علاقات قبل أن تحتاجها، ووثّق أثرك من الأسبوع الأول.',
-    status: 'published',
-    publishedAt: '2026-07-20T08:00:00Z',
-    createdAt: '2026-07-18T08:00:00Z',
+    titleAr: 'أول 90 يومًا في وظيفتك الجديدة',
+    author: { type: 'custom', displayName: 'فريق مختلف' },
+    content: documentFromPlainText(firstArticleBody),
+    seo: { description: firstArticleBody.slice(0, 160) },
   },
-  {
-    id: 'art-2',
-    slug: 'salary-negotiation',
-    titleAr: 'التفاوض على الراتب: دليل عملي',
-    bodyAr: 'مسودة قيد المراجعة التحريرية.',
-    status: 'draft',
-    createdAt: '2026-08-03T08:00:00Z',
-  },
+  '2026-07-18T08:00:00Z',
+);
+firstArticle.status = 'published';
+firstArticle.publishedAt = '2026-07-20T08:00:00Z';
+
+const articles: Article[] = [
+  firstArticle,
+  createArticleRecord(
+    'art-2',
+    {
+      slug: 'salary-negotiation',
+      titleAr: 'التفاوض على الراتب: دليل عملي',
+      author: { type: 'custom', displayName: 'فريق مختلف' },
+      content: documentFromPlainText('مسودة قيد المراجعة التحريرية.'),
+    },
+    '2026-08-03T08:00:00Z',
+  ),
 ];
+const articleNewsletterSyncTokens = new Map<string, string>();
+const articleNewsletterSendLeases = new Map<string, { token: string; startedAt: string }>();
+const mediaAssets: StoredMediaAsset[] = [];
 
 const plans: Plan[] = [
   {
     id: 'pln-plus',
     nameAr: 'مختلف بلس',
     nameEn: 'Mukhtalif Plus',
-    priceMinor: 1900,
+    priceMinor: 2900,
     currency: 'SAR',
     interval: 'month',
   },
@@ -294,16 +394,306 @@ function id(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
+function memoryRole(roleId: RoleId): MemoryRole | undefined {
+  return roles.find((role) => role.id === roleId);
+}
+
+function permissionsForRole(roleId: RoleId): PermissionId[] {
+  return [...(rolePermissionMatrix[roleId] ?? [])];
+}
+
+function normalizeRoleName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('ar');
+}
+
+function hasValidPermissionClosure(permissions: readonly PermissionId[]): boolean {
+  return (
+    new Set(permissions).size === permissions.length &&
+    permissions.every(isPermissionId) &&
+    permissions.every(
+      (permission) =>
+        !permission.endsWith('.manage') ||
+        permissions.includes(permission.replace(/\.manage$/, '.view') as PermissionId),
+    )
+  );
+}
+
+function canManageAccess(member: MemoryStudioMember | undefined): boolean {
+  return (
+    member?.role === 'admin' || permissionsForRole(member?.role ?? '').includes('access.manage')
+  );
+}
+
+function toStudioRole(role: MemoryRole): StudioRole {
+  return {
+    ...role,
+    permissions: permissionsForRole(role.id),
+    memberCount: studioMembers.filter((member) => member.role === role.id).length,
+  };
+}
+
+function toUser(user: MemoryUser): User {
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    locale: user.locale,
+    createdAt: user.createdAt,
+  };
+}
+
+function toStudioMember(member: MemoryStudioMember): StudioMember {
+  return {
+    id: member.id,
+    email: member.email,
+    displayName: member.displayName,
+    role: member.role,
+    roleName: memoryRole(member.role)?.name ?? member.role,
+    locale: member.locale,
+    createdAt: member.createdAt,
+  };
+}
+
+function toStudioMemberAccess(member: MemoryStudioMember): StudioMemberAccess {
+  return { ...toStudioMember(member), authLinked: true };
+}
+
+function toSubscriberUser(user: MemoryUser): SubscriberUser {
+  return toUser(user);
+}
+
 export function createMemoryRepository(): Repository {
   return {
     async getUser(userId) {
-      return users.find((u) => u.id === userId) ?? null;
+      const user = users.find((candidate) => candidate.id === userId);
+      return user ? toUser(user) : null;
     },
-    async getUserByEmail(email) {
-      return users.find((u) => u.email === email) ?? null;
+    async getUserByAuthId(authUserId) {
+      const user = users.find((candidate) => candidate.authUserId === authUserId);
+      return user ? toUser(user) : null;
     },
-    async listUsers() {
-      return [...users];
+    async listSubscriberUsers() {
+      return users.map(toSubscriberUser);
+    },
+    async getStudioMember(studioMemberId) {
+      const member = studioMembers.find((candidate) => candidate.id === studioMemberId);
+      return member ? toStudioMember(member) : null;
+    },
+    async getStudioMemberByAuthId(authUserId) {
+      const member = studioMembers.find((candidate) => candidate.authUserId === authUserId);
+      return member ? toStudioMember(member) : null;
+    },
+    async listStudioMembers() {
+      return studioMembers.map(toStudioMemberAccess);
+    },
+    async inviteStudioMember(actorStudioMemberId, input, requestId) {
+      const actor = studioMembers.find((candidate) => candidate.id === actorStudioMemberId);
+      if (!actor || !canManageAccess(actor)) return { status: 'forbidden' };
+
+      const selectedRole = memoryRole(input.role);
+      if (!selectedRole) return { status: 'role_not_found' };
+      if (selectedRole.isProtected && actor?.role !== 'admin') {
+        return { status: 'protected_role' };
+      }
+
+      const normalizedEmail = input.email.trim().toLowerCase();
+      if (studioMembers.some((candidate) => candidate.email.toLowerCase() === normalizedEmail)) {
+        return { status: 'duplicate_email' };
+      }
+      if (
+        users.some(
+          (candidate) =>
+            candidate.authUserId !== null && candidate.email.toLowerCase() === normalizedEmail,
+        )
+      ) {
+        // Supabase Auth owns email uniqueness. An existing app identity is not
+        // promoted or linked implicitly to Studio membership.
+        return { status: 'auth_identity_exists' };
+      }
+
+      const createdAt = new Date().toISOString();
+      const member: MemoryStudioMember = {
+        id: id('stm'),
+        authUserId: crypto.randomUUID(),
+        displayName: input.displayName.trim(),
+        email: normalizedEmail,
+        role: input.role,
+        locale: input.locale,
+        createdAt,
+      };
+      studioMembers.push(member);
+      studioMemberInvitationAuditLogs.unshift({
+        id: id('invite-audit'),
+        actorStudioMemberId: actor.id,
+        action: STUDIO_MEMBER_INVITATION_AUDIT_ACTION,
+        targetStudioMemberId: member.id,
+        invitedEmail: member.email,
+        assignedRole: member.role,
+        locale: member.locale,
+        requestId,
+        createdAt,
+      });
+
+      return { status: 'created', member: toStudioMemberAccess(member) };
+    },
+    async changeStudioMemberRole(actorStudioMemberId, targetStudioMemberId, role, requestId) {
+      const actor = studioMembers.find((candidate) => candidate.id === actorStudioMemberId);
+      if (!actor || !canManageAccess(actor)) return { status: 'forbidden' };
+
+      const target = studioMembers.find((candidate) => candidate.id === targetStudioMemberId);
+      if (!target) return { status: 'not_found' };
+      const selectedRole = memoryRole(role);
+      if (!selectedRole) return { status: 'role_not_found' };
+      if (actor.id === target.id) return { status: 'self_demotion' };
+      if ((target.role === 'admin' || selectedRole.isProtected) && actor.role !== 'admin') {
+        return { status: 'protected_role' };
+      }
+      if (target.role === role) {
+        return { status: 'unchanged', member: toStudioMemberAccess(target) };
+      }
+      if (
+        target.role === 'admin' &&
+        role !== 'admin' &&
+        studioMembers.filter((candidate) => candidate.role === 'admin').length <= 1
+      ) {
+        return { status: 'last_admin' };
+      }
+
+      const previousRole = target.role;
+      target.role = role;
+      studioMemberAccessAuditLogs.unshift({
+        id: id('audit'),
+        actorStudioMemberId: actor.id,
+        action: STUDIO_MEMBER_ACCESS_AUDIT_ACTION,
+        targetStudioMemberId: target.id,
+        previousRole,
+        newRole: role,
+        requestId,
+        createdAt: new Date().toISOString(),
+      });
+      return { status: 'updated', member: toStudioMemberAccess(target) };
+    },
+    async listStudioMemberAccessAuditLogs() {
+      return studioMemberAccessAuditLogs.map((entry) => ({ ...entry }));
+    },
+    async listStudioMemberInvitationAuditLogs() {
+      return studioMemberInvitationAuditLogs.map((entry) => ({ ...entry }));
+    },
+    async listRoles() {
+      return roles.map(toStudioRole);
+    },
+    async getRole(roleId) {
+      const role = memoryRole(roleId);
+      return role ? toStudioRole(role) : null;
+    },
+    async createRole(actorStudioMemberId, input, requestId) {
+      const actor = studioMembers.find((candidate) => candidate.id === actorStudioMemberId);
+      if (!actor || !canManageAccess(actor)) return { status: 'forbidden' };
+      const normalizedName = input.name.trim().replace(/\s+/g, ' ');
+      const description = input.description?.trim() ?? '';
+      if (
+        normalizedName.length < 2 ||
+        normalizedName.length > 60 ||
+        description.length > 240 ||
+        !requestId
+      ) {
+        return { status: 'invalid_input' };
+      }
+      if (!hasValidPermissionClosure(input.permissions)) {
+        return { status: 'invalid_permissions' };
+      }
+
+      if (
+        roles.some((role) => normalizeRoleName(role.name) === normalizeRoleName(normalizedName))
+      ) {
+        return { status: 'duplicate_name' };
+      }
+
+      const createdAt = new Date().toISOString();
+      const role: MemoryRole = {
+        id: `role-${crypto.randomUUID().replaceAll('-', '')}`,
+        name: normalizedName,
+        description,
+        isSystem: false,
+        isProtected: false,
+        createdAt,
+        updatedAt: createdAt,
+      };
+      roles.push(role);
+      rolePermissionMatrix[role.id] = normalizePermissionIds(input.permissions);
+      roleCreatedAuditLogs.unshift({
+        id: id('role-audit'),
+        actorStudioMemberId: actor.id,
+        action: ROLE_CREATED_AUDIT_ACTION,
+        targetRole: role.id,
+        roleName: role.name,
+        initialPermissions: permissionsForRole(role.id),
+        requestId,
+        createdAt,
+      });
+      return { status: 'created', role: toStudioRole(role) };
+    },
+    async resolveRolePermissions(role) {
+      return permissionsForRole(role);
+    },
+    async getRolePermissionMatrix() {
+      return Object.fromEntries(
+        roles.map((role) => [role.id, permissionsForRole(role.id)]),
+      ) as RolePermissionMatrix;
+    },
+    async changeRolePermissions(actorStudioMemberId, role, permissions, requestId) {
+      const actor = studioMembers.find((candidate) => candidate.id === actorStudioMemberId);
+      if (!actor || !canManageAccess(actor)) return { status: 'forbidden' };
+      const selectedRole = memoryRole(role);
+      if (!selectedRole) return { status: 'not_found' };
+      if (selectedRole.isProtected) return { status: 'immutable_role' };
+      if (!hasValidPermissionClosure(permissions)) {
+        return { status: 'invalid_permissions' };
+      }
+
+      const normalized = normalizePermissionIds(permissions);
+      const previousPermissions = permissionsForRole(role);
+      const unchanged =
+        previousPermissions.length === normalized.length &&
+        previousPermissions.every((permission, index) => permission === normalized[index]);
+
+      if (unchanged) {
+        return {
+          status: 'unchanged',
+          role: toStudioRole(selectedRole),
+        };
+      }
+
+      rolePermissionMatrix[role] = normalized;
+      selectedRole.updatedAt = new Date().toISOString();
+      rolePermissionAuditLogs.unshift({
+        id: id('permission-audit'),
+        actorStudioMemberId: actor.id,
+        action: ROLE_PERMISSION_AUDIT_ACTION,
+        targetRole: role,
+        previousPermissions,
+        newPermissions: [...normalized],
+        requestId,
+        createdAt: new Date().toISOString(),
+      });
+
+      return {
+        status: 'updated',
+        role: toStudioRole(selectedRole),
+      };
+    },
+    async listRoleCreatedAuditLogs() {
+      return roleCreatedAuditLogs.map((entry) => ({
+        ...entry,
+        initialPermissions: [...entry.initialPermissions],
+      }));
+    },
+    async listRolePermissionAuditLogs() {
+      return rolePermissionAuditLogs.map((entry) => ({
+        ...entry,
+        previousPermissions: [...entry.previousPermissions],
+        newPermissions: [...entry.newPermissions],
+      }));
     },
 
     async listShows() {
@@ -366,10 +756,71 @@ export function createMemoryRepository(): Repository {
       return episode;
     },
 
+    async listReadyMediaAssets() {
+      return mediaAssets
+        .filter((asset) => asset.status === 'ready')
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    },
+    async getMediaAsset(mediaId) {
+      return mediaAssets.find((asset) => asset.id === mediaId) ?? null;
+    },
+    async createMediaUpload(input) {
+      const asset: StoredMediaAsset = {
+        ...input,
+        kind: 'image',
+        byteSize: input.expectedByteSize,
+        status: 'pending',
+      };
+      mediaAssets.push(asset);
+      return asset;
+    },
+    async claimMediaUpload(mediaId, staleBefore) {
+      const asset = mediaAssets.find((candidate) => candidate.id === mediaId);
+      if (!asset || asset.status === 'ready') return null;
+      if (
+        asset.status === 'uploading' &&
+        (!asset.uploadStartedAt || Date.parse(asset.uploadStartedAt) > Date.parse(staleBefore))
+      ) {
+        return null;
+      }
+      asset.status = 'uploading';
+      asset.uploadStartedAt = new Date().toISOString();
+      asset.uploadToken = crypto.randomUUID();
+      return { asset, uploadToken: asset.uploadToken };
+    },
+    async completeMediaUpload(mediaId, byteSize, uploadToken, storageKey) {
+      const asset = mediaAssets.find((candidate) => candidate.id === mediaId);
+      if (!asset || asset.status !== 'uploading' || asset.uploadToken !== uploadToken) {
+        return null;
+      }
+      asset.status = 'ready';
+      asset.byteSize = byteSize;
+      asset.storageKey = storageKey;
+      asset.uploadStartedAt = undefined;
+      asset.uploadToken = undefined;
+      return asset;
+    },
+    async releaseMediaUpload(mediaId, uploadToken) {
+      const asset = mediaAssets.find((candidate) => candidate.id === mediaId);
+      if (asset?.status === 'uploading' && asset.uploadToken === uploadToken) {
+        asset.status = 'pending';
+        asset.uploadStartedAt = undefined;
+        asset.uploadToken = undefined;
+      }
+    },
+
     async listArticles(filter: ArticleFilter) {
       return articles
         .filter((a) => (filter.status ? a.status === filter.status : true))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    },
+    async listArticleAuthorCandidates() {
+      return studioMembers
+        .flatMap((member) => {
+          const displayName = normalizeArticleAuthorDisplayName(member.displayName);
+          return displayName ? [{ studioMemberId: member.id, displayName }] : [];
+        })
+        .sort((a, b) => a.displayName.localeCompare(b.displayName, 'ar'));
     },
     async getArticle(articleId) {
       return articles.find((a) => a.id === articleId) ?? null;
@@ -377,27 +828,229 @@ export function createMemoryRepository(): Repository {
     async getArticleBySlug(slug) {
       return articles.find((a) => a.slug === slug) ?? null;
     },
-    async createArticle(input: CreateArticleInput) {
-      const article: Article = {
-        id: id('art'),
-        status: 'draft',
-        createdAt: new Date().toISOString(),
-        ...input,
-      };
+    async createArticle(input) {
+      const article = createArticleRecord(id('art'), input, new Date().toISOString());
       articles.push(article);
       return article;
     },
-    async updateArticle(articleId, input: UpdateArticleInput) {
-      const article = articles.find((a) => a.id === articleId);
-      if (!article) return null;
-      Object.assign(article, input);
+    async updateArticle(articleId, input) {
+      const index = articles.findIndex((article) => article.id === articleId);
+      if (index < 0) return null;
+      if (articles[index].version !== input.expectedVersion) return null;
+      const article = mergeArticleUpdate(articles[index], input, new Date().toISOString());
+      articles[index] = article;
       return article;
     },
-    async updateArticleStatus(articleId, status: ArticleStatus, publishedAt?: string) {
+    async updateArticleStatus(
+      articleId,
+      status: ArticleStatus,
+      expectedVersion: number,
+      publishedAt?: string,
+    ) {
       const article = articles.find((a) => a.id === articleId);
       if (!article) return null;
+      if (article.version !== expectedVersion) return null;
       article.status = status;
       if (publishedAt !== undefined) article.publishedAt = publishedAt;
+      article.version += 1;
+      article.updatedAt = new Date().toISOString();
+      Object.assign(article, refreshNeedsSync(article));
+      return article;
+    },
+    async claimArticleNewsletterSync(articleId, expectedVersion) {
+      const article = articles.find((item) => item.id === articleId);
+      if (!article) return { status: 'not_found' };
+      if (article.version !== expectedVersion) {
+        return { status: 'version_conflict', article };
+      }
+      if (article.newsletter.status === 'sent') return { status: 'sent', article };
+      if (article.newsletter.status === 'syncing') {
+        const startedAt = article.newsletter.syncStartedAt
+          ? Date.parse(article.newsletter.syncStartedAt)
+          : 0;
+        if (Date.now() - startedAt < 5 * 60_000) {
+          return { status: 'sync_in_progress', article };
+        }
+        if (!article.newsletter.campaignId) {
+          article.newsletter.status = 'sync_unknown';
+          article.newsletter.syncStartedAt = undefined;
+          articleNewsletterSyncTokens.delete(articleId);
+          article.newsletter.needsSync = true;
+          return { status: 'sync_unknown', article };
+        }
+        article.newsletter.syncStartedAt = new Date().toISOString();
+        const syncToken = crypto.randomUUID();
+        articleNewsletterSyncTokens.set(articleId, syncToken);
+        return { status: 'claimed', article, syncToken };
+      }
+      if (
+        !article.newsletter.enabled ||
+        !['draft', 'campaign_created'].includes(article.newsletter.status)
+      ) {
+        return { status: 'not_ready', article };
+      }
+      article.newsletter.status = 'syncing';
+      article.newsletter.syncStartedAt = new Date().toISOString();
+      const syncToken = crypto.randomUUID();
+      articleNewsletterSyncTokens.set(articleId, syncToken);
+      article.updatedAt = article.newsletter.syncStartedAt;
+      return { status: 'claimed', article, syncToken };
+    },
+    async setArticleNewsletterCampaign(articleId, campaignId, syncToken) {
+      const article = articles.find((item) => item.id === articleId);
+      if (!article || articleNewsletterSyncTokens.get(articleId) !== syncToken) return null;
+      article.newsletter.campaignId = campaignId;
+      article.newsletter.status = 'syncing';
+      article.newsletter.syncedVersion = undefined;
+      article.newsletter.needsSync = true;
+      article.updatedAt = new Date().toISOString();
+      return article;
+    },
+    async markArticleNewsletterSynced(articleId, campaignId, expectedVersion, syncToken) {
+      const article = articles.find((item) => item.id === articleId);
+      if (!article || article.version !== expectedVersion) return null;
+      if (
+        article.newsletter.campaignId !== campaignId ||
+        article.newsletter.status === 'sent' ||
+        articleNewsletterSyncTokens.get(articleId) !== syncToken
+      ) {
+        return null;
+      }
+      article.newsletter.status = 'campaign_created';
+      article.newsletter.syncedVersion = expectedVersion;
+      article.newsletter.needsSync = false;
+      article.newsletter.syncStartedAt = undefined;
+      articleNewsletterSyncTokens.delete(articleId);
+      article.updatedAt = new Date().toISOString();
+      return article;
+    },
+    async claimArticleNewsletterSend(articleId, expectedVersion, expectedCampaignId) {
+      const article = articles.find((item) => item.id === articleId);
+      if (!article) return { status: 'not_found' };
+      if (
+        article.version !== expectedVersion ||
+        article.newsletter.campaignId !== expectedCampaignId
+      ) {
+        return { status: 'confirmation_stale', article };
+      }
+      if (article.newsletter.status === 'sent') return { status: 'already_sent', article };
+      if (article.newsletter.status === 'sending') {
+        return { status: 'send_in_progress', article };
+      }
+      if (!article.newsletter.campaignId || article.newsletter.status !== 'campaign_created') {
+        return { status: 'not_ready', article };
+      }
+      if (article.newsletter.syncedVersion !== article.version) {
+        return { status: 'sync_required', article };
+      }
+      const startedAt = new Date().toISOString();
+      const sendToken = crypto.randomUUID();
+      article.newsletter.status = 'sending';
+      article.updatedAt = startedAt;
+      articleNewsletterSendLeases.set(articleId, { token: sendToken, startedAt });
+      return { status: 'claimed', article, sendToken };
+    },
+    async touchArticleNewsletterSendLease(articleId, sendToken) {
+      const article = articles.find((item) => item.id === articleId);
+      const lease = articleNewsletterSendLeases.get(articleId);
+      if (!article || article.newsletter.status !== 'sending' || lease?.token !== sendToken) {
+        return null;
+      }
+      const startedAt = new Date().toISOString();
+      articleNewsletterSendLeases.set(articleId, { token: sendToken, startedAt });
+      article.updatedAt = startedAt;
+      return article;
+    },
+    async completeArticleNewsletterSend(articleId, sentAt, sendToken) {
+      const article = articles.find((item) => item.id === articleId);
+      if (
+        !article ||
+        article.newsletter.status !== 'sending' ||
+        articleNewsletterSendLeases.get(articleId)?.token !== sendToken
+      ) {
+        return null;
+      }
+      article.newsletter.status = 'sent';
+      article.newsletter.sentAt = sentAt;
+      article.newsletter.needsSync = false;
+      article.newsletter.syncStartedAt = undefined;
+      articleNewsletterSyncTokens.delete(articleId);
+      articleNewsletterSendLeases.delete(articleId);
+      article.updatedAt = new Date().toISOString();
+      return article;
+    },
+    async reconcileArticleNewsletterSent(articleId, sentAt) {
+      const article = articles.find((item) => item.id === articleId);
+      if (!article) return null;
+      article.newsletter.status = 'sent';
+      article.newsletter.sentAt = article.newsletter.sentAt ?? sentAt;
+      article.newsletter.needsSync = false;
+      article.newsletter.syncStartedAt = undefined;
+      articleNewsletterSyncTokens.delete(articleId);
+      articleNewsletterSendLeases.delete(articleId);
+      article.updatedAt = new Date().toISOString();
+      return article;
+    },
+    async releaseArticleNewsletterSend(articleId, sendToken) {
+      const article = articles.find((item) => item.id === articleId);
+      if (
+        !article ||
+        article.newsletter.status !== 'sending' ||
+        articleNewsletterSendLeases.get(articleId)?.token !== sendToken
+      ) {
+        return null;
+      }
+      article.newsletter.status = 'campaign_created';
+      articleNewsletterSendLeases.delete(articleId);
+      article.updatedAt = new Date().toISOString();
+      return article;
+    },
+    async recoverStaleArticleNewsletterSend(articleId, staleBefore) {
+      const article = articles.find((item) => item.id === articleId);
+      const lease = articleNewsletterSendLeases.get(articleId);
+      if (
+        !article ||
+        article.newsletter.status !== 'sending' ||
+        !lease ||
+        Date.parse(lease.startedAt) > Date.parse(staleBefore)
+      ) {
+        return null;
+      }
+      article.newsletter.status = 'campaign_created';
+      articleNewsletterSendLeases.delete(articleId);
+      article.updatedAt = new Date().toISOString();
+      return article;
+    },
+    async releaseArticleNewsletterSync(articleId, syncToken) {
+      const article = articles.find((item) => item.id === articleId);
+      if (
+        !article ||
+        article.newsletter.status !== 'syncing' ||
+        articleNewsletterSyncTokens.get(articleId) !== syncToken
+      ) {
+        return null;
+      }
+      article.newsletter.status = article.newsletter.campaignId ? 'campaign_created' : 'draft';
+      article.newsletter.needsSync = Boolean(article.newsletter.campaignId);
+      article.newsletter.syncStartedAt = undefined;
+      articleNewsletterSyncTokens.delete(articleId);
+      article.updatedAt = new Date().toISOString();
+      return article;
+    },
+    async markArticleNewsletterSyncUnknown(articleId, syncToken) {
+      const article = articles.find((item) => item.id === articleId);
+      if (
+        !article ||
+        article.newsletter.status !== 'syncing' ||
+        articleNewsletterSyncTokens.get(articleId) !== syncToken
+      ) {
+        return null;
+      }
+      article.newsletter.status = 'sync_unknown';
+      article.newsletter.needsSync = true;
+      article.newsletter.syncStartedAt = undefined;
+      articleNewsletterSyncTokens.delete(articleId);
+      article.updatedAt = new Date().toISOString();
       return article;
     },
 

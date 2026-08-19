@@ -16,7 +16,8 @@ export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 export const SUBSCRIPTION_TRANSITIONS: Record<SubscriptionStatus, readonly SubscriptionStatus[]> = {
   active: ['past_due', 'canceled'],
   past_due: ['active', 'canceled'],
-  canceled: [],
+  // Admin staff may restore a canceled subscription after confirming entitlement.
+  canceled: ['active'],
 };
 
 export function canTransitionSubscription(

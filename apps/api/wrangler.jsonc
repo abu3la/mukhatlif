@@ -3,12 +3,31 @@
   "name": "mukhtalif-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
+  "vars": {
+    "APP_ENV": "production",
+    "ALLOW_DEV_AUTH": "false",
+  },
   // Supabase URL and service-role key are secrets:
   //   local dev  -> apps/api/.dev.vars (copy .dev.vars.example)
   //   production -> wrangler secret put SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+  // Set STUDIO_INVITE_REDIRECT_URL to the approved HTTPS login/invite-acceptance
+  // page, and add the same URL to Supabase Auth's redirect allowlist.
+  //
+  // Configure CORS_ALLOWED_ORIGINS as a comma-separated allowlist for the
+  // deployed admin and public web origins. With no value, browsers receive no
+  // cross-origin access.
+  //
+  // Mailchimp is server-side only. Configure MAILCHIMP_API_KEY with
+  // `wrangler secret put`, and configure MAILCHIMP_SERVER_PREFIX,
+  // MAILCHIMP_AUDIENCE_ID, MAILCHIMP_FROM_NAME, MAILCHIMP_REPLY_TO and
+  // PUBLIC_WEB_URL as deployment variables. All six are required together.
   //
   // Episode audio streams from R2. To enable it, create the bucket
   // (wrangler r2 bucket create mukhtalif-audio) and uncomment:
   // "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "mukhtalif-audio" }],
-  "observability": { "enabled": true }
+  //
+  // Sanitized article images use a separate private R2 bucket. Bind it as
+  // MEDIA and set MEDIA_PUBLIC_ORIGIN to the deployed API HTTPS origin:
+  // "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "mukhtalif-media" }],
+  "observability": { "enabled": true },
 }

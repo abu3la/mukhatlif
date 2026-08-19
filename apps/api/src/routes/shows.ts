@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { createShowSchema, updateShowSchema } from '@mukhtalif/validation';
-import { requireAdmin, type AppEnv } from '../auth';
+import { requirePermission, type AppEnv } from '../auth';
 import { getRepository } from '../repo';
 
 export const showsRoute = new Hono<AppEnv>()
@@ -16,7 +16,7 @@ export const showsRoute = new Hono<AppEnv>()
     if (!show) return c.json({ error: 'Show not found' }, 404);
     return c.json(show);
   })
-  .post('/', requireAdmin, zValidator('json', createShowSchema), async (c) => {
+  .post('/', requirePermission('shows.manage'), zValidator('json', createShowSchema), async (c) => {
     const input = c.req.valid('json');
     const repo = getRepository(c.env);
     if (await repo.getShowBySlug(input.slug)) {
@@ -25,8 +25,13 @@ export const showsRoute = new Hono<AppEnv>()
     const show = await repo.createShow(input);
     return c.json(show, 201);
   })
-  .patch('/:id', requireAdmin, zValidator('json', updateShowSchema), async (c) => {
-    const show = await getRepository(c.env).updateShow(c.req.param('id'), c.req.valid('json'));
-    if (!show) return c.json({ error: 'Show not found' }, 404);
-    return c.json(show);
-  });
+  .patch(
+    '/:id',
+    requirePermission('shows.manage'),
+    zValidator('json', updateShowSchema),
+    async (c) => {
+      const show = await getRepository(c.env).updateShow(c.req.param('id'), c.req.valid('json'));
+      if (!show) return c.json({ error: 'Show not found' }, 404);
+      return c.json(show);
+    },
+  );

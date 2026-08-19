@@ -1,4 +1,22 @@
-# Copy to .dev.vars and fill in from your Supabase project settings.
-# Leave unset to run against the in-memory seeded dataset.
+# Copy to .dev.vars. This explicit gate enables the seeded local identity flow.
+APP_ENV="development"
+ALLOW_DEV_AUTH="true"
+CORS_ALLOWED_ORIGINS="http://localhost:3001,http://127.0.0.1:3001"
+
+# Fill these together to use Supabase instead of the in-memory repository.
 SUPABASE_URL=""
 SUPABASE_SERVICE_ROLE_KEY=""
+STUDIO_INVITE_REDIRECT_URL="http://127.0.0.1:3001/login"
+
+# Optional Mailchimp integration. Leave all six blank for the local preview-only flow.
+# Configure all six together to create and send real Mailchimp campaigns.
+MAILCHIMP_API_KEY=""
+MAILCHIMP_SERVER_PREFIX=""
+MAILCHIMP_AUDIENCE_ID=""
+MAILCHIMP_FROM_NAME=""
+MAILCHIMP_REPLY_TO=""
+PUBLIC_WEB_URL=""
+
+# Required outside development whenever the MEDIA R2 binding is enabled.
+# Local development derives the current Worker origin when this is blank.
+MEDIA_PUBLIC_ORIGIN=""

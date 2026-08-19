@@ -1,4 +1,4 @@
-import type { Env } from '../env';
+import { ApiConfigurationError, getSupabaseCredentials, isDevAuthEnabled, type Env } from '../env';
 import { createMemoryRepository } from './memory';
 import { createSupabaseRepository } from './supabase';
 import type { Repository } from './types';
@@ -6,12 +6,33 @@ import type { Repository } from './types';
 let memory: Repository | null = null;
 
 export function getRepository(env: Env): Repository {
-  if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
-    return createSupabaseRepository(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = getSupabaseCredentials(env);
+  if (supabase) {
+    return createSupabaseRepository(supabase.url, supabase.serviceRoleKey);
   }
-  // Dev fallback: no credentials yet, serve the seeded in-memory dataset.
+
+  if (!isDevAuthEnabled(env)) {
+    throw new ApiConfigurationError(
+      'Supabase is not configured and local development authentication is disabled.',
+    );
+  }
+
+  // The seeded repository is available only behind an explicit local-dev gate.
   memory ??= createMemoryRepository();
   return memory;
 }
 
-export type { Repository, EpisodeFilter, ArticleFilter } from './types';
+export type {
+  Repository,
+  EpisodeFilter,
+  ArticleFilter,
+  ChangeRolePermissionsResult,
+  CreateRoleResult,
+  ChangeStudioMemberRoleResult,
+  InviteStudioMemberResult,
+  NewsletterSendClaimResult,
+  NewsletterSyncClaimResult,
+  StoredMediaAsset,
+  CreateMediaUploadRecordInput,
+  MediaUploadClaim,
+} from './types';

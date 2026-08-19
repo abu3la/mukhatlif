@@ -9,7 +9,7 @@ export const EPISODE_TRANSITIONS: Record<EpisodeStatus, readonly EpisodeStatus[]
   draft: ['scheduled', 'published'],
   scheduled: ['draft', 'published'],
   published: ['archived'],
-  archived: ['published'],
+  archived: ['draft'],
 };
 
 export function canTransitionEpisode(from: EpisodeStatus, to: EpisodeStatus): boolean {
