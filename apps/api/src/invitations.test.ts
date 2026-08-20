@@ -33,7 +33,7 @@ const accept = (identityId: string | undefined, body: unknown) =>
   });
 
 async function inviteMember(email: string): Promise<StudioMemberAccess> {
-  const response = await request('/studio-members', 'usr-admin-1', {
+  const response = await request('/studio/members', 'usr-admin-1', {
     method: 'POST',
     headers: jsonHeaders,
     body: JSON.stringify({
@@ -157,7 +157,7 @@ describe('invitation acceptance', () => {
   it('leaves the invited member out of the active directory count until accepted', async () => {
     const member = await inviteMember('directory@mukhtalif.test');
     const directory = (await (
-      await request('/studio-members', 'usr-admin-1')
+      await request('/studio/members', 'usr-admin-1')
     ).json()) as StudioMemberAccess[];
     const listed = directory.find((candidate) => candidate.id === member.id);
     expect(listed?.status).toBe('invited');

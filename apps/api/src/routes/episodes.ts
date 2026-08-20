@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import {
@@ -18,7 +18,7 @@ import {
   updateEpisodeSchema,
   updateEpisodeStatusSchema,
 } from '@mukhtalif/validation';
-import { hasPermission, requirePermission, type AppEnv } from '../auth';
+import { requirePermission, type AppEnv } from '../auth';
 import { getRepository } from '../repo';
 
 const audioError = (code: string, error: string) => ({ code, error });
@@ -42,15 +42,76 @@ const episodeListQuerySchema = listQuerySchema.extend({
   status: episodeStatusSchema.optional(),
 });
 
-export const episodesRoute = new Hono<AppEnv>()
+/**
+ * Streams episode audio.
+ *
+ * `operatorView` decides whether an unpublished episode is reachable and
+ * whether the premium gate applies. The mounting router passes it in, so a
+ * namespace's audience is a property of where the handler is mounted rather
+ * than a hidden branch on the caller's permissions.
+ */
+function audioHandler(operatorView: boolean) {
+  return async (c: Context<AppEnv>) => {
+    const repo = getRepository(c.env);
+    const user = c.get('user');
+    // The generic Context cannot know this router's path params; every mount
+    // supplies :id, and an empty value simply misses and yields the 404 below.
+    const episode = await repo.getEpisode(c.req.param('id') ?? '');
+    if (!episode || (!operatorView && episode.status !== 'published')) {
+      return c.json({ error: 'Episode not found' }, 404);
+    }
+
+    if (episode.premium && !operatorView) {
+      if (!user) return c.json({ error: 'Authentication required' }, 401);
+      const subscription = await repo.getSubscriptionForUser(user.id);
+      if (subscription?.status !== 'active') {
+        return c.json({ error: 'An active subscription is required for premium episodes' }, 403);
+      }
+    }
+
+    if (episode.audioKey && c.env.AUDIO) {
+      const rangeHeader = c.req.header('range');
+      const match = rangeHeader?.match(/^bytes=(\d+)-(\d*)$/);
+      if (match) {
+        const offset = Number(match[1]);
+        const end = match[2] ? Number(match[2]) : undefined;
+        const object = await c.env.AUDIO.get(episode.audioKey, {
+          range: { offset, length: end !== undefined ? end - offset + 1 : undefined },
+        });
+        if (!object) return c.json({ error: 'Audio object missing' }, 404);
+        const lastByte = end !== undefined ? Math.min(end, object.size - 1) : object.size - 1;
+        return new Response(object.body, {
+          status: 206,
+          headers: {
+            ...audioDeliveryHeaders(object.httpMetadata?.contentType),
+            'content-range': `bytes ${offset}-${lastByte}/${object.size}`,
+          },
+        });
+      }
+      const object = await c.env.AUDIO.get(episode.audioKey);
+      if (!object) return c.json({ error: 'Audio object missing' }, 404);
+      return new Response(object.body, {
+        headers: {
+          ...audioDeliveryHeaders(object.httpMetadata?.contentType),
+          'content-length': String(object.size),
+        },
+      });
+    }
+
+    if (episode.audioUrl) return c.redirect(episode.audioUrl, 302);
+    return c.json({ error: 'No audio available for this episode' }, 404);
+  };
+}
+
+/**
+ * The anonymous catalogue. Published-only unconditionally: no permission can
+ * widen it, so a Studio session browsing the public site is never shown a draft
+ * by accident. That widening is exactly what the deprecated combined router did.
+ */
+export const publicEpisodesRoute = new Hono<AppEnv>()
   .get('/', zValidator('query', episodeListQuerySchema), async (c) => {
     const input = c.req.valid('query');
-    const canViewStudioEpisodes = hasPermission(c.get('permissions'), 'episodes.view');
-    // Listeners only see the published catalog; editors and admins can filter freely.
-    const filter = {
-      showId: input.showId,
-      status: canViewStudioEpisodes ? input.status : ('published' as const),
-    };
+    const filter = { showId: input.showId, status: 'published' as const };
     const repo = getRepository(c.env);
     if (!isPaginatedRequest(input)) return c.json(await repo.listEpisodes(filter));
     const query = resolveListQuery(input);
@@ -58,12 +119,41 @@ export const episodesRoute = new Hono<AppEnv>()
   })
   .get('/:id', async (c) => {
     const episode = await getRepository(c.env).getEpisode(c.req.param('id'));
-    const canViewStudioEpisodes = hasPermission(c.get('permissions'), 'episodes.view');
-    if (!episode || (!canViewStudioEpisodes && episode.status !== 'published')) {
+    if (!episode || episode.status !== 'published') {
       return c.json({ error: 'Episode not found' }, 404);
     }
     return c.json(episode);
   })
+  .get('/:id/audio', audioHandler(false));
+
+/**
+ * Signed-in listener audio. The handler is identical to the public one; the
+ * separate mount exists so the listener namespace owns its own surface guard
+ * and can diverge later without touching the anonymous catalogue.
+ */
+export const appEpisodesRoute = new Hono<AppEnv>().get('/:id/audio', audioHandler(false));
+
+/** Operator management and preview. Every handler requires a permission. */
+export const studioEpisodesRoute = new Hono<AppEnv>()
+  .get(
+    '/',
+    requirePermission('episodes.view'),
+    zValidator('query', episodeListQuerySchema),
+    async (c) => {
+      const input = c.req.valid('query');
+      const filter = { showId: input.showId, status: input.status };
+      const repo = getRepository(c.env);
+      if (!isPaginatedRequest(input)) return c.json(await repo.listEpisodes(filter));
+      const query = resolveListQuery(input);
+      return c.json(toPaginatedList(await repo.listEpisodesPage(filter, query), query));
+    },
+  )
+  .get('/:id', requirePermission('episodes.view'), async (c) => {
+    const episode = await getRepository(c.env).getEpisode(c.req.param('id'));
+    if (!episode) return c.json({ error: 'Episode not found' }, 404);
+    return c.json(episode);
+  })
+  .get('/:id/audio', requirePermission('episodes.view'), audioHandler(true))
   .post(
     '/',
     requirePermission('episodes.manage'),
@@ -166,53 +256,4 @@ export const episodesRoute = new Hono<AppEnv>()
     }
     const episode = await repo.setEpisodeAudioKey(current.id, key);
     return c.json(episode);
-  })
-  .get('/:id/audio', async (c) => {
-    const repo = getRepository(c.env);
-    const user = c.get('user');
-    const canViewStudioEpisodes = hasPermission(c.get('permissions'), 'episodes.view');
-    const episode = await repo.getEpisode(c.req.param('id'));
-    if (!episode || (!canViewStudioEpisodes && episode.status !== 'published')) {
-      return c.json({ error: 'Episode not found' }, 404);
-    }
-
-    if (episode.premium && !canViewStudioEpisodes) {
-      if (!user) return c.json({ error: 'Authentication required' }, 401);
-      const subscription = await repo.getSubscriptionForUser(user.id);
-      if (subscription?.status !== 'active') {
-        return c.json({ error: 'An active subscription is required for premium episodes' }, 403);
-      }
-    }
-
-    if (episode.audioKey && c.env.AUDIO) {
-      const rangeHeader = c.req.header('range');
-      const match = rangeHeader?.match(/^bytes=(\d+)-(\d*)$/);
-      if (match) {
-        const offset = Number(match[1]);
-        const end = match[2] ? Number(match[2]) : undefined;
-        const object = await c.env.AUDIO.get(episode.audioKey, {
-          range: { offset, length: end !== undefined ? end - offset + 1 : undefined },
-        });
-        if (!object) return c.json({ error: 'Audio object missing' }, 404);
-        const lastByte = end !== undefined ? Math.min(end, object.size - 1) : object.size - 1;
-        return new Response(object.body, {
-          status: 206,
-          headers: {
-            ...audioDeliveryHeaders(object.httpMetadata?.contentType),
-            'content-range': `bytes ${offset}-${lastByte}/${object.size}`,
-          },
-        });
-      }
-      const object = await c.env.AUDIO.get(episode.audioKey);
-      if (!object) return c.json({ error: 'Audio object missing' }, 404);
-      return new Response(object.body, {
-        headers: {
-          ...audioDeliveryHeaders(object.httpMetadata?.contentType),
-          'content-length': String(object.size),
-        },
-      });
-    }
-
-    if (episode.audioUrl) return c.redirect(episode.audioUrl, 302);
-    return c.json({ error: 'No audio available for this episode' }, 404);
   });

@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { MiddlewareHandler } from 'hono';
-import type { PermissionId, StudioMember, User } from '@mukhtalif/types';
+import type { ClientSurface, PermissionId, StudioMember, User } from '@mukhtalif/types';
 import { getSupabaseCredentials, isDevAuthEnabled, type Env } from './env';
 import { getRepository } from './repo';
 
@@ -8,6 +8,8 @@ export type AppEnv = {
   Bindings: Env;
   Variables: {
     authUserId: string | null;
+    /** Declared client product, or null when the caller did not say. */
+    clientSurface: ClientSurface | null;
     permissions: PermissionId[];
     studioMember: StudioMember | null;
     user: User | null;

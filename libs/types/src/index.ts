@@ -49,6 +49,13 @@ export {
   isPermissionId,
   normalizePermissionIds,
 } from './permission';
+export type { ApiNamespace, ClientSurface } from './surface';
+export {
+  CLIENT_SURFACES,
+  CLIENT_SURFACE_HEADER,
+  NAMESPACE_SURFACES,
+  isClientSurface,
+} from './surface';
 export type { Show } from './show';
 export type { HomeSummary, PublicEpisode } from './home';
 export type {

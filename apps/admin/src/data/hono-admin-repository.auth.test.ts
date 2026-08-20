@@ -81,7 +81,7 @@ describe('HonoAdminRepository Studio access management', () => {
     expect(requestedUrls).not.toContain('https://api.example.test/me');
   });
 
-  it('reads only Studio members from /studio-members', async () => {
+  it('reads only Studio members from /studio/members', async () => {
     const fetcher = vi
       .fn<typeof fetch>()
       .mockImplementation(async () => Response.json([STUDIO_MEMBER_RESPONSE]));
@@ -103,7 +103,7 @@ describe('HonoAdminRepository Studio access management', () => {
       ],
     });
     expect(fetcher.mock.calls[0]?.[0]).toBe(
-      'https://api.example.test/studio-members',
+      'https://api.example.test/studio/members',
     );
   });
 
@@ -125,7 +125,7 @@ describe('HonoAdminRepository Studio access management', () => {
     });
 
     const [url, init] = fetcher.mock.calls[0];
-    expect(url).toBe('https://api.example.test/studio-members/target/role');
+    expect(url).toBe('https://api.example.test/studio/members/target/role');
     expect(init?.method).toBe('PATCH');
     expect(init?.body).toBe(JSON.stringify({ role: 'editor' }));
     expect(new Headers(init?.headers).get('x-dev-user')).toBe('admin-subject');
@@ -167,7 +167,7 @@ describe('HonoAdminRepository Studio access management', () => {
     });
 
     const [url, init] = fetcher.mock.calls[0];
-    expect(url).toBe('https://api.example.test/studio-members');
+    expect(url).toBe('https://api.example.test/studio/members');
     expect(init?.method).toBe('POST');
     expect(init?.body).toBe(
       JSON.stringify({
@@ -275,7 +275,7 @@ describe('HonoAdminRepository Studio access management', () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it('keeps the subscriber directory on the app-user endpoint', async () => {
+  it('reads the subscriber directory from app users, never Studio members', async () => {
     const requestedUrls: string[] = [];
     const appUser = {
       id: 'listener',
@@ -300,8 +300,8 @@ describe('HonoAdminRepository Studio access management', () => {
             },
           ]);
         }
-        if (url.endsWith('/subscriber-users')) return Response.json([appUser]);
-        if (url.endsWith('/subscriptions')) return Response.json([]);
+        if (url.endsWith('/studio/subscribers')) return Response.json([appUser]);
+        if (url.endsWith('/studio/subscriptions')) return Response.json([]);
         throw new Error(`Unexpected URL: ${url}`);
       }) as typeof fetch,
     });
@@ -316,8 +316,8 @@ describe('HonoAdminRepository Studio access management', () => {
         },
       ],
     });
-    expect(requestedUrls).toContain('https://api.example.test/subscriber-users');
-    expect(requestedUrls).not.toContain('https://api.example.test/studio-members');
+    expect(requestedUrls).toContain('https://api.example.test/studio/subscribers');
+    expect(requestedUrls).not.toContain('https://api.example.test/studio/members');
   });
 
   it('sends strict role-permission updates with member counts', async () => {
@@ -379,7 +379,7 @@ describe('HonoAdminRepository Studio access management', () => {
         permissions: ['articles.view'],
       }),
     ).resolves.toEqual(role);
-    expect(fetcher.mock.calls[1]?.[0]).toBe('https://api.example.test/roles');
+    expect(fetcher.mock.calls[1]?.[0]).toBe('https://api.example.test/studio/roles');
   });
 });
 

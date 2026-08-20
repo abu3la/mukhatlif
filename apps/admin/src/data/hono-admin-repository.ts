@@ -1,4 +1,5 @@
 import {
+  CLIENT_SURFACE_HEADER,
   NEWSLETTER_STATUSES,
   PERMISSION_IDS,
   isPermissionId,
@@ -666,8 +667,8 @@ export class HonoAdminRepository implements AdminRepository {
   async readContentWorkspace(): Promise<AdminContentWorkspace> {
     const operation = 'readContentWorkspace';
     const [showsPayload, episodesPayload, articlesPayload] = await Promise.all([
-      this.requestJson(operation, '/shows'),
-      this.requestJson(operation, '/episodes'),
+      this.requestJson(operation, '/studio/shows'),
+      this.requestJson(operation, '/studio/episodes'),
       this.requestJson(operation, '/studio/articles'),
     ]);
     const shows = expectCollection(showsPayload, isApiShow, operation, 'show');
@@ -685,8 +686,8 @@ export class HonoAdminRepository implements AdminRepository {
     const operation = 'readSubscriberDirectory';
     const [plansPayload, usersPayload, subscriptionsPayload] = await Promise.all([
       this.requestJson(operation, '/plans'),
-      this.requestJson(operation, '/subscriber-users'),
-      this.requestJson(operation, '/subscriptions'),
+      this.requestJson(operation, '/studio/subscribers'),
+      this.requestJson(operation, '/studio/subscriptions'),
     ]);
     const plans = expectCollection(plansPayload, isApiPlan, operation, 'plan');
     const users = expectCollection(
@@ -724,7 +725,7 @@ export class HonoAdminRepository implements AdminRepository {
 
   async readStudioMemberDirectory(): Promise<AdminStudioMemberDirectory> {
     const operation = 'readStudioMemberDirectory';
-    const payload = await this.requestJson(operation, '/studio-members');
+    const payload = await this.requestJson(operation, '/studio/members');
     const members = expectCollection(
       payload,
       isApiStudioMemberAccess,
@@ -738,7 +739,7 @@ export class HonoAdminRepository implements AdminRepository {
 
   async readRoles(): Promise<StudioRole[]> {
     const operation = 'readRoles';
-    const payload = await this.requestJson(operation, '/roles');
+    const payload = await this.requestJson(operation, '/studio/roles');
     return expectCollection(payload, isApiStudioRole, operation, 'studio role').map((role) =>
       this.toAdminRole(role),
     );
@@ -748,7 +749,7 @@ export class HonoAdminRepository implements AdminRepository {
     const operation = 'readRole';
     const payload = await this.requestJson(
       operation,
-      `/roles/${encodeURIComponent(id)}`,
+      `/studio/roles/${encodeURIComponent(id)}`,
     );
     return this.toAdminRole(
       expectEntity(payload, isApiStudioRole, operation, 'studio role'),
@@ -805,7 +806,7 @@ export class HonoAdminRepository implements AdminRepository {
 
   async createShow(command: CreateShowCommand): Promise<Show> {
     const operation = 'createShow';
-    const payload = await this.requestJson(operation, '/shows', {
+    const payload = await this.requestJson(operation, '/studio/shows', {
       method: 'POST',
       body: JSON.stringify({
         slug: command.slug,
@@ -824,7 +825,7 @@ export class HonoAdminRepository implements AdminRepository {
     const operation = 'updateShow';
     const payload = await this.requestJson(
       operation,
-      `/shows/${encodeURIComponent(decodeId(id, 'show', operation))}`,
+      `/studio/shows/${encodeURIComponent(decodeId(id, 'show', operation))}`,
       {
         method: 'PATCH',
         body: JSON.stringify({
@@ -844,7 +845,7 @@ export class HonoAdminRepository implements AdminRepository {
   async createEpisode(command: CreateEpisodeCommand): Promise<Episode> {
     const operation = 'createEpisode';
     this.assertEpisodeCommand(command.episodeNumber, command.durationMinutes, operation);
-    const payload = await this.requestJson(operation, '/episodes', {
+    const payload = await this.requestJson(operation, '/studio/episodes', {
       method: 'POST',
       body: JSON.stringify({
         showId: decodeId(command.showId, 'show', operation),
@@ -870,7 +871,7 @@ export class HonoAdminRepository implements AdminRepository {
     }
     const payload = await this.requestJson(
       operation,
-      `/episodes/${encodeURIComponent(decodeId(id, 'episode', operation))}`,
+      `/studio/episodes/${encodeURIComponent(decodeId(id, 'episode', operation))}`,
       {
         method: 'PATCH',
         body: JSON.stringify({
@@ -893,7 +894,7 @@ export class HonoAdminRepository implements AdminRepository {
     const operation = 'transitionEpisode';
     const payload = await this.requestJson(
       operation,
-      `/episodes/${encodeURIComponent(decodeId(id, 'episode', operation))}/status`,
+      `/studio/episodes/${encodeURIComponent(decodeId(id, 'episode', operation))}/status`,
       {
         method: 'PATCH',
         body: JSON.stringify({ status: command.status, publishAt: command.scheduledAt }),
@@ -906,7 +907,7 @@ export class HonoAdminRepository implements AdminRepository {
     const operation = 'uploadEpisodeAudio';
     const payload = await this.requestJson(
       operation,
-      `/episodes/${encodeURIComponent(decodeId(id, 'episode', operation))}/audio`,
+      `/studio/episodes/${encodeURIComponent(decodeId(id, 'episode', operation))}/audio`,
       {
         method: 'PUT',
         body: command.body,
@@ -1295,7 +1296,7 @@ export class HonoAdminRepository implements AdminRepository {
 
   async createSubscription(command: CreateSubscriptionCommand): Promise<Subscription> {
     const operation = 'createSubscription';
-    const payload = await this.requestJson(operation, '/subscriptions', {
+    const payload = await this.requestJson(operation, '/studio/subscriptions', {
       method: 'POST',
       body: JSON.stringify({
         userId: decodeId(command.userId, 'user', operation),
@@ -1315,7 +1316,7 @@ export class HonoAdminRepository implements AdminRepository {
     const operation = 'transitionSubscription';
     const payload = await this.requestJson(
       operation,
-      `/subscriptions/${encodeURIComponent(decodeId(id, 'subscription', operation))}/status`,
+      `/studio/subscriptions/${encodeURIComponent(decodeId(id, 'subscription', operation))}/status`,
       { method: 'PATCH', body: JSON.stringify({ status }) },
     );
     return this.toAdminSubscription(
@@ -1331,7 +1332,7 @@ export class HonoAdminRepository implements AdminRepository {
     const normalized = normalizeCreateStudioMemberCommand(command);
     const payload = await this.requestJson(
       operation,
-      '/studio-members',
+      '/studio/members',
       {
         method: 'POST',
         body: JSON.stringify({
@@ -1379,7 +1380,7 @@ export class HonoAdminRepository implements AdminRepository {
     const operation = 'updateStudioMemberRole';
     const payload = await this.requestJson(
       operation,
-      `/studio-members/${encodeURIComponent(
+      `/studio/members/${encodeURIComponent(
         decodeId(id, 'studio_member', operation),
       )}/role`,
       { method: 'PATCH', body: JSON.stringify({ role }) },
@@ -1403,7 +1404,7 @@ export class HonoAdminRepository implements AdminRepository {
     }
     const payload = await this.requestJson(
       operation,
-      '/roles',
+      '/studio/roles',
       {
         method: 'POST',
         body: JSON.stringify({
@@ -1436,7 +1437,7 @@ export class HonoAdminRepository implements AdminRepository {
     }
     const payload = await this.requestJson(
       operation,
-      `/permissions/${encodeURIComponent(role)}`,
+      `/studio/permissions/${encodeURIComponent(role)}`,
       { method: 'PUT', body: JSON.stringify(parsed.data) },
     );
     const result = expectEntity(payload, isApiStudioRole, operation, 'studio role');
@@ -1547,6 +1548,9 @@ export class HonoAdminRepository implements AdminRepository {
 
   private async mediaUploadAuthHeaders(operation: string): Promise<Headers> {
     const headers = new Headers();
+    // The raw upload goes to /studio/media, so it carries the same surface
+    // declaration as every other request from this client.
+    headers.set(CLIENT_SURFACE_HEADER, 'studio');
     if (this.getAccessToken) {
       let token: string | null;
       try {
@@ -1578,6 +1582,10 @@ export class HonoAdminRepository implements AdminRepository {
   ): Promise<unknown> {
     const headers = new Headers(init.headers);
     headers.set('accept', 'application/json');
+    // Declares which product is calling. The API refuses a listener surface on
+    // a /studio path, which turns a client wired to the wrong namespace into an
+    // immediate, unambiguous error instead of a confusing permission failure.
+    headers.set(CLIENT_SURFACE_HEADER, 'studio');
     if (jsonBody && init.body !== undefined) headers.set('content-type', 'application/json');
 
     if (this.getAccessToken) {

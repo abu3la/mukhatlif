@@ -64,7 +64,7 @@ function upload(
   const requestHeaders = new Headers(headers);
   requestHeaders.set('x-dev-user', identityId);
   return app.request(
-    '/episodes/ep-1001/audio',
+    '/studio/episodes/ep-1001/audio',
     { method: 'PUT', headers: requestHeaders, body },
     audioEnv(bucket),
   );
@@ -85,7 +85,7 @@ describe('episode audio upload', () => {
   it('reports a missing R2 binding rather than silently dropping the file', async () => {
     const headers = new Headers({ ...validHeaders, 'x-dev-user': 'usr-admin-1' });
     const response = await app.request(
-      '/episodes/ep-1001/audio',
+      '/studio/episodes/ep-1001/audio',
       { method: 'PUT', headers, body: BYTES },
       { APP_ENV: 'development', ALLOW_DEV_AUTH: 'true', CORS_ALLOWED_ORIGINS: 'http://x.test' },
     );
@@ -155,7 +155,7 @@ describe('episode audio upload', () => {
     const bucket = new FakeAudioBucket();
     const headers = new Headers({ ...validHeaders, 'x-dev-user': 'usr-admin-1' });
     const response = await app.request(
-      '/episodes/ep-missing/audio',
+      '/studio/episodes/ep-missing/audio',
       { method: 'PUT', headers, body: BYTES },
       audioEnv(bucket),
     );

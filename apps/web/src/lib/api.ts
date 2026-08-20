@@ -1,3 +1,4 @@
+import { CLIENT_SURFACE_HEADER } from '@mukhtalif/types';
 import type {
   Episode,
   HomeSummary,
@@ -53,7 +54,12 @@ async function read<T>(path: string): Promise<T> {
   let response: Response;
   try {
     response = await fetch(new URL(path, `${origin}/`), {
-      headers: { accept: 'application/json' },
+      headers: {
+        accept: 'application/json',
+        // Declares the product, not the caller. The API rejects this surface on
+        // a /studio path, so a mistake in a path here fails loudly.
+        [CLIENT_SURFACE_HEADER]: 'web',
+      },
       next: { revalidate: REVALIDATE_SECONDS },
     });
   } catch (error) {

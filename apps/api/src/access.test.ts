@@ -115,19 +115,27 @@ describe('CORS allowlist', () => {
 
 describe('independent app and Studio identities', () => {
   it('lets Studio editors see drafts while app users remain limited to published content', async () => {
-    const editorResponse = await request('/episodes?status=draft', 'usr-editor-1');
+    // Drafts live in the Studio namespace. The public catalogue is
+    // published-only unconditionally, so the same query cannot widen for an
+    // editor who happens to be signed in while browsing the public site.
+    const editorResponse = await request('/studio/episodes?status=draft', 'usr-editor-1');
     const listenerResponse = await request('/episodes?status=draft', 'usr-listener-1');
     const editorEpisodes = (await editorResponse.json()) as Array<{ status: string }>;
     const listenerEpisodes = (await listenerResponse.json()) as Array<{ status: string }>;
 
     expect(editorEpisodes.some((episode) => episode.status === 'draft')).toBe(true);
     expect(listenerEpisodes.every((episode) => episode.status === 'published')).toBe(true);
+
+    // The public path stays published-only even for the editor themselves.
+    const editorOnPublic = await request('/episodes?status=draft', 'usr-editor-1');
+    const publicEpisodes = (await editorOnPublic.json()) as Array<{ status: string }>;
+    expect(publicEpisodes.every((episode) => episode.status === 'published')).toBe(true);
   });
 
   it('never grants an app-only Auth identity Studio membership or permissions', async () => {
-    const appMeResponse = await request('/me', 'usr-listener-1');
+    const appMeResponse = await request('/app/me', 'usr-listener-1');
     const studioMeResponse = await request('/studio/me', 'usr-listener-1');
-    const rolesResponse = await request('/roles', 'usr-listener-1');
+    const rolesResponse = await request('/studio/roles', 'usr-listener-1');
     const appProfile = (await appMeResponse.json()) as Record<string, unknown>;
 
     expect(appMeResponse.status).toBe(200);
@@ -142,8 +150,8 @@ describe('independent app and Studio identities', () => {
   });
 
   it('keeps the Studio directory separate from app subscribers', async () => {
-    const membersResponse = await request('/studio-members', 'usr-admin-1');
-    const subscribersResponse = await request('/subscriber-users', 'usr-admin-1');
+    const membersResponse = await request('/studio/members', 'usr-admin-1');
+    const subscribersResponse = await request('/studio/subscribers', 'usr-admin-1');
     const members = (await membersResponse.json()) as Array<Record<string, unknown>>;
     const subscribers = (await subscribersResponse.json()) as Array<Record<string, unknown>>;
 
@@ -160,7 +168,7 @@ describe('independent app and Studio identities', () => {
   });
 
   it('validates subscription ownership against app users only', async () => {
-    const response = await request('/subscriptions', 'usr-admin-1', {
+    const response = await request('/studio/subscriptions', 'usr-admin-1', {
       method: 'POST',
       headers: jsonHeaders,
       body: JSON.stringify({ userId: 'usr-editor-1', planId: 'pln-plus' }),
@@ -172,11 +180,11 @@ describe('independent app and Studio identities', () => {
 
 describe('granular Studio permissions', () => {
   it('returns Studio defaults without a listener role and resolves `/studio/me` only', async () => {
-    const matrixResponse = await request('/permissions', 'usr-admin-1');
+    const matrixResponse = await request('/studio/permissions', 'usr-admin-1');
     const matrix = (await matrixResponse.json()) as Record<string, string[]>;
     const studioMeResponse = await request('/studio/me', 'usr-editor-1');
     const studioMe = (await studioMeResponse.json()) as { permissions: string[] };
-    const appMeResponse = await request('/me', 'usr-editor-1');
+    const appMeResponse = await request('/app/me', 'usr-editor-1');
 
     expect(matrix.admin).toEqual(PERMISSION_IDS);
     expect(matrix.editor).toEqual(DEFAULT_ROLE_PERMISSIONS.editor);
@@ -186,17 +194,17 @@ describe('granular Studio permissions', () => {
   });
 
   it('rejects malformed and protected-role permission updates', async () => {
-    const missingView = await request('/permissions/editor', 'usr-admin-1', {
+    const missingView = await request('/studio/permissions/editor', 'usr-admin-1', {
       method: 'PUT',
       headers: jsonHeaders,
       body: JSON.stringify({ permissions: ['episodes.manage'] }),
     });
-    const administrator = await request('/permissions/admin', 'usr-admin-1', {
+    const administrator = await request('/studio/permissions/admin', 'usr-admin-1', {
       method: 'PUT',
       headers: jsonHeaders,
       body: JSON.stringify({ permissions: [...PERMISSION_IDS] }),
     });
-    const removedListener = await request('/permissions/listener', 'usr-admin-1', {
+    const removedListener = await request('/studio/permissions/listener', 'usr-admin-1', {
       method: 'PUT',
       headers: jsonHeaders,
       body: JSON.stringify({ permissions: [] }),
@@ -209,14 +217,21 @@ describe('granular Studio permissions', () => {
 
   it('enforces view and manage independently and restores the editor fixture', async () => {
     const permissions = ['episodes.view', 'subscribers.view'];
-    const updateResponse = await request('/permissions/editor', 'usr-admin-1', {
+    const updateResponse = await request('/studio/permissions/editor', 'usr-admin-1', {
       method: 'PUT',
       headers: jsonHeaders,
       body: JSON.stringify({ permissions }),
     });
-    const draftResponse = await request('/episodes?status=draft', 'usr-editor-1');
-    const subscriptionsResponse = await request('/subscriptions', 'usr-editor-1');
-    const writeResponse = await request('/shows', 'usr-editor-1', {
+    const draftResponse = await request('/studio/episodes?status=draft', 'usr-editor-1');
+    const subscriptionsResponse = await request('/studio/subscriptions', 'usr-editor-1');
+    const writeResponse = await request('/studio/shows', 'usr-editor-1', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({}),
+    });
+    // The public catalogue has no mutating handler at all, so a write cannot
+    // reach it regardless of who the caller turns out to be.
+    const publicWriteResponse = await request('/shows', 'usr-admin-1', {
       method: 'POST',
       headers: jsonHeaders,
       body: JSON.stringify({}),
@@ -226,8 +241,9 @@ describe('granular Studio permissions', () => {
     expect(draftResponse.status).toBe(200);
     expect(subscriptionsResponse.status).toBe(200);
     expect(writeResponse.status).toBe(403);
+    expect(publicWriteResponse.status).toBe(404);
 
-    const restoreResponse = await request('/permissions/editor', 'usr-admin-1', {
+    const restoreResponse = await request('/studio/permissions/editor', 'usr-admin-1', {
       method: 'PUT',
       headers: jsonHeaders,
       body: JSON.stringify({ permissions: [...DEFAULT_ROLE_PERMISSIONS.editor] }),
@@ -238,7 +254,7 @@ describe('granular Studio permissions', () => {
 
 describe('Studio member access management', () => {
   it('returns safe membership summaries without Auth UUIDs', async () => {
-    const response = await request('/studio-members', 'usr-admin-1');
+    const response = await request('/studio/members', 'usr-admin-1');
     const body = (await response.json()) as Array<Record<string, unknown>>;
 
     expect(response.status).toBe(200);
@@ -250,12 +266,12 @@ describe('Studio member access management', () => {
   });
 
   it('strictly validates role bodies and never promotes an app user', async () => {
-    const malformed = await request('/studio-members/usr-editor-1/role', 'usr-admin-1', {
+    const malformed = await request('/studio/members/usr-editor-1/role', 'usr-admin-1', {
       method: 'PATCH',
       headers: jsonHeaders,
       body: JSON.stringify({ role: 'editor', admin: true }),
     });
-    const appUserTarget = await request('/studio-members/usr-listener-1/role', 'usr-admin-1', {
+    const appUserTarget = await request('/studio/members/usr-listener-1/role', 'usr-admin-1', {
       method: 'PATCH',
       headers: jsonHeaders,
       body: JSON.stringify({ role: 'editor' }),
@@ -266,12 +282,12 @@ describe('Studio member access management', () => {
   });
 
   it('blocks every self-targeted role request', async () => {
-    const demotion = await request('/studio-members/usr-admin-1/role', 'usr-admin-1', {
+    const demotion = await request('/studio/members/usr-admin-1/role', 'usr-admin-1', {
       method: 'PATCH',
       headers: jsonHeaders,
       body: JSON.stringify({ role: 'editor' }),
     });
-    const noOp = await request('/studio-members/usr-admin-1/role', 'usr-admin-1', {
+    const noOp = await request('/studio/members/usr-admin-1/role', 'usr-admin-1', {
       method: 'PATCH',
       headers: jsonHeaders,
       body: JSON.stringify({ role: 'admin' }),
@@ -281,15 +297,15 @@ describe('Studio member access management', () => {
   });
 
   it('changes only a Studio member role and appends one Studio audit entry', async () => {
-    const before = (await (await request('/audit-logs', 'usr-admin-1')).json()) as Array<{
+    const before = (await (await request('/studio/audit-logs', 'usr-admin-1')).json()) as Array<{
       action: string;
     }>;
-    const updateResponse = await request('/studio-members/usr-editor-1/role', 'usr-admin-1', {
+    const updateResponse = await request('/studio/members/usr-editor-1/role', 'usr-admin-1', {
       method: 'PATCH',
       headers: jsonHeaders,
       body: JSON.stringify({ role: 'admin' }),
     });
-    const after = (await (await request('/audit-logs', 'usr-admin-1')).json()) as Array<{
+    const after = (await (await request('/studio/audit-logs', 'usr-admin-1')).json()) as Array<{
       action: string;
       actorStudioMemberId?: string;
       targetStudioMemberId?: string;
@@ -307,7 +323,7 @@ describe('Studio member access management', () => {
       newRole: 'admin',
     });
 
-    const restore = await request('/studio-members/usr-editor-1/role', 'usr-admin-1', {
+    const restore = await request('/studio/members/usr-editor-1/role', 'usr-admin-1', {
       method: 'PATCH',
       headers: jsonHeaders,
       body: JSON.stringify({ role: 'editor' }),
@@ -318,13 +334,13 @@ describe('Studio member access management', () => {
 
 describe('dynamic Studio roles', () => {
   it('creates, browses, assigns, and authorizes a custom access-manager role', async () => {
-    const seeded = (await (await request('/roles', 'usr-admin-1')).json()) as Array<{
+    const seeded = (await (await request('/studio/roles', 'usr-admin-1')).json()) as Array<{
       id: string;
     }>;
     expect(seeded.map((role) => role.id)).toEqual(expect.arrayContaining(['admin', 'editor']));
     expect(seeded.map((role) => role.id)).not.toContain('listener');
 
-    const createResponse = await request('/roles', 'usr-admin-1', {
+    const createResponse = await request('/studio/roles', 'usr-admin-1', {
       method: 'POST',
       headers: jsonHeaders,
       body: JSON.stringify({
@@ -344,7 +360,7 @@ describe('dynamic Studio roles', () => {
       permissions: ['overview.view', 'access.view', 'access.manage'],
     });
 
-    const inviteResponse = await request('/studio-members', 'usr-admin-1', {
+    const inviteResponse = await request('/studio/members', 'usr-admin-1', {
       method: 'POST',
       headers: jsonHeaders,
       body: JSON.stringify({
@@ -363,13 +379,13 @@ describe('dynamic Studio roles', () => {
       role: role.id,
       permissions: ['overview.view', 'access.view', 'access.manage'],
     });
-    expect((await request('/studio-members', manager.id)).status).toBe(200);
-    expect(await (await request(`/roles/${role.id}`, manager.id)).json()).toMatchObject({
+    expect((await request('/studio/members', manager.id)).status).toBe(200);
+    expect(await (await request(`/studio/roles/${role.id}`, manager.id)).json()).toMatchObject({
       memberCount: 1,
     });
 
     const protectedAssignment = await request(
-      '/studio-members/usr-editor-1/role',
+      '/studio/members/usr-editor-1/role',
       manager.id,
       {
         method: 'PATCH',
@@ -381,7 +397,7 @@ describe('dynamic Studio roles', () => {
   });
 
   it('separates access.view from access.manage for custom roles', async () => {
-    const createResponse = await request('/roles', 'usr-admin-1', {
+    const createResponse = await request('/studio/roles', 'usr-admin-1', {
       method: 'POST',
       headers: jsonHeaders,
       body: JSON.stringify({ name: 'مراجع الصلاحيات', permissions: ['access.view'] }),
@@ -389,17 +405,17 @@ describe('dynamic Studio roles', () => {
     const role = (await createResponse.json()) as { id: string };
     expect(createResponse.status).toBe(201);
 
-    const assignment = await request('/studio-members/usr-editor-1/role', 'usr-admin-1', {
+    const assignment = await request('/studio/members/usr-editor-1/role', 'usr-admin-1', {
       method: 'PATCH',
       headers: jsonHeaders,
       body: JSON.stringify({ role: role.id }),
     });
     expect(assignment.status).toBe(200);
-    expect((await request('/roles', 'usr-editor-1')).status).toBe(200);
-    expect((await request('/studio-members', 'usr-editor-1')).status).toBe(200);
+    expect((await request('/studio/roles', 'usr-editor-1')).status).toBe(200);
+    expect((await request('/studio/members', 'usr-editor-1')).status).toBe(200);
     expect(
       (
-        await request('/roles', 'usr-editor-1', {
+        await request('/studio/roles', 'usr-editor-1', {
           method: 'POST',
           headers: jsonHeaders,
           body: JSON.stringify({ name: 'محاولة غير مسموحة', permissions: [] }),
@@ -407,7 +423,7 @@ describe('dynamic Studio roles', () => {
       ).status,
     ).toBe(403);
 
-    const restore = await request('/studio-members/usr-editor-1/role', 'usr-admin-1', {
+    const restore = await request('/studio/members/usr-editor-1/role', 'usr-admin-1', {
       method: 'PATCH',
       headers: jsonHeaders,
       body: JSON.stringify({ role: 'editor' }),
@@ -418,10 +434,10 @@ describe('dynamic Studio roles', () => {
 
 describe('Studio member invitations', () => {
   it('normalizes input and appends a Studio invitation audit entry', async () => {
-    const before = (await (await request('/audit-logs', 'usr-admin-1')).json()) as Array<{
+    const before = (await (await request('/studio/audit-logs', 'usr-admin-1')).json()) as Array<{
       action: string;
     }>;
-    const response = await request('/studio-members', 'usr-admin-1', {
+    const response = await request('/studio/members', 'usr-admin-1', {
       method: 'POST',
       headers: jsonHeaders,
       body: JSON.stringify({
@@ -432,7 +448,7 @@ describe('Studio member invitations', () => {
       }),
     });
     const member = (await response.json()) as Record<string, unknown>;
-    const after = (await (await request('/audit-logs', 'usr-admin-1')).json()) as Array<{
+    const after = (await (await request('/studio/audit-logs', 'usr-admin-1')).json()) as Array<{
       action: string;
       actorStudioMemberId?: string;
       targetStudioMemberId?: string;
@@ -455,7 +471,7 @@ describe('Studio member invitations', () => {
   });
 
   it('does not treat an app profile as membership or implicitly link its Auth identity', async () => {
-    const appEmailResponse = await request('/studio-members', 'usr-admin-1', {
+    const appEmailResponse = await request('/studio/members', 'usr-admin-1', {
       method: 'POST',
       headers: jsonHeaders,
       body: JSON.stringify({
@@ -470,11 +486,11 @@ describe('Studio member invitations', () => {
       code: 'AUTH_IDENTITY_ALREADY_EXISTS',
     });
 
-    const appUser = await request('/me', 'usr-listener-1');
+    const appUser = await request('/app/me', 'usr-listener-1');
     expect(appUser.status).toBe(200);
     expect(await appUser.json()).toMatchObject({ email: 'sara@example.com' });
     const members = (await (
-      await request('/studio-members', 'usr-admin-1')
+      await request('/studio/members', 'usr-admin-1')
     ).json()) as Array<{ email: string }>;
     expect(members.filter((member) => member.email === 'sara@example.com')).toHaveLength(0);
   });
@@ -486,17 +502,17 @@ describe('Studio member invitations', () => {
       role: 'editor',
       locale: 'ar',
     };
-    const editorResponse = await request('/studio-members', 'usr-editor-1', {
+    const editorResponse = await request('/studio/members', 'usr-editor-1', {
       method: 'POST',
       headers: jsonHeaders,
       body: JSON.stringify(input),
     });
-    const passwordResponse = await request('/studio-members', 'usr-admin-1', {
+    const passwordResponse = await request('/studio/members', 'usr-admin-1', {
       method: 'POST',
       headers: jsonHeaders,
       body: JSON.stringify({ ...input, password: 'NeverAcceptBrowserPasswords123!' }),
     });
-    const malformedJsonResponse = await request('/studio-members', 'usr-admin-1', {
+    const malformedJsonResponse = await request('/studio/members', 'usr-admin-1', {
       method: 'POST',
       headers: jsonHeaders,
       body: '{',

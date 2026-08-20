@@ -174,7 +174,7 @@ describe('public and Studio article boundaries', () => {
   });
 
   it('lists a minimal author directory for article viewers', async () => {
-    const roleResponse = await apiRequest('/roles', {
+    const roleResponse = await apiRequest('/studio/roles', {
       method: 'POST',
       body: JSON.stringify({
         name: `قارئ كتّاب ${crypto.randomUUID().slice(0, 6)}`,
@@ -183,7 +183,7 @@ describe('public and Studio article boundaries', () => {
     });
     expect(roleResponse.status).toBe(201);
     const role = (await roleResponse.json()) as { id: string };
-    const assign = await apiRequest('/studio-members/usr-editor-1/role', {
+    const assign = await apiRequest('/studio/members/usr-editor-1/role', {
       method: 'PATCH',
       body: JSON.stringify({ role: role.id }),
     });
@@ -211,7 +211,7 @@ describe('public and Studio article boundaries', () => {
     expect(authors.some((author) => author.studioMemberId === 'usr-listener-1')).toBe(false);
 
     const privateDirectory = await app.request(
-      '/studio-members',
+      '/studio/members',
       { headers: editorHeaders },
       localEnv,
     );
@@ -224,7 +224,7 @@ describe('public and Studio article boundaries', () => {
     );
     expect(listener.status).toBe(403);
 
-    const restore = await apiRequest('/studio-members/usr-editor-1/role', {
+    const restore = await apiRequest('/studio/members/usr-editor-1/role', {
       method: 'PATCH',
       body: JSON.stringify({ role: 'editor' }),
     });
@@ -355,7 +355,7 @@ describe('public and Studio article boundaries', () => {
 
   it('allows article viewers to preview while reserving mutations for managers', async () => {
     const article = await createArticle(`viewer-${crypto.randomUUID().slice(0, 8)}`);
-    const roleResponse = await apiRequest('/roles', {
+    const roleResponse = await apiRequest('/studio/roles', {
       method: 'POST',
       body: JSON.stringify({
         name: `مراجع المحتوى ${crypto.randomUUID().slice(0, 6)}`,
@@ -364,7 +364,7 @@ describe('public and Studio article boundaries', () => {
     });
     expect(roleResponse.status).toBe(201);
     const role = (await roleResponse.json()) as { id: string };
-    const assign = await apiRequest('/studio-members/usr-editor-1/role', {
+    const assign = await apiRequest('/studio/members/usr-editor-1/role', {
       method: 'PATCH',
       body: JSON.stringify({ role: role.id }),
     });
@@ -388,7 +388,7 @@ describe('public and Studio article boundaries', () => {
     expect(preview.status).toBe(200);
     expect(update.status).toBe(403);
 
-    const restore = await apiRequest('/studio-members/usr-editor-1/role', {
+    const restore = await apiRequest('/studio/members/usr-editor-1/role', {
       method: 'PATCH',
       body: JSON.stringify({ role: 'editor' }),
     });

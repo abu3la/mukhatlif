@@ -51,12 +51,11 @@ function parseEnv(text) {
 
 const env = parseEnv(readFileSync(source, 'utf8'));
 
-const REQUIRED = [
-  'SUPABASE_URL',
-  'SUPABASE_ANON_KEY',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'SUPABASE_DB_URL',
-];
+// SUPABASE_DB_URL is deliberately optional. It is only ever used to apply
+// migrations with psql from a developer machine; no application reads it, it is
+// never deployed, and no browser sees it. Without it, migrations are applied by
+// hand through the dashboard SQL editor instead.
+const REQUIRED = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
 
 for (const key of REQUIRED) {
   if (!env[key]) problems.push(`${key} is empty`);
@@ -214,4 +213,10 @@ if (warnings.length > 0) {
   for (const warning of warnings) console.log(`  ${YELLOW}!${OFF} ${warning}`);
 }
 console.log(`\n${DIM}Key check: public=${anonKind ?? 'unknown'}, secret=${serviceKind ?? 'unknown'}${OFF}`);
-console.log(`${DIM}No value was printed. All three files are gitignored.${OFF}\n`);
+if (!env.SUPABASE_DB_URL) {
+  console.log(
+    `\n  ${DIM}SUPABASE_DB_URL is unset — migrations will be applied by hand through` +
+      ` the dashboard SQL editor.${OFF}`,
+  );
+}
+console.log(`\n${DIM}No value was printed. All three files are gitignored.${OFF}\n`);
