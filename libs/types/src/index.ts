@@ -123,13 +123,23 @@ export {
   RICH_TEXT_NODE_TYPES,
 } from './article';
 export type {
+  AudioMediaMimeType,
   ImageMediaMimeType,
   MediaAsset,
   MediaAssetStatus,
   MediaUploadReservation,
   PublicMediaAsset,
 } from './media';
-export { IMAGE_MEDIA_MIME_TYPES, MEDIA_ASSET_STATUSES } from './media';
+export {
+  AUDIO_MEDIA_MIME_TYPES,
+  IMAGE_MEDIA_MIME_TYPES,
+  MAX_AUDIO_UPLOAD_BYTES,
+  MEDIA_ASSET_STATUSES,
+  audioMediaExtension,
+  parseAudioMediaMimeType,
+  resolveAudioMediaMimeType,
+  safeAudioMediaContentType,
+} from './media';
 export type { Plan, PlanInterval, Subscription, SubscriptionStatus } from './subscription';
 export {
   SUBSCRIPTION_STATUSES,

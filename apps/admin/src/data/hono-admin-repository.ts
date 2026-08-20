@@ -1,4 +1,9 @@
-import { NEWSLETTER_STATUSES, PERMISSION_IDS, isPermissionId } from '@mukhtalif/types';
+import {
+  NEWSLETTER_STATUSES,
+  PERMISSION_IDS,
+  isPermissionId,
+  resolveAudioMediaMimeType,
+} from '@mukhtalif/types';
 import {
   createStudioRoleSchema,
   richTextDocumentSchema,
@@ -118,6 +123,19 @@ export interface HonoAdminRepositoryOptions {
 }
 
 type JsonRecord = Record<string, unknown>;
+
+/**
+ * The API accepts only allowlisted audio media types, so an octet-stream
+ * fallback would be rejected. The file name is the documented fallback when the
+ * browser leaves File.type empty, and audio/mpeg is the last resort for the
+ * overwhelmingly common MP3 case.
+ */
+function audioContentType(command: EpisodeAudioCommand): string {
+  return (
+    resolveAudioMediaMimeType(command.contentType ?? command.body.type, command.fileName) ??
+    'audio/mpeg'
+  );
+}
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -783,10 +801,10 @@ export class HonoAdminRepository implements AdminRepository {
       {
         method: 'PUT',
         body: command.body,
-        headers: {
-          'content-type':
-            command.contentType ?? (command.body.type || 'application/octet-stream'),
-        },
+        // The API accepts only allowlisted audio types. Browsers leave
+        // File.type empty for some containers, so fall back to the extension
+        // rather than octet-stream, which the API refuses.
+        headers: { 'content-type': audioContentType(command) },
       },
       false,
     );
