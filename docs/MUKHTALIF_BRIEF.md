@@ -87,3 +87,7 @@ raised and postponed; re-ask when scoping features.
 - 2026-08-17: Studio members and application users were separated as distinct
   data and authorization domains; see
   `docs/adr/0005-separate-studio-accounts-from-app-users.md`.
+- 2026-08-20: The API gaps recorded in ADR 0001 and ADR 0002 were closed —
+  guests, list paging and search, the overview summary, invitation acceptance,
+  and the episode-audio upload contract — and the public site was built in
+  `apps/web`. See `docs/adr/0007-public-web-app-and-api-completion.md`.

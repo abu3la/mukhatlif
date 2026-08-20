@@ -1,0 +1,776 @@
+/*
+ * Mukhtalif public site.
+ *
+ * The palette, face, and wordmark are the station's own, taken from
+ * @mukhtalif/design-tokens: a deep indigo ink lifted from the logo, the vivid
+ * on-air green, and IBM Plex Sans Arabic self-hosted. Arabic is the source
+ * language and RTL is the only direction the layout is written for, so every
+ * offset uses logical properties.
+ */
+
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-sans-arabic-400-arabic.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-sans-arabic-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2212;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-sans-arabic-500-arabic.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-sans-arabic-500-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2212;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-sans-arabic-700-arabic.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-sans-arabic-700-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2212;
+}
+
+:root {
+  /* Grounds: the wordmark ink deepened, never a neutral slate. */
+  --ink: #0d0f2e;
+  --ink-raised: #151845;
+  --ink-lifted: #1d2154;
+  --line: #2c3060;
+  --line-soft: rgba(234, 235, 246, 0.09);
+
+  --text: #eaebf6;
+  --text-muted: #9fa3c8;
+  --text-faint: #7d81a8;
+
+  /* The station's green. Reserved for on-air moments. */
+  --signal: #38df82;
+  --signal-deep: #1fa85d;
+  --alert: #f74d4b;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+  --space-3xl: 96px;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-pill: 999px;
+
+  --measure: 1160px;
+  --measure-prose: 68ch;
+
+  --font: 'IBM Plex Sans Arabic', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text);
+  /*
+   * One continuous ground for the whole document. Sections never introduce a
+   * hard colour seam; depth comes from a single very slow indigo wash so the
+   * page reads as one surface from the masthead to the wordmark.
+   */
+  background-color: var(--ink);
+  background-image: radial-gradient(
+    120% 80% at 82% -10%,
+    rgba(56, 223, 130, 0.07),
+    rgba(13, 15, 46, 0) 60%
+  );
+  background-attachment: fixed;
+}
+
+/*
+ * Fine grain over the ground only. It sits behind every element, so text and
+ * controls stay crisp; it exists to stop the large indigo wash from banding.
+ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+img,
+svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration-color: rgba(56, 223, 130, 0.45);
+  text-underline-offset: 0.25em;
+}
+
+a:hover {
+  text-decoration-color: var(--signal);
+}
+
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
+}
+
+.shell {
+  width: 100%;
+  max-width: var(--measure);
+  /* Generous gutters so no line ever reaches the viewport edge. */
+  margin-inline: auto;
+  padding-inline: clamp(20px, 5vw, 48px);
+}
+
+.visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  inset-block-start: -100vh;
+  inset-inline-start: var(--space-md);
+  z-index: 50;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--signal);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  inset-block-start: var(--space-md);
+}
+
+/* ---- masthead ------------------------------------------------------- */
+
+.masthead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 20;
+  padding-block: var(--space-md);
+  background: rgba(13, 15, 46, 0.86);
+  backdrop-filter: blur(14px);
+  border-block-end: 1px solid var(--line-soft);
+}
+
+.masthead__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.masthead__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  text-decoration: none;
+}
+
+.masthead__wordmark {
+  /* Sized by height so the mark keeps its drawn proportions. */
+  block-size: 26px;
+  inline-size: auto;
+  color: var(--text);
+}
+
+.masthead__brand .signal {
+  font-size: 20px;
+}
+
+.masthead__nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(var(--space-md), 3vw, var(--space-xl));
+  font-size: 15px;
+}
+
+.masthead__link {
+  text-decoration: none;
+  color: var(--text-muted);
+  padding-block: var(--space-xs);
+  transition: color 140ms ease;
+}
+
+.masthead__link:hover {
+  color: var(--text);
+}
+
+.masthead__link[aria-current='page'] {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* ---- the signal mark ------------------------------------------------ */
+
+/*
+ * The station's own mark: a broadcast trace. It is the one bespoke geometry on
+ * the site and it recurs at three sizes — beside the wordmark, on the hero, and
+ * as the "on air" marker on an episode row. The bars are always rendered; only
+ * their height animates, so nothing depends on motion to be visible.
+ */
+.signal {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 1em;
+}
+
+.signal__bar {
+  inline-size: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--signal);
+  block-size: 35%;
+  transform-origin: bottom;
+  animation: signal-pulse 1400ms ease-in-out infinite;
+}
+
+.signal__bar:nth-child(2) { animation-delay: 160ms; block-size: 70%; }
+.signal__bar:nth-child(3) { animation-delay: 320ms; block-size: 100%; }
+.signal__bar:nth-child(4) { animation-delay: 480ms; block-size: 55%; }
+.signal__bar:nth-child(5) { animation-delay: 640ms; block-size: 85%; }
+
+@keyframes signal-pulse {
+  0%, 100% { block-size: 30%; }
+  50% { block-size: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal__bar {
+    animation: none;
+  }
+}
+
+/* ---- hero ----------------------------------------------------------- */
+
+.hero {
+  padding-block: clamp(var(--space-2xl), 11vw, 140px) var(--space-2xl);
+}
+
+.hero__station {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--signal);
+  font-size: 14px;
+  font-weight: 500;
+  margin-block-end: var(--space-lg);
+}
+
+.hero__title {
+  font-size: clamp(34px, 6.4vw, 62px);
+  max-inline-size: 16ch;
+  margin-block-end: var(--space-lg);
+}
+
+.hero__lede {
+  color: var(--text-muted);
+  font-size: clamp(17px, 2.1vw, 20px);
+  max-inline-size: 52ch;
+}
+
+/* ---- sections ------------------------------------------------------- */
+
+.section {
+  padding-block: clamp(var(--space-2xl), 8vw, var(--space-3xl));
+}
+
+.section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-block-end: var(--space-xl);
+}
+
+.section__title {
+  font-size: clamp(24px, 3.4vw, 34px);
+}
+
+.section__more {
+  color: var(--signal);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.section__more:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
+/* ---- grids and cards ------------------------------------------------ */
+
+.grid {
+  display: grid;
+  gap: var(--space-lg);
+  /* Equal-height tracks so parallel cards share one baseline grid. */
+  grid-auto-rows: 1fr;
+}
+
+.grid--shows {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+
+.grid--articles {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  block-size: 100%;
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  /* A self-coloured edge: the surface lifted, not a drawn outline. */
+  background: var(--ink-raised);
+  border: 1px solid var(--line-soft);
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.card:hover {
+  background: var(--ink-lifted);
+  border-color: var(--line);
+}
+
+.card__title {
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.card__meta {
+  color: var(--text-faint);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.card__text {
+  color: var(--text-muted);
+  font-size: 15px;
+  /* Reserve equal space so a long summary cannot push a neighbour's row down. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* The footer of a card is pinned so every card's last row shares one line. */
+.card__foot {
+  margin-block-start: auto;
+  padding-block-start: var(--space-sm);
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.card__cover {
+  aspect-ratio: 16 / 9;
+  inline-size: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--ink-lifted);
+  margin-block-end: var(--space-sm);
+}
+
+/* ---- episode rows --------------------------------------------------- */
+
+.episodes {
+  display: flex;
+  flex-direction: column;
+  border-block-start: 1px solid var(--line-soft);
+}
+
+.episode {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-md);
+  padding-block: var(--space-lg);
+  border-block-end: 1px solid var(--line-soft);
+  text-decoration: none;
+  transition: background-color 160ms ease;
+}
+
+.episode:hover {
+  background: rgba(234, 235, 246, 0.03);
+}
+
+.episode__number {
+  display: grid;
+  place-items: center;
+  inline-size: 52px;
+  block-size: 52px;
+  border-radius: var(--radius-sm);
+  background: var(--ink-raised);
+  color: var(--text-faint);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.episode__body {
+  min-inline-size: 0;
+}
+
+/* These are spans inside a non-flex parent, so blockify them explicitly. */
+.episode__title {
+  display: block;
+  font-size: 17px;
+  font-weight: 500;
+  margin-block-end: 2px;
+}
+
+.episode__meta {
+  display: block;
+  color: var(--text-faint);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.episode__aside {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-faint);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* ---- badges --------------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.badge--premium {
+  color: var(--signal);
+}
+
+/* ---- article --------------------------------------------------------- */
+
+.article {
+  padding-block: var(--space-2xl) var(--space-3xl);
+}
+
+.article__header {
+  max-inline-size: var(--measure-prose);
+  margin-block-end: var(--space-xl);
+}
+
+.article__title {
+  font-size: clamp(30px, 5vw, 48px);
+  margin-block-end: var(--space-md);
+}
+
+.article__byline {
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.article__cover {
+  inline-size: 100%;
+  border-radius: var(--radius-md);
+  margin-block-end: var(--space-xl);
+}
+
+/*
+ * Article bodies are server-rendered HTML produced by the API from validated
+ * editor JSON. The site never renders client-supplied markup, so these rules
+ * only need to type the API's own trusted output.
+ */
+.prose {
+  max-inline-size: var(--measure-prose);
+  font-size: 17px;
+  line-height: 1.9;
+}
+
+.prose > * + * {
+  margin-block-start: 1.15em;
+}
+
+.prose h2 {
+  font-size: 26px;
+  margin-block-start: 1.9em;
+}
+
+.prose h3 {
+  font-size: 21px;
+  margin-block-start: 1.6em;
+}
+
+.prose a {
+  color: var(--signal);
+}
+
+.prose blockquote {
+  margin-inline: 0;
+  padding-inline-start: var(--space-lg);
+  border-inline-start: 3px solid var(--signal-deep);
+  color: var(--text-muted);
+}
+
+.prose ul,
+.prose ol {
+  padding-inline-start: 1.4em;
+}
+
+.prose li + li {
+  margin-block-start: 0.4em;
+}
+
+.prose img {
+  border-radius: var(--radius-sm);
+}
+
+.prose figure {
+  margin-inline: 0;
+}
+
+.prose figcaption {
+  color: var(--text-faint);
+  font-size: 14px;
+  margin-block-start: var(--space-sm);
+}
+
+/* ---- states --------------------------------------------------------- */
+
+.state {
+  padding-block: var(--space-3xl);
+  text-align: center;
+  max-inline-size: 46ch;
+  margin-inline: auto;
+}
+
+.state__title {
+  font-size: clamp(22px, 3.4vw, 30px);
+  margin-block-end: var(--space-md);
+}
+
+.state__text {
+  color: var(--text-muted);
+  margin-block-end: var(--space-lg);
+}
+
+.state--alert .state__title {
+  color: var(--alert);
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 12px 22px;
+  border-radius: var(--radius-pill);
+  background: var(--signal);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  border: 0;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.action:hover {
+  background: #4ce894;
+}
+
+/* ---- pagination ------------------------------------------------------ */
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  margin-block-start: var(--space-2xl);
+  font-size: 15px;
+}
+
+.pager__link {
+  color: var(--text);
+  text-decoration: none;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  transition: border-color 160ms ease, color 160ms ease;
+}
+
+.pager__link:hover {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.pager__status {
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- skeletons ------------------------------------------------------- */
+
+/*
+ * Loading placeholders only. Real content is never hidden behind an animation:
+ * every page renders its data on the server, and these appear solely while a
+ * route segment streams.
+ */
+.skeleton {
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    90deg,
+    var(--ink-raised) 0%,
+    var(--ink-lifted) 50%,
+    var(--ink-raised) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-sweep 1600ms linear infinite;
+}
+
+@keyframes skeleton-sweep {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* ---- colophon -------------------------------------------------------- */
+
+.colophon {
+  margin-block-start: auto;
+  padding-block-start: var(--space-2xl);
+  border-block-start: 1px solid var(--line-soft);
+}
+
+.colophon__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-xl);
+  padding-block-end: var(--space-xl);
+}
+
+.colophon__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  font-size: 15px;
+}
+
+.colophon__nav a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.colophon__nav a:hover {
+  color: var(--text);
+}
+
+.colophon__note {
+  color: var(--text-faint);
+  font-size: 14px;
+  max-inline-size: 42ch;
+}
+
+/*
+ * The signature: the station's own wordmark at full width, sitting flush on the
+ * bottom edge with no gap beneath it and no clip. Nothing overflows, so no
+ * glyph is ever shaved — a small crop would read as a mistake rather than a
+ * deliberate bleed, and the mark is the last thing on the page by design.
+ */
+.colophon__signature {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  color: rgba(234, 235, 246, 0.07);
+}
+
+@media (max-width: 720px) {
+  .episode {
+    grid-template-columns: auto 1fr;
+  }
+
+  .episode__aside {
+    grid-column: 2;
+  }
+}
