@@ -29,3 +29,22 @@ export const inviteStudioMemberSchema = z
 
 export type UpdateStudioMemberRoleInput = z.infer<typeof updateStudioMemberRoleSchema>;
 export type InviteStudioMemberInput = z.infer<typeof inviteStudioMemberSchema>;
+
+/**
+ * Initial password for an accepted Studio invitation.
+ *
+ * The floor is deliberately length-first rather than a composition rule: a long
+ * passphrase resists guessing better than a short string forced to contain a
+ * symbol. The upper bound matches the bcrypt-safe input length so a truncated
+ * password can never be silently accepted.
+ */
+export const studioInvitationPasswordSchema = z
+  .string()
+  .min(12, 'Password must be at least 12 characters')
+  .max(72, 'Password must be at most 72 characters')
+  .refine((value) => value.trim().length >= 12, 'Password must not be only whitespace');
+
+export const acceptStudioInvitationSchema = z
+  .object({ password: studioInvitationPasswordSchema })
+  .strict();
+export type AcceptStudioInvitationInput = z.infer<typeof acceptStudioInvitationSchema>;

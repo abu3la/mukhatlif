@@ -37,6 +37,7 @@ import {
   type StudioMemberAccess,
   type StudioMemberAccessAuditLog,
   type StudioMemberInvitationAuditLog,
+  type StudioMemberStatus,
   type Subscription,
   type SubscriberUser,
   type SubscriptionStatus,
@@ -54,6 +55,7 @@ import {
 } from '@mukhtalif/validation';
 import { escapeSearchPattern, pageRange } from './list-query';
 import type {
+  AcceptStudioInvitationResult,
   ChangeRolePermissionsResult,
   ChangeStudioMemberRoleResult,
   CreateGuestSocialResult,
@@ -92,6 +94,8 @@ interface StudioMemberProfileRow {
 
 interface StudioMemberRow extends StudioMemberProfileRow {
   auth_user_id: string | null;
+  status?: StudioMemberStatus;
+  accepted_at?: string | null;
 }
 
 interface StudioMemberAccessAuditRow {
@@ -299,7 +303,7 @@ interface ProgressRow {
 const USER_SELECT = 'id, email, display_name, locale, created_at, auth_user_id';
 const USER_PROFILE_SELECT = 'id, email, display_name, locale, created_at';
 const STUDIO_MEMBER_WITH_ROLE_SELECT =
-  'id, email, display_name, role_id, locale, created_at, auth_user_id, role_record:studio_roles!studio_members_role_id_fkey(name)';
+  'id, email, display_name, role_id, locale, created_at, auth_user_id, status, accepted_at, role_record:studio_roles!studio_members_role_id_fkey(name)';
 
 function toUser(row: UserProfileRow): User {
   return {
@@ -343,7 +347,30 @@ function toStudioRole(
 }
 
 function toStudioMemberAccess(row: StudioMemberRow): StudioMemberAccess {
-  return { ...toStudioMember(row), authLinked: row.auth_user_id !== null };
+  return {
+    ...toStudioMember(row),
+    authLinked: row.auth_user_id !== null,
+    // Rows written before migration 0015 carry no status and are established
+    // operators, so an absent value reads as active rather than pending.
+    status: row.status ?? 'active',
+    ...(row.accepted_at ? { acceptedAt: row.accepted_at } : {}),
+  };
+}
+
+function toAcceptStudioInvitationResult(value: unknown): AcceptStudioInvitationResult {
+  if (!value || typeof value !== 'object') {
+    throw new Error('supabase: invalid invitation acceptance result');
+  }
+  const result = value as Record<string, unknown>;
+  if (result.status === 'accepted') {
+    if (!isStudioMemberRow(result.member)) {
+      throw new Error('supabase: invalid accepted Studio member payload');
+    }
+    return { status: 'accepted', member: toStudioMemberAccess(result.member) };
+  }
+  if (result.status === 'not_found') return { status: 'not_found' };
+  if (result.status === 'already_active') return { status: 'already_active' };
+  return { status: 'failed' };
 }
 
 function toSubscriberUser(row: UserProfileRow): SubscriberUser {
@@ -1040,6 +1067,43 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
           .maybeSingle(),
         toStudioMember,
       );
+    },
+    async getStudioMemberAccessByAuthId(authUserId) {
+      return single<StudioMemberRow, StudioMemberAccess>(
+        db
+          .from('studio_members')
+          .select(STUDIO_MEMBER_WITH_ROLE_SELECT)
+          .eq('auth_user_id', authUserId)
+          .maybeSingle(),
+        toStudioMemberAccess,
+      );
+    },
+    async acceptStudioInvitation(
+      authUserId,
+      requestId,
+    ): Promise<AcceptStudioInvitationResult> {
+      // studio_members is SELECT-only for service_role, so the state change runs
+      // inside the security-definer RPC under the access-control advisory lock.
+      try {
+        const { data, error } = await db.rpc('accept_studio_member_invitation', {
+          p_auth_user_id: authUserId,
+          p_request_id: requestId,
+        });
+        if (error) {
+          console.error('Supabase Studio invitation acceptance failed', {
+            requestId,
+            databaseError: error.message,
+          });
+          return { status: 'failed' };
+        }
+        return toAcceptStudioInvitationResult(data);
+      } catch (error) {
+        console.error('Supabase Studio invitation acceptance threw', {
+          requestId,
+          error: error instanceof Error ? error.message : 'Unknown acceptance error',
+        });
+        return { status: 'failed' };
+      }
     },
     async listSubscriberUsersPage(query: ListQuery): Promise<PageResult<SubscriberUser>> {
       let request = db

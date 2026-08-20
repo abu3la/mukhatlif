@@ -23,6 +23,7 @@ export function getRepository(env: Env): Repository {
 }
 
 export type {
+  AcceptStudioInvitationResult,
   Repository,
   EpisodeFilter,
   ArticleFilter,

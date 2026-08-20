@@ -156,6 +156,10 @@ export type LinkGuestAppearanceResult =
   | { status: 'linked' | 'already_linked'; appearance: GuestAppearance }
   | { status: 'guest_not_found' | 'episode_not_found' };
 
+export type AcceptStudioInvitationResult =
+  | { status: 'accepted'; member: StudioMemberAccess }
+  | { status: 'not_found' | 'already_active' | 'failed' };
+
 export interface Repository {
   /** Application-user identity and subscriber data. */
   getUser(id: string): Promise<User | null>;
@@ -180,6 +184,20 @@ export interface Repository {
     role: RoleId,
     requestId: string,
   ): Promise<ChangeStudioMemberRoleResult>;
+  /**
+   * Resolves the Studio membership for a verified Auth identity so the
+   * acceptance screen can render before any password is submitted.
+   */
+  getStudioMemberAccessByAuthId(authUserId: string): Promise<StudioMemberAccess | null>;
+  /**
+   * Marks the invitation accepted. The password must already have been set
+   * through Supabase Auth, so a failure here leaves a retryable pending row
+   * rather than an active member who cannot sign in.
+   */
+  acceptStudioInvitation(
+    authUserId: string,
+    requestId: string,
+  ): Promise<AcceptStudioInvitationResult>;
   listStudioMemberAccessAuditLogs(): Promise<StudioMemberAccessAuditLog[]>;
   listStudioMemberInvitationAuditLogs(): Promise<StudioMemberInvitationAuditLog[]>;
 

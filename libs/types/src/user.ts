@@ -37,9 +37,59 @@ export interface StudioMember {
   createdAt: string;
 }
 
+/**
+ * Where a Studio account sits in the invitation lifecycle. A member row exists
+ * from the moment an invitation is sent, so this is what separates a pending
+ * invitee from an operator who has accepted and set a password.
+ */
+export const STUDIO_MEMBER_STATUSES = ['invited', 'active'] as const;
+export type StudioMemberStatus = (typeof STUDIO_MEMBER_STATUSES)[number];
+
 /** Studio directory projection. The immutable Auth UUID stays server-only. */
 export interface StudioMemberAccess extends StudioMember {
   authLinked: boolean;
+  status: StudioMemberStatus;
+  /** ISO timestamp; absent while the invitation is still pending. */
+  acceptedAt?: string;
+}
+
+/**
+ * What `/studio/invitations/me` reports to the holder of a verified Auth token.
+ * It describes only the caller's own membership and never the Auth UUID.
+ */
+export interface StudioInvitationState {
+  status: StudioMemberStatus | 'none';
+  email?: string;
+  displayName?: string;
+  roleName?: string;
+}
+
+export const STUDIO_INVITATION_ERROR_CODES = [
+  'VALIDATION_ERROR',
+  'WEAK_PASSWORD',
+  'NO_INVITATION',
+  'ALREADY_ACCEPTED',
+  'AUTH_PROVISIONING_UNAVAILABLE',
+  'PASSWORD_UPDATE_FAILED',
+  'ACCEPTANCE_FAILED',
+] as const;
+
+export type StudioInvitationErrorCode = (typeof STUDIO_INVITATION_ERROR_CODES)[number];
+
+export interface StudioInvitationErrorResponse {
+  error: string;
+  code: StudioInvitationErrorCode;
+}
+
+export const STUDIO_MEMBER_ACCEPTANCE_AUDIT_ACTION = 'studio_member.accepted' as const;
+
+export interface StudioMemberAcceptanceAuditLog {
+  id: string;
+  action: typeof STUDIO_MEMBER_ACCEPTANCE_AUDIT_ACTION;
+  studioMemberId: string;
+  requestId: string;
+  /** ISO timestamp */
+  createdAt: string;
 }
 
 /** Authenticated Studio identity returned by `/studio/me`. */
@@ -125,6 +175,7 @@ export interface RolePermissionAuditLog {
 }
 
 export type AccessAuditLog =
+  | StudioMemberAcceptanceAuditLog
   | StudioMemberAccessAuditLog
   | RoleCreatedAuditLog
   | RolePermissionAuditLog

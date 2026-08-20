@@ -3,6 +3,7 @@ import {
   ROLE_CREATED_AUDIT_ACTION,
   ROLE_PERMISSION_AUDIT_ACTION,
   STUDIO_MEMBER_ACCESS_AUDIT_ACTION,
+  STUDIO_MEMBER_ACCEPTANCE_AUDIT_ACTION,
   STUDIO_MEMBER_INVITATION_AUDIT_ACTION,
   isPermissionId,
   normalizePermissionIds,
@@ -30,7 +31,9 @@ import {
   type StudioMember,
   type StudioMemberAccess,
   type StudioMemberAccessAuditLog,
+  type StudioMemberAcceptanceAuditLog,
   type StudioMemberInvitationAuditLog,
+  type StudioMemberStatus,
   type Subscription,
   type SubscriberUser,
   type SubscriptionStatus,
@@ -55,6 +58,7 @@ import {
 import { documentFromPlainText } from '../publishing/rich-text';
 import { matchesSearch, paginate } from './list-query';
 import type {
+  AcceptStudioInvitationResult,
   ArticleFilter,
   CreateGuestSocialResult,
   EpisodeFilter,
@@ -96,6 +100,8 @@ const users: MemoryUser[] = [
 
 interface MemoryStudioMember extends Omit<StudioMember, 'roleName'> {
   authUserId: string;
+  status: StudioMemberStatus;
+  acceptedAt?: string;
 }
 
 const studioMembers: MemoryStudioMember[] = [
@@ -106,6 +112,8 @@ const studioMembers: MemoryStudioMember[] = [
     role: 'admin',
     locale: 'ar',
     authUserId: '11111111-1111-4111-8111-111111111111',
+    status: 'active',
+    acceptedAt: '2026-01-10T08:00:00Z',
     createdAt: '2026-01-10T08:00:00Z',
   },
   {
@@ -115,12 +123,15 @@ const studioMembers: MemoryStudioMember[] = [
     role: 'editor',
     locale: 'ar',
     authUserId: '22222222-2222-4222-8222-222222222222',
+    status: 'active',
+    acceptedAt: '2026-01-11T08:00:00Z',
     createdAt: '2026-01-11T08:00:00Z',
   },
 ];
 
 const studioMemberAccessAuditLogs: StudioMemberAccessAuditLog[] = [];
 const studioMemberInvitationAuditLogs: StudioMemberInvitationAuditLog[] = [];
+const studioMemberAcceptanceAuditLogs: StudioMemberAcceptanceAuditLog[] = [];
 const roleCreatedAuditLogs: RoleCreatedAuditLog[] = [];
 const rolePermissionAuditLogs: RolePermissionAuditLog[] = [];
 
@@ -507,11 +518,31 @@ function toStudioMember(member: MemoryStudioMember): StudioMember {
 }
 
 function toStudioMemberAccess(member: MemoryStudioMember): StudioMemberAccess {
-  return { ...toStudioMember(member), authLinked: true };
+  return {
+    ...toStudioMember(member),
+    authLinked: true,
+    status: member.status,
+    ...(member.acceptedAt ? { acceptedAt: member.acceptedAt } : {}),
+  };
 }
 
 function toSubscriberUser(user: MemoryUser): SubscriberUser {
   return toUser(user);
+}
+
+/**
+ * Resolves a Studio member from a verified Auth identity.
+ *
+ * The local development gate synthesizes `dev:<member id>` instead of a real
+ * Auth UUID, so both forms are accepted here. This repository is only reachable
+ * when APP_ENV is development and ALLOW_DEV_AUTH is true, so the second form
+ * can never be honoured by a deployed environment.
+ */
+function findMemberByAuthId(authUserId: string): MemoryStudioMember | undefined {
+  return studioMembers.find(
+    (candidate) =>
+      candidate.authUserId === authUserId || `dev:${candidate.id}` === authUserId,
+  );
 }
 
 export function createMemoryRepository(): Repository {
@@ -540,6 +571,29 @@ export function createMemoryRepository(): Repository {
     async getStudioMemberByAuthId(authUserId) {
       const member = studioMembers.find((candidate) => candidate.authUserId === authUserId);
       return member ? toStudioMember(member) : null;
+    },
+    async getStudioMemberAccessByAuthId(authUserId) {
+      const member = findMemberByAuthId(authUserId);
+      return member ? toStudioMemberAccess(member) : null;
+    },
+    async acceptStudioInvitation(
+      authUserId,
+      requestId,
+    ): Promise<AcceptStudioInvitationResult> {
+      const member = findMemberByAuthId(authUserId);
+      if (!member) return { status: 'not_found' };
+      // Acceptance is one-time so a replay cannot reopen password setup.
+      if (member.status === 'active') return { status: 'already_active' };
+      member.status = 'active';
+      member.acceptedAt = new Date().toISOString();
+      studioMemberAcceptanceAuditLogs.unshift({
+        id: id('accept-audit'),
+        action: STUDIO_MEMBER_ACCEPTANCE_AUDIT_ACTION,
+        studioMemberId: member.id,
+        requestId,
+        createdAt: member.acceptedAt,
+      });
+      return { status: 'accepted', member: toStudioMemberAccess(member) };
     },
     async listStudioMembers() {
       return studioMembers.map(toStudioMemberAccess);
@@ -583,6 +637,7 @@ export function createMemoryRepository(): Repository {
         email: normalizedEmail,
         role: input.role,
         locale: input.locale,
+        status: 'invited',
         createdAt,
       };
       studioMembers.push(member);

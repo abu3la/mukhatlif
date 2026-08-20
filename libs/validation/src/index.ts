@@ -49,8 +49,17 @@ export type { CreateSubscriptionInput, UpdateSubscriptionStatusInput } from './s
 export { followSchema, upsertProgressSchema } from './engagement';
 export type { FollowInput, UpsertProgressInput } from './engagement';
 
-export { inviteStudioMemberSchema, updateStudioMemberRoleSchema } from './studio-member';
-export type { InviteStudioMemberInput, UpdateStudioMemberRoleInput } from './studio-member';
+export {
+  acceptStudioInvitationSchema,
+  inviteStudioMemberSchema,
+  studioInvitationPasswordSchema,
+  updateStudioMemberRoleSchema,
+} from './studio-member';
+export type {
+  AcceptStudioInvitationInput,
+  InviteStudioMemberInput,
+  UpdateStudioMemberRoleInput,
+} from './studio-member';
 
 export {
   permissionIdSchema,
