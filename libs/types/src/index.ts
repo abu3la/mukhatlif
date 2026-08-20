@@ -50,6 +50,7 @@ export {
   normalizePermissionIds,
 } from './permission';
 export type { Show } from './show';
+export type { HomeSummary, PublicEpisode } from './home';
 export type {
   Guest,
   GuestAppearance,
@@ -99,6 +100,7 @@ export type {
   NewsletterStatus,
   PublishedArticle,
   PublishedArticleAuthor,
+  PublishedArticleSummary,
   RichTextDocument,
   RichTextImageGalleryNode,
   RichTextMark,

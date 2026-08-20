@@ -7,6 +7,7 @@ import { auditRoute } from './routes/audit';
 import { plansRoute, subscriberUsersRoute, subscriptionsRoute } from './routes/billing';
 import { episodesRoute } from './routes/episodes';
 import { studioGuestsRoute } from './routes/guests';
+import { publicHomeRoute } from './routes/home';
 import { studioInvitationsRoute } from './routes/invitations';
 import { followsRoute, meRoute, progressRoute, studioMeRoute } from './routes/me';
 import { permissionsRoute } from './routes/permissions';
@@ -52,6 +53,7 @@ app.get('/', (c) =>
       '/episodes/:id',
       '/episodes/:id/status',
       '/episodes/:id/audio',
+      '/home',
       '/articles',
       '/articles/:slug',
       '/media/:id',
@@ -94,6 +96,7 @@ app.get('/', (c) =>
   }),
 );
 
+app.route('/home', publicHomeRoute);
 app.route('/shows', showsRoute);
 app.route('/episodes', episodesRoute);
 app.route('/articles', publicArticlesRoute);

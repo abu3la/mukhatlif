@@ -98,15 +98,21 @@ function hasMedia(content: Article['content']): boolean {
 
 /** Public, published-only API. It never returns Studio source or delivery metadata. */
 export const publicArticlesRoute = new Hono<AppEnv>()
-  .get('/', async (c) => {
-    const articles = await getRepository(c.env).listArticles({ status: 'published' });
+  .get('/', zValidator('query', listQuerySchema), async (c) => {
+    const input = c.req.valid('query');
+    const repo = getRepository(c.env);
     const mediaOrigin = getMediaPublicOrigin(c.env, new URL(c.req.url).origin);
-    return c.json(
-      articles.map((article) => ({
-        ...toPublishedArticle(article),
-        contentHtml: renderRichText(article.content, { mediaBaseUrl: mediaOrigin ?? undefined }),
-      })),
-    );
+    const render = (article: Article) => ({
+      ...toPublishedArticle(article),
+      contentHtml: renderRichText(article.content, { mediaBaseUrl: mediaOrigin ?? undefined }),
+    });
+    const filter = { status: 'published' as const };
+    if (!isPaginatedRequest(input)) {
+      return c.json((await repo.listArticles(filter)).map(render));
+    }
+    const query = resolveListQuery(input);
+    const page = await repo.listArticlesPage(filter, query);
+    return c.json(toPaginatedList({ items: page.items.map(render), total: page.total }, query));
   })
   .get('/:slug', async (c) => {
     const article = await getRepository(c.env).getArticleBySlug(c.req.param('slug'));

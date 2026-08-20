@@ -254,3 +254,14 @@ export interface NewsletterSendResult {
   article: Article;
   operation: 'accepted' | 'sent' | 'already_sent' | 'not_sent';
 }
+
+/**
+ * Listing projection for the public site. It deliberately omits `contentHtml`
+ * and `bodyAr` so an index page does not transfer every article's full body.
+ */
+export type PublishedArticleSummary = Pick<
+  PublishedArticle,
+  'id' | 'slug' | 'titleAr' | 'titleEn' | 'excerptAr' | 'coverUrl' | 'coverAlt' | 'publishedAt'
+> & {
+  author: PublishedArticleAuthor;
+};
