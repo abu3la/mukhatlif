@@ -4,8 +4,12 @@ import type {
   StudioMemberInvitationErrorCode,
   StudioMemberInvitationErrorResponse,
 } from '@mukhtalif/types';
+import { toPaginatedList } from '@mukhtalif/types';
 import {
   inviteStudioMemberSchema,
+  isPaginatedRequest,
+  listQuerySchema,
+  resolveListQuery,
   updateStudioMemberRoleSchema,
 } from '@mukhtalif/validation';
 import { requirePermission, type AppEnv } from '../auth';
@@ -21,9 +25,18 @@ function invitationError(
 
 /** Studio-only directory, invitation, and role assignment. */
 export const studioMembersRoute = new Hono<AppEnv>()
-  .get('/', requirePermission('access.view'), async (c) => {
-    return c.json(await getRepository(c.env).listStudioMembers());
-  })
+  .get(
+    '/',
+    requirePermission('access.view'),
+    zValidator('query', listQuerySchema),
+    async (c) => {
+      const input = c.req.valid('query');
+      const repo = getRepository(c.env);
+      if (!isPaginatedRequest(input)) return c.json(await repo.listStudioMembers());
+      const query = resolveListQuery(input);
+      return c.json(toPaginatedList(await repo.listStudioMembersPage(query), query));
+    },
+  )
   .post('/', requirePermission('access.manage'), async (c) => {
     let payload: unknown;
     try {

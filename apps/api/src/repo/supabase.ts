@@ -16,7 +16,13 @@ import {
   type Episode,
   type EpisodeStatus,
   type Follow,
+  type Guest,
+  type GuestAppearance,
+  type GuestSocial,
+  type ListQuery,
+  type PageResult,
   type Plan,
+  type SocialPlatform,
   type PlaybackProgress,
   type PermissionId,
   type RoleCreatedAuditLog,
@@ -25,6 +31,8 @@ import {
   type RolePermissionAuditLog,
   type RolePermissionMatrix,
   type StudioRole,
+  type StudioAudienceSummary,
+  type StudioContentSummary,
   type StudioMember,
   type StudioMemberAccess,
   type StudioMemberAccessAuditLog,
@@ -44,13 +52,17 @@ import {
   type CreateStudioRoleInput,
   type InviteStudioMemberInput,
 } from '@mukhtalif/validation';
+import { escapeSearchPattern, pageRange } from './list-query';
 import type {
   ChangeRolePermissionsResult,
   ChangeStudioMemberRoleResult,
+  CreateGuestSocialResult,
   CreateRoleResult,
   InviteStudioMemberResult,
+  LinkGuestAppearanceResult,
   Repository,
   StoredMediaAsset,
+  UpdateGuestSocialResult,
 } from './types';
 
 /** snake_case rows in Postgres ↔ camelCase domain objects. */
@@ -150,6 +162,30 @@ interface ShowRow {
   category: string;
   premium: boolean;
   created_at: string;
+}
+
+interface GuestRow {
+  id: string;
+  slug: string;
+  name: string;
+  role: string;
+  city: string;
+  email: string;
+  bio: string;
+  photo_url: string | null;
+  created_at: string;
+}
+
+interface GuestSocialRow {
+  id: string;
+  guest_id: string;
+  platform: SocialPlatform;
+  handle: string;
+}
+
+interface GuestAppearanceRow {
+  guest_id: string;
+  episode_id: string;
 }
 
 interface EpisodeRow {
@@ -545,6 +581,55 @@ function toShow(row: ShowRow): Show {
     premium: row.premium,
     createdAt: row.created_at,
   };
+}
+
+function toGuest(row: GuestRow): Guest {
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    role: row.role,
+    city: row.city,
+    email: row.email,
+    bio: row.bio,
+    photoUrl: row.photo_url ?? undefined,
+    createdAt: row.created_at,
+  };
+}
+
+function toGuestSocial(row: GuestSocialRow): GuestSocial {
+  return {
+    id: row.id,
+    guestId: row.guest_id,
+    platform: row.platform,
+    handle: row.handle,
+  };
+}
+
+function toGuestAppearance(row: GuestAppearanceRow): GuestAppearance {
+  return { guestId: row.guest_id, episodeId: row.episode_id };
+}
+
+function guestPatch(input: Record<string, unknown>): Record<string, unknown> {
+  const map: Record<string, string> = {
+    slug: 'slug',
+    name: 'name',
+    role: 'role',
+    city: 'city',
+    email: 'email',
+    bio: 'bio',
+    photoUrl: 'photo_url',
+  };
+  const patch: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (value !== undefined && map[key]) patch[map[key]] = value;
+  }
+  return patch;
+}
+
+/** Postgres unique-violation, used to turn a race into a domain result. */
+function isUniqueViolation(error: { code?: string } | null): boolean {
+  return error?.code === '23505';
 }
 
 function toEpisode(row: EpisodeRow): Episode {
@@ -956,6 +1041,23 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
         toStudioMember,
       );
     },
+    async listSubscriberUsersPage(query: ListQuery): Promise<PageResult<SubscriberUser>> {
+      let request = db
+        .from('users')
+        .select(USER_PROFILE_SELECT, { count: 'exact' })
+        .order('created_at');
+      if (query.search) {
+        const pattern = escapeSearchPattern(query.search);
+        request = request.or(`display_name.ilike.%${pattern}%,email.ilike.%${pattern}%`);
+      }
+      const { from, to } = pageRange(query);
+      const { data, error, count } = await request.range(from, to);
+      throwOn(error);
+      return {
+        items: ((data ?? []) as UserProfileRow[]).map(toSubscriberUser),
+        total: count ?? 0,
+      };
+    },
     async listStudioMembers() {
       const { data, error } = await db
         .from('studio_members')
@@ -963,6 +1065,23 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
         .order('created_at');
       throwOn(error);
       return ((data ?? []) as StudioMemberRow[]).map(toStudioMemberAccess);
+    },
+    async listStudioMembersPage(query: ListQuery): Promise<PageResult<StudioMemberAccess>> {
+      let request = db
+        .from('studio_members')
+        .select(STUDIO_MEMBER_WITH_ROLE_SELECT, { count: 'exact' })
+        .order('created_at');
+      if (query.search) {
+        const pattern = escapeSearchPattern(query.search);
+        request = request.or(`display_name.ilike.%${pattern}%,email.ilike.%${pattern}%`);
+      }
+      const { from, to } = pageRange(query);
+      const { data, error, count } = await request.range(from, to);
+      throwOn(error);
+      return {
+        items: ((data ?? []) as StudioMemberRow[]).map(toStudioMemberAccess),
+        total: count ?? 0,
+      };
     },
     async inviteStudioMember(actorStudioMemberId, input, requestId, redirectTo) {
       if (!redirectTo) return { status: 'unavailable' };
@@ -1184,6 +1303,19 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       throwOn(error);
       return ((data ?? []) as ShowRow[]).map(toShow);
     },
+    async listShowsPage(query: ListQuery): Promise<PageResult<Show>> {
+      let request = db.from('shows').select('*', { count: 'exact' }).order('created_at');
+      if (query.search) {
+        const pattern = escapeSearchPattern(query.search);
+        request = request.or(
+          `title_ar.ilike.%${pattern}%,title_en.ilike.%${pattern}%,host_name.ilike.%${pattern}%,slug.ilike.%${pattern}%`,
+        );
+      }
+      const { from, to } = pageRange(query);
+      const { data, error, count } = await request.range(from, to);
+      throwOn(error);
+      return { items: ((data ?? []) as ShowRow[]).map(toShow), total: count ?? 0 };
+    },
     async getShow(id) {
       return single<ShowRow, Show>(db.from('shows').select('*').eq('id', id).maybeSingle(), toShow);
     },
@@ -1215,6 +1347,22 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       });
       throwOn(error);
       return ((data ?? []) as EpisodeRow[]).map(toEpisode);
+    },
+    async listEpisodesPage(filter, query: ListQuery): Promise<PageResult<Episode>> {
+      let request = db.from('episodes').select('*', { count: 'exact' });
+      if (filter.showId) request = request.eq('show_id', filter.showId);
+      if (filter.status) request = request.eq('status', filter.status);
+      if (query.search) {
+        const pattern = escapeSearchPattern(query.search);
+        request = request.or(`title_ar.ilike.%${pattern}%,title_en.ilike.%${pattern}%`);
+      }
+      const { from, to } = pageRange(query);
+      const { data, error, count } = await request
+        .order('publish_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
+        .range(from, to);
+      throwOn(error);
+      return { items: ((data ?? []) as EpisodeRow[]).map(toEpisode), total: count ?? 0 };
     },
     async getEpisode(id) {
       return single<EpisodeRow, Episode>(
@@ -1364,6 +1512,302 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       throwOn(error);
       return ((data ?? []) as ArticleRow[]).map(toArticle);
     },
+    async listArticlesPage(filter, query: ListQuery): Promise<PageResult<Article>> {
+      let request = db.from('articles').select('*', { count: 'exact' });
+      if (filter.status) request = request.eq('status', filter.status);
+      if (query.search) {
+        const pattern = escapeSearchPattern(query.search);
+        request = request.or(
+          `title_ar.ilike.%${pattern}%,title_en.ilike.%${pattern}%,slug.ilike.%${pattern}%`,
+        );
+      }
+      const { from, to } = pageRange(query);
+      const { data, error, count } = await request
+        .order('created_at', { ascending: false })
+        .range(from, to);
+      throwOn(error);
+      return { items: ((data ?? []) as ArticleRow[]).map(toArticle), total: count ?? 0 };
+    },
+
+    async readGuestDirectory() {
+      const [guestResult, socialResult, appearanceResult] = await Promise.all([
+        db.from('guests').select('*').order('created_at', { ascending: false }),
+        db.from('guest_socials').select('*').order('created_at'),
+        db.from('guest_appearances').select('guest_id, episode_id'),
+      ]);
+      throwOn(guestResult.error);
+      throwOn(socialResult.error);
+      throwOn(appearanceResult.error);
+      return {
+        guests: ((guestResult.data ?? []) as GuestRow[]).map(toGuest),
+        socials: ((socialResult.data ?? []) as GuestSocialRow[]).map(toGuestSocial),
+        appearances: ((appearanceResult.data ?? []) as GuestAppearanceRow[]).map(
+          toGuestAppearance,
+        ),
+      };
+    },
+    async listGuestsPage(query: ListQuery): Promise<PageResult<Guest>> {
+      let request = db.from('guests').select('*', { count: 'exact' });
+      if (query.search) {
+        const pattern = escapeSearchPattern(query.search);
+        request = request.or(
+          `name.ilike.%${pattern}%,role.ilike.%${pattern}%,city.ilike.%${pattern}%,email.ilike.%${pattern}%,slug.ilike.%${pattern}%`,
+        );
+      }
+      const { from, to } = pageRange(query);
+      const { data, error, count } = await request
+        .order('created_at', { ascending: false })
+        .range(from, to);
+      throwOn(error);
+      return { items: ((data ?? []) as GuestRow[]).map(toGuest), total: count ?? 0 };
+    },
+    async getGuest(id) {
+      return single<GuestRow, Guest>(
+        db.from('guests').select('*').eq('id', id).maybeSingle(),
+        toGuest,
+      );
+    },
+    async getGuestBySlug(slug) {
+      return single<GuestRow, Guest>(
+        db.from('guests').select('*').eq('slug', slug).maybeSingle(),
+        toGuest,
+      );
+    },
+    async createGuest(slug, input) {
+      const { data, error } = await db
+        .from('guests')
+        .insert({
+          slug,
+          name: input.name ?? '',
+          role: input.role ?? '',
+          city: input.city ?? '',
+          email: input.email ?? '',
+          bio: input.bio ?? '',
+          photo_url: input.photoUrl ?? null,
+        })
+        .select()
+        .single();
+      throwOn(error);
+      return toGuest(data as GuestRow);
+    },
+    async updateGuest(id, input) {
+      const patch = guestPatch(input);
+      if (Object.keys(patch).length === 0) {
+        return single<GuestRow, Guest>(
+          db.from('guests').select('*').eq('id', id).maybeSingle(),
+          toGuest,
+        );
+      }
+      return single<GuestRow, Guest>(
+        db.from('guests').update(patch).eq('id', id).select().maybeSingle(),
+        toGuest,
+      );
+    },
+    async listGuestSocials(guestId) {
+      const { data, error } = await db
+        .from('guest_socials')
+        .select('*')
+        .eq('guest_id', guestId)
+        .order('created_at');
+      throwOn(error);
+      return ((data ?? []) as GuestSocialRow[]).map(toGuestSocial);
+    },
+    async getGuestSocial(id) {
+      return single<GuestSocialRow, GuestSocial>(
+        db.from('guest_socials').select('*').eq('id', id).maybeSingle(),
+        toGuestSocial,
+      );
+    },
+    async createGuestSocial(guestId, input): Promise<CreateGuestSocialResult> {
+      const guest = await db.from('guests').select('id').eq('id', guestId).maybeSingle();
+      throwOn(guest.error);
+      if (!guest.data) return { status: 'guest_not_found' };
+      const { data, error } = await db
+        .from('guest_socials')
+        .insert({ guest_id: guestId, platform: input.platform, handle: input.handle })
+        .select()
+        .single();
+      // The unique index is the authority; a concurrent insert lands here.
+      if (isUniqueViolation(error)) return { status: 'duplicate_platform' };
+      throwOn(error);
+      return { status: 'created', social: toGuestSocial(data as GuestSocialRow) };
+    },
+    async updateGuestSocial(id, input): Promise<UpdateGuestSocialResult> {
+      const patch: Record<string, unknown> = {};
+      if (input.platform !== undefined) patch.platform = input.platform;
+      if (input.handle !== undefined) patch.handle = input.handle;
+      if (Object.keys(patch).length === 0) {
+        const current = await single<GuestSocialRow, GuestSocial>(
+          db.from('guest_socials').select('*').eq('id', id).maybeSingle(),
+          toGuestSocial,
+        );
+        return current ? { status: 'updated', social: current } : { status: 'not_found' };
+      }
+      const { data, error } = await db
+        .from('guest_socials')
+        .update(patch)
+        .eq('id', id)
+        .select()
+        .maybeSingle();
+      if (isUniqueViolation(error)) return { status: 'duplicate_platform' };
+      throwOn(error);
+      return data
+        ? { status: 'updated', social: toGuestSocial(data as GuestSocialRow) }
+        : { status: 'not_found' };
+    },
+    async deleteGuestSocial(id) {
+      const { data, error } = await db
+        .from('guest_socials')
+        .delete()
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+      throwOn(error);
+      return Boolean(data);
+    },
+    async listGuestAppearances(guestId) {
+      const { data, error } = await db
+        .from('guest_appearances')
+        .select('guest_id, episode_id')
+        .eq('guest_id', guestId);
+      throwOn(error);
+      return ((data ?? []) as GuestAppearanceRow[]).map(toGuestAppearance);
+    },
+    async listEpisodeGuests(episodeId) {
+      const links = await db
+        .from('guest_appearances')
+        .select('guest_id')
+        .eq('episode_id', episodeId);
+      throwOn(links.error);
+      const guestIds = ((links.data ?? []) as { guest_id: string }[]).map((row) => row.guest_id);
+      if (guestIds.length === 0) return [];
+      const { data, error } = await db
+        .from('guests')
+        .select('*')
+        .in('id', guestIds)
+        .order('name');
+      throwOn(error);
+      return ((data ?? []) as GuestRow[]).map(toGuest);
+    },
+    async linkGuestAppearance(guestId, episodeId): Promise<LinkGuestAppearanceResult> {
+      const [guest, episode] = await Promise.all([
+        db.from('guests').select('id').eq('id', guestId).maybeSingle(),
+        db.from('episodes').select('id').eq('id', episodeId).maybeSingle(),
+      ]);
+      throwOn(guest.error);
+      throwOn(episode.error);
+      if (!guest.data) return { status: 'guest_not_found' };
+      if (!episode.data) return { status: 'episode_not_found' };
+      const { error } = await db
+        .from('guest_appearances')
+        .insert({ guest_id: guestId, episode_id: episodeId });
+      // Linking is idempotent: the composite primary key absorbs a repeat.
+      if (isUniqueViolation(error)) {
+        return { status: 'already_linked', appearance: { guestId, episodeId } };
+      }
+      throwOn(error);
+      return { status: 'linked', appearance: { guestId, episodeId } };
+    },
+    async unlinkGuestAppearance(guestId, episodeId) {
+      const { data, error } = await db
+        .from('guest_appearances')
+        .delete()
+        .eq('guest_id', guestId)
+        .eq('episode_id', episodeId)
+        .select('guest_id')
+        .maybeSingle();
+      throwOn(error);
+      return Boolean(data);
+    },
+
+    async getContentSummary(): Promise<StudioContentSummary> {
+      const countOf = async (
+        table: string,
+        column?: string,
+        value?: string,
+      ): Promise<number> => {
+        let request = db.from(table).select('*', { count: 'exact', head: true });
+        if (column && value) request = request.eq(column, value);
+        const { error, count } = await request;
+        throwOn(error);
+        return count ?? 0;
+      };
+      const [
+        shows,
+        guests,
+        episodeTotal,
+        draftEpisodes,
+        scheduledEpisodes,
+        publishedEpisodes,
+        archivedEpisodes,
+        articleTotal,
+        draftArticles,
+        publishedArticles,
+      ] = await Promise.all([
+        countOf('shows'),
+        countOf('guests'),
+        countOf('episodes'),
+        countOf('episodes', 'status', 'draft'),
+        countOf('episodes', 'status', 'scheduled'),
+        countOf('episodes', 'status', 'published'),
+        countOf('episodes', 'status', 'archived'),
+        countOf('articles'),
+        countOf('articles', 'status', 'draft'),
+        countOf('articles', 'status', 'published'),
+      ]);
+      return {
+        shows,
+        guests,
+        episodes: {
+          total: episodeTotal,
+          draft: draftEpisodes,
+          scheduled: scheduledEpisodes,
+          published: publishedEpisodes,
+          archived: archivedEpisodes,
+        },
+        articles: { total: articleTotal, draft: draftArticles, published: publishedArticles },
+      };
+    },
+    async getAudienceSummary(): Promise<StudioAudienceSummary> {
+      const [users, subscriptionRows, planRows] = await Promise.all([
+        db.from('users').select('*', { count: 'exact', head: true }),
+        db.from('subscriptions').select('status, plan_id, price_minor, currency'),
+        db.from('plans').select('id, interval, currency'),
+      ]);
+      throwOn(users.error);
+      throwOn(subscriptionRows.error);
+      throwOn(planRows.error);
+      const intervals = new Map(
+        ((planRows.data ?? []) as { id: string; interval: string }[]).map((plan) => [
+          plan.id,
+          plan.interval,
+        ]),
+      );
+      const counts = { active: 0, past_due: 0, canceled: 0 };
+      let monthlyRecurringRevenueMinor = 0;
+      const rows = (subscriptionRows.data ?? []) as {
+        status: SubscriptionStatus;
+        plan_id: string;
+        price_minor: number;
+      }[];
+      for (const row of rows) {
+        counts[row.status] += 1;
+        if (row.status !== 'active') continue;
+        // Annual plans are amortized so the figure is always a monthly rate.
+        monthlyRecurringRevenueMinor +=
+          intervals.get(row.plan_id) === 'year'
+            ? Math.round(row.price_minor / 12)
+            : row.price_minor;
+      }
+      return {
+        users: users.count ?? 0,
+        subscriptions: { ...counts, total: rows.length },
+        monthlyRecurringRevenueMinor,
+        currency:
+          ((planRows.data ?? []) as { currency?: string }[])[0]?.currency ?? 'SAR',
+      };
+    },
+
     async listArticleAuthorCandidates() {
       const { data, error } = await db
         .from('studio_members')

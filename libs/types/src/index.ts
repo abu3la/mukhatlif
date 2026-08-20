@@ -42,6 +42,28 @@ export {
   normalizePermissionIds,
 } from './permission';
 export type { Show } from './show';
+export type {
+  Guest,
+  GuestAppearance,
+  GuestDirectory,
+  GuestSocial,
+  SocialPlatform,
+} from './guest';
+export { SOCIAL_PLATFORMS, isSocialPlatform } from './guest';
+export type {
+  ListQuery,
+  PageInfo,
+  PageResult,
+  PaginatedList,
+} from './pagination';
+export { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, toPageInfo, toPaginatedList } from './pagination';
+export type {
+  StudioAudienceSummary,
+  StudioContentSummary,
+  StudioSummary,
+  StudioSummaryArticle,
+  StudioSummaryEpisode,
+} from './summary';
 export type { Episode, EpisodeStatus } from './episode';
 export { EPISODE_STATUSES, EPISODE_TRANSITIONS, canTransitionEpisode } from './episode';
 export type {

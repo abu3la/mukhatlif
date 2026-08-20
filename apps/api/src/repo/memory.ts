@@ -11,6 +11,11 @@ import {
   type Episode,
   type EpisodeStatus,
   type Follow,
+  type Guest,
+  type GuestAppearance,
+  type GuestSocial,
+  type ListQuery,
+  type PageResult,
   type Plan,
   type PlaybackProgress,
   type PermissionId,
@@ -20,6 +25,8 @@ import {
   type RolePermissionAuditLog,
   type RolePermissionMatrix,
   type StudioRole,
+  type StudioAudienceSummary,
+  type StudioContentSummary,
   type StudioMember,
   type StudioMemberAccess,
   type StudioMemberAccessAuditLog,
@@ -32,8 +39,12 @@ import {
 import {
   normalizeArticleAuthorDisplayName,
   type CreateEpisodeInput,
+  type CreateGuestInput,
+  type CreateGuestSocialInput,
   type CreateShowInput,
   type UpdateEpisodeInput,
+  type UpdateGuestInput,
+  type UpdateGuestSocialInput,
   type UpdateShowInput,
 } from '@mukhtalif/validation';
 import {
@@ -42,7 +53,16 @@ import {
   refreshNeedsSync,
 } from '../publishing/article-record';
 import { documentFromPlainText } from '../publishing/rich-text';
-import type { ArticleFilter, EpisodeFilter, Repository, StoredMediaAsset } from './types';
+import { matchesSearch, paginate } from './list-query';
+import type {
+  ArticleFilter,
+  CreateGuestSocialResult,
+  EpisodeFilter,
+  LinkGuestAppearanceResult,
+  Repository,
+  StoredMediaAsset,
+  UpdateGuestSocialResult,
+} from './types';
 
 /**
  * Seeded development dataset mirroring supabase/migrations/0001_init.sql.
@@ -352,6 +372,38 @@ const articleNewsletterSyncTokens = new Map<string, string>();
 const articleNewsletterSendLeases = new Map<string, { token: string; startedAt: string }>();
 const mediaAssets: StoredMediaAsset[] = [];
 
+const guests: Guest[] = [
+  {
+    id: 'gst-1001',
+    slug: 'noura-al-qahtani',
+    name: 'نورة القحطاني',
+    role: 'مهندسة بترول أولى',
+    city: 'الظهران',
+    email: 'noura@example.com',
+    bio: 'مهندسة بترول تعمل على مشاريع الحفر البحري منذ 2015.',
+    createdAt: '2026-05-04T09:00:00Z',
+  },
+  {
+    id: 'gst-1002',
+    slug: 'faisal-al-dosari',
+    name: 'فيصل الدوسري',
+    role: 'مدير منتج',
+    city: 'الرياض',
+    email: '',
+    bio: 'يقود فرق المنتج في شركات ناشئة سعودية.',
+    createdAt: '2026-06-18T09:00:00Z',
+  },
+];
+
+const guestSocials: GuestSocial[] = [
+  { id: 'gsoc-1001', guestId: 'gst-1001', platform: 'linkedin', handle: 'noura-alqahtani' },
+  { id: 'gsoc-1002', guestId: 'gst-1002', platform: 'x', handle: 'faisal_pm' },
+];
+
+const guestAppearances: GuestAppearance[] = [
+  { guestId: 'gst-1001', episodeId: 'ep-1001' },
+];
+
 const plans: Plan[] = [
   {
     id: 'pln-plus',
@@ -475,6 +527,12 @@ export function createMemoryRepository(): Repository {
     async listSubscriberUsers() {
       return users.map(toSubscriberUser);
     },
+    async listSubscriberUsersPage(query: ListQuery): Promise<PageResult<SubscriberUser>> {
+      const matched = users
+        .filter((user) => matchesSearch(query.search, user.displayName, user.email))
+        .map(toSubscriberUser);
+      return paginate(matched, query);
+    },
     async getStudioMember(studioMemberId) {
       const member = studioMembers.find((candidate) => candidate.id === studioMemberId);
       return member ? toStudioMember(member) : null;
@@ -485,6 +543,12 @@ export function createMemoryRepository(): Repository {
     },
     async listStudioMembers() {
       return studioMembers.map(toStudioMemberAccess);
+    },
+    async listStudioMembersPage(query: ListQuery): Promise<PageResult<StudioMemberAccess>> {
+      const matched = studioMembers
+        .filter((member) => matchesSearch(query.search, member.displayName, member.email))
+        .map(toStudioMemberAccess);
+      return paginate(matched, query);
     },
     async inviteStudioMember(actorStudioMemberId, input, requestId) {
       const actor = studioMembers.find((candidate) => candidate.id === actorStudioMemberId);
@@ -699,6 +763,12 @@ export function createMemoryRepository(): Repository {
     async listShows() {
       return [...shows];
     },
+    async listShowsPage(query: ListQuery): Promise<PageResult<Show>> {
+      const matched = shows.filter((show) =>
+        matchesSearch(query.search, show.titleAr, show.titleEn, show.hostName, show.slug),
+      );
+      return paginate(matched, query);
+    },
     async getShow(showId) {
       return shows.find((s) => s.id === showId) ?? null;
     },
@@ -722,6 +792,14 @@ export function createMemoryRepository(): Repository {
         .filter((e) => (filter.showId ? e.showId === filter.showId : true))
         .filter((e) => (filter.status ? e.status === filter.status : true))
         .sort((a, b) => (b.publishAt ?? b.createdAt).localeCompare(a.publishAt ?? a.createdAt));
+    },
+    async listEpisodesPage(filter: EpisodeFilter, query: ListQuery): Promise<PageResult<Episode>> {
+      const matched = episodes
+        .filter((e) => (filter.showId ? e.showId === filter.showId : true))
+        .filter((e) => (filter.status ? e.status === filter.status : true))
+        .filter((e) => matchesSearch(query.search, e.titleAr, e.titleEn, e.showNotesAr))
+        .sort((a, b) => (b.publishAt ?? b.createdAt).localeCompare(a.publishAt ?? a.createdAt));
+      return paginate(matched, query);
     },
     async getEpisode(episodeId) {
       return episodes.find((e) => e.id === episodeId) ?? null;
@@ -809,10 +887,191 @@ export function createMemoryRepository(): Repository {
       }
     },
 
+    async readGuestDirectory() {
+      return {
+        guests: guests.map((guest) => ({ ...guest })),
+        socials: guestSocials.map((social) => ({ ...social })),
+        appearances: guestAppearances.map((appearance) => ({ ...appearance })),
+      };
+    },
+    async listGuestsPage(query: ListQuery): Promise<PageResult<Guest>> {
+      const matched = guests
+        .filter((guest) =>
+          matchesSearch(query.search, guest.name, guest.role, guest.city, guest.email, guest.slug),
+        )
+        .slice()
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      return paginate(matched, query);
+    },
+    async getGuest(guestId) {
+      return guests.find((guest) => guest.id === guestId) ?? null;
+    },
+    async getGuestBySlug(slug) {
+      return guests.find((guest) => guest.slug === slug) ?? null;
+    },
+    async createGuest(slug: string, input: CreateGuestInput) {
+      const guest: Guest = {
+        id: id('gst'),
+        slug,
+        name: input.name ?? '',
+        role: input.role ?? '',
+        city: input.city ?? '',
+        email: input.email ?? '',
+        bio: input.bio ?? '',
+        photoUrl: input.photoUrl,
+        createdAt: new Date().toISOString(),
+      };
+      guests.push(guest);
+      return { ...guest };
+    },
+    async updateGuest(guestId, input: UpdateGuestInput) {
+      const guest = guests.find((candidate) => candidate.id === guestId);
+      if (!guest) return null;
+      // An absent key leaves the field untouched; an explicit empty string clears it.
+      if (input.name !== undefined) guest.name = input.name;
+      if (input.role !== undefined) guest.role = input.role;
+      if (input.city !== undefined) guest.city = input.city;
+      if (input.email !== undefined) guest.email = input.email;
+      if (input.bio !== undefined) guest.bio = input.bio;
+      if (input.photoUrl !== undefined) guest.photoUrl = input.photoUrl;
+      return { ...guest };
+    },
+    async listGuestSocials(guestId) {
+      return guestSocials.filter((social) => social.guestId === guestId).map((s) => ({ ...s }));
+    },
+    async getGuestSocial(socialId) {
+      return guestSocials.find((social) => social.id === socialId) ?? null;
+    },
+    async createGuestSocial(
+      guestId: string,
+      input: CreateGuestSocialInput,
+    ): Promise<CreateGuestSocialResult> {
+      if (!guests.some((guest) => guest.id === guestId)) return { status: 'guest_not_found' };
+      if (
+        guestSocials.some(
+          (social) => social.guestId === guestId && social.platform === input.platform,
+        )
+      ) {
+        return { status: 'duplicate_platform' };
+      }
+      const social: GuestSocial = {
+        id: id('gsoc'),
+        guestId,
+        platform: input.platform,
+        handle: input.handle,
+      };
+      guestSocials.push(social);
+      return { status: 'created', social: { ...social } };
+    },
+    async updateGuestSocial(
+      socialId: string,
+      input: UpdateGuestSocialInput,
+    ): Promise<UpdateGuestSocialResult> {
+      const social = guestSocials.find((candidate) => candidate.id === socialId);
+      if (!social) return { status: 'not_found' };
+      const platform = input.platform ?? social.platform;
+      if (
+        platform !== social.platform &&
+        guestSocials.some(
+          (other) =>
+            other.id !== socialId && other.guestId === social.guestId && other.platform === platform,
+        )
+      ) {
+        return { status: 'duplicate_platform' };
+      }
+      social.platform = platform;
+      if (input.handle !== undefined) social.handle = input.handle;
+      return { status: 'updated', social: { ...social } };
+    },
+    async deleteGuestSocial(socialId) {
+      const index = guestSocials.findIndex((social) => social.id === socialId);
+      if (index < 0) return false;
+      guestSocials.splice(index, 1);
+      return true;
+    },
+    async listGuestAppearances(guestId) {
+      return guestAppearances
+        .filter((appearance) => appearance.guestId === guestId)
+        .map((appearance) => ({ ...appearance }));
+    },
+    async listEpisodeGuests(episodeId) {
+      const linked = new Set(
+        guestAppearances
+          .filter((appearance) => appearance.episodeId === episodeId)
+          .map((appearance) => appearance.guestId),
+      );
+      return guests.filter((guest) => linked.has(guest.id)).map((guest) => ({ ...guest }));
+    },
+    async linkGuestAppearance(guestId, episodeId): Promise<LinkGuestAppearanceResult> {
+      if (!guests.some((guest) => guest.id === guestId)) return { status: 'guest_not_found' };
+      if (!episodes.some((episode) => episode.id === episodeId)) {
+        return { status: 'episode_not_found' };
+      }
+      const existing = guestAppearances.find(
+        (appearance) => appearance.guestId === guestId && appearance.episodeId === episodeId,
+      );
+      if (existing) return { status: 'already_linked', appearance: { ...existing } };
+      const appearance: GuestAppearance = { guestId, episodeId };
+      guestAppearances.push(appearance);
+      return { status: 'linked', appearance: { ...appearance } };
+    },
+    async unlinkGuestAppearance(guestId, episodeId) {
+      const index = guestAppearances.findIndex(
+        (appearance) => appearance.guestId === guestId && appearance.episodeId === episodeId,
+      );
+      if (index < 0) return false;
+      guestAppearances.splice(index, 1);
+      return true;
+    },
+
+    async getContentSummary(): Promise<StudioContentSummary> {
+      const episodeCounts = { draft: 0, scheduled: 0, published: 0, archived: 0 };
+      for (const episode of episodes) episodeCounts[episode.status] += 1;
+      const articleCounts = { draft: 0, published: 0 };
+      for (const article of articles) articleCounts[article.status] += 1;
+      return {
+        shows: shows.length,
+        guests: guests.length,
+        episodes: { ...episodeCounts, total: episodes.length },
+        articles: { ...articleCounts, total: articles.length },
+      };
+    },
+    async getAudienceSummary(): Promise<StudioAudienceSummary> {
+      const counts = { active: 0, past_due: 0, canceled: 0 };
+      let monthlyRecurringRevenueMinor = 0;
+      for (const subscription of subscriptions) {
+        counts[subscription.status] += 1;
+        if (subscription.status !== 'active') continue;
+        const plan = plans.find((candidate) => candidate.id === subscription.planId);
+        // Annual plans are amortized so the figure is always a monthly rate.
+        const perMonth =
+          plan?.interval === 'year'
+            ? Math.round(subscription.priceMinor / 12)
+            : subscription.priceMinor;
+        monthlyRecurringRevenueMinor += perMonth;
+      }
+      return {
+        users: users.length,
+        subscriptions: { ...counts, total: subscriptions.length },
+        monthlyRecurringRevenueMinor,
+        currency: plans[0]?.currency ?? 'SAR',
+      };
+    },
+
     async listArticles(filter: ArticleFilter) {
       return articles
         .filter((a) => (filter.status ? a.status === filter.status : true))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    },
+    async listArticlesPage(filter: ArticleFilter, query: ListQuery): Promise<PageResult<Article>> {
+      const matched = articles
+        .filter((a) => (filter.status ? a.status === filter.status : true))
+        .filter((a) => matchesSearch(query.search, a.titleAr, a.titleEn, a.slug, a.excerptAr))
+        .slice()
+        .sort((a, b) =>
+          (b.publishedAt ?? b.createdAt).localeCompare(a.publishedAt ?? a.createdAt),
+        );
+      return paginate(matched, query);
     },
     async listArticleAuthorCandidates() {
       return studioMembers

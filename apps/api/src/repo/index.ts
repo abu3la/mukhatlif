@@ -34,5 +34,8 @@ export type {
   NewsletterSyncClaimResult,
   StoredMediaAsset,
   CreateMediaUploadRecordInput,
+  CreateGuestSocialResult,
+  LinkGuestAppearanceResult,
   MediaUploadClaim,
+  UpdateGuestSocialResult,
 } from './types';

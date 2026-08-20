@@ -1,29 +1,37 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { canTransitionEpisode } from '@mukhtalif/types';
+import { canTransitionEpisode, toPaginatedList } from '@mukhtalif/types';
 import {
   createEpisodeSchema,
   episodeStatusSchema,
+  isPaginatedRequest,
+  listQuerySchema,
+  resolveListQuery,
   updateEpisodeSchema,
   updateEpisodeStatusSchema,
 } from '@mukhtalif/validation';
 import { hasPermission, requirePermission, type AppEnv } from '../auth';
 import { getRepository } from '../repo';
 
-const listQuerySchema = z.object({
+const episodeListQuerySchema = listQuerySchema.extend({
   showId: z.string().optional(),
   status: episodeStatusSchema.optional(),
 });
 
 export const episodesRoute = new Hono<AppEnv>()
-  .get('/', zValidator('query', listQuerySchema), async (c) => {
-    const { showId, status } = c.req.valid('query');
+  .get('/', zValidator('query', episodeListQuerySchema), async (c) => {
+    const input = c.req.valid('query');
     const canViewStudioEpisodes = hasPermission(c.get('permissions'), 'episodes.view');
     // Listeners only see the published catalog; editors and admins can filter freely.
-    const effectiveStatus = canViewStudioEpisodes ? status : 'published';
-    const episodes = await getRepository(c.env).listEpisodes({ showId, status: effectiveStatus });
-    return c.json(episodes);
+    const filter = {
+      showId: input.showId,
+      status: canViewStudioEpisodes ? input.status : ('published' as const),
+    };
+    const repo = getRepository(c.env);
+    if (!isPaginatedRequest(input)) return c.json(await repo.listEpisodes(filter));
+    const query = resolveListQuery(input);
+    return c.json(toPaginatedList(await repo.listEpisodesPage(filter, query), query));
   })
   .get('/:id', async (c) => {
     const episode = await getRepository(c.env).getEpisode(c.req.param('id'));

@@ -1,7 +1,13 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { canTransitionSubscription } from '@mukhtalif/types';
-import { createSubscriptionSchema, updateSubscriptionStatusSchema } from '@mukhtalif/validation';
+import { canTransitionSubscription, toPaginatedList } from '@mukhtalif/types';
+import {
+  createSubscriptionSchema,
+  isPaginatedRequest,
+  listQuerySchema,
+  resolveListQuery,
+  updateSubscriptionStatusSchema,
+} from '@mukhtalif/validation';
 import { requirePermission, type AppEnv } from '../auth';
 import { getRepository } from '../repo';
 
@@ -71,5 +77,12 @@ export const subscriptionsRoute = new Hono<AppEnv>()
 export const subscriberUsersRoute = new Hono<AppEnv>().get(
   '/',
   requirePermission('subscribers.view'),
-  async (c) => c.json(await getRepository(c.env).listSubscriberUsers()),
+  zValidator('query', listQuerySchema),
+  async (c) => {
+    const input = c.req.valid('query');
+    const repo = getRepository(c.env);
+    if (!isPaginatedRequest(input)) return c.json(await repo.listSubscriberUsers());
+    const query = resolveListQuery(input);
+    return c.json(toPaginatedList(await repo.listSubscriberUsersPage(query), query));
+  },
 );

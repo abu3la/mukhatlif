@@ -5,6 +5,12 @@ import type {
   Episode,
   EpisodeStatus,
   Follow,
+  Guest,
+  GuestAppearance,
+  GuestDirectory,
+  GuestSocial,
+  ListQuery,
+  PageResult,
   Plan,
   MediaAsset,
   ImageMediaMimeType,
@@ -19,6 +25,8 @@ import type {
   StudioMemberAccess,
   StudioMemberAccessAuditLog,
   StudioMemberInvitationAuditLog,
+  StudioAudienceSummary,
+  StudioContentSummary,
   StudioRole,
   SubscriberUser,
   Subscription,
@@ -27,11 +35,15 @@ import type {
 } from '@mukhtalif/types';
 import type {
   CreateEpisodeInput,
+  CreateGuestInput,
+  CreateGuestSocialInput,
   CreateShowInput,
   CreateStudioRoleInput,
   CreateSubscriptionInput,
   InviteStudioMemberInput,
   UpdateEpisodeInput,
+  UpdateGuestInput,
+  UpdateGuestSocialInput,
   UpdateShowInput,
 } from '@mukhtalif/validation';
 import type {
@@ -132,16 +144,30 @@ export type InviteStudioMemberResult =
         | 'protected_role';
     };
 
+export type CreateGuestSocialResult =
+  | { status: 'created'; social: GuestSocial }
+  | { status: 'guest_not_found' | 'duplicate_platform' };
+
+export type UpdateGuestSocialResult =
+  | { status: 'updated'; social: GuestSocial }
+  | { status: 'not_found' | 'duplicate_platform' };
+
+export type LinkGuestAppearanceResult =
+  | { status: 'linked' | 'already_linked'; appearance: GuestAppearance }
+  | { status: 'guest_not_found' | 'episode_not_found' };
+
 export interface Repository {
   /** Application-user identity and subscriber data. */
   getUser(id: string): Promise<User | null>;
   getUserByAuthId(authUserId: string): Promise<User | null>;
   listSubscriberUsers(): Promise<SubscriberUser[]>;
+  listSubscriberUsersPage(query: ListQuery): Promise<PageResult<SubscriberUser>>;
 
   /** Studio membership and access administration. */
   getStudioMember(id: string): Promise<StudioMember | null>;
   getStudioMemberByAuthId(authUserId: string): Promise<StudioMember | null>;
   listStudioMembers(): Promise<StudioMemberAccess[]>;
+  listStudioMembersPage(query: ListQuery): Promise<PageResult<StudioMemberAccess>>;
   inviteStudioMember(
     actorStudioMemberId: string,
     input: InviteStudioMemberInput,
@@ -176,12 +202,15 @@ export interface Repository {
   listRolePermissionAuditLogs(): Promise<RolePermissionAuditLog[]>;
 
   listShows(): Promise<Show[]>;
+  /** Paged and searchable variant used by the opt-in list envelope. */
+  listShowsPage(query: ListQuery): Promise<PageResult<Show>>;
   getShow(id: string): Promise<Show | null>;
   getShowBySlug(slug: string): Promise<Show | null>;
   createShow(input: CreateShowInput): Promise<Show>;
   updateShow(id: string, input: UpdateShowInput): Promise<Show | null>;
 
   listEpisodes(filter: EpisodeFilter): Promise<Episode[]>;
+  listEpisodesPage(filter: EpisodeFilter, query: ListQuery): Promise<PageResult<Episode>>;
   getEpisode(id: string): Promise<Episode | null>;
   createEpisode(input: CreateEpisodeInput): Promise<Episode>;
   updateEpisode(id: string, input: UpdateEpisodeInput): Promise<Episode | null>;
@@ -204,7 +233,35 @@ export interface Repository {
   ): Promise<StoredMediaAsset | null>;
   releaseMediaUpload(id: string, uploadToken: string): Promise<void>;
 
+  /**
+   * Guests. The directory read returns all three collections together because
+   * the Studio renders a guest, its links, and its appearances as one view.
+   */
+  readGuestDirectory(): Promise<GuestDirectory>;
+  listGuestsPage(query: ListQuery): Promise<PageResult<Guest>>;
+  getGuest(id: string): Promise<Guest | null>;
+  getGuestBySlug(slug: string): Promise<Guest | null>;
+  createGuest(slug: string, input: CreateGuestInput): Promise<Guest>;
+  updateGuest(id: string, input: UpdateGuestInput): Promise<Guest | null>;
+  listGuestSocials(guestId: string): Promise<GuestSocial[]>;
+  getGuestSocial(id: string): Promise<GuestSocial | null>;
+  createGuestSocial(
+    guestId: string,
+    input: CreateGuestSocialInput,
+  ): Promise<CreateGuestSocialResult>;
+  updateGuestSocial(id: string, input: UpdateGuestSocialInput): Promise<UpdateGuestSocialResult>;
+  deleteGuestSocial(id: string): Promise<boolean>;
+  listGuestAppearances(guestId: string): Promise<GuestAppearance[]>;
+  listEpisodeGuests(episodeId: string): Promise<Guest[]>;
+  linkGuestAppearance(guestId: string, episodeId: string): Promise<LinkGuestAppearanceResult>;
+  unlinkGuestAppearance(guestId: string, episodeId: string): Promise<boolean>;
+
+  /** Aggregate counts for the Studio overview, computed without loading rows. */
+  getContentSummary(): Promise<StudioContentSummary>;
+  getAudienceSummary(): Promise<StudioAudienceSummary>;
+
   listArticles(filter: ArticleFilter): Promise<Article[]>;
+  listArticlesPage(filter: ArticleFilter, query: ListQuery): Promise<PageResult<Article>>;
   listArticleAuthorCandidates(): Promise<ArticleAuthorCandidate[]>;
   getArticle(id: string): Promise<Article | null>;
   getArticleBySlug(slug: string): Promise<Article | null>;

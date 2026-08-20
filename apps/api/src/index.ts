@@ -6,10 +6,12 @@ import { publicArticlesRoute, studioArticlesRoute } from './routes/articles';
 import { auditRoute } from './routes/audit';
 import { plansRoute, subscriberUsersRoute, subscriptionsRoute } from './routes/billing';
 import { episodesRoute } from './routes/episodes';
+import { studioGuestsRoute } from './routes/guests';
 import { followsRoute, meRoute, progressRoute, studioMeRoute } from './routes/me';
 import { permissionsRoute } from './routes/permissions';
 import { rolesRoute } from './routes/roles';
 import { showsRoute } from './routes/shows';
+import { studioSummaryRoute } from './routes/summary';
 import { studioMembersRoute } from './routes/studio-members';
 import { publicMediaRoute, studioMediaRoute } from './routes/media';
 
@@ -55,6 +57,12 @@ app.get('/', (c) =>
       '/studio/media',
       'POST /studio/media/uploads',
       'PUT /studio/media/uploads/:id/content',
+      '/studio/guests',
+      '/studio/guests/:id',
+      '/studio/guests/:id/socials',
+      '/studio/guests/socials/:socialId',
+      '/studio/guests/:id/appearances',
+      '/studio/summary',
       '/studio/articles',
       '/studio/articles/:idOrSlug',
       '/studio/articles/mailchimp/capability',
@@ -89,6 +97,8 @@ app.route('/articles', publicArticlesRoute);
 app.route('/studio/articles', studioArticlesRoute);
 app.route('/media', publicMediaRoute);
 app.route('/studio/media', studioMediaRoute);
+app.route('/studio/guests', studioGuestsRoute);
+app.route('/studio/summary', studioSummaryRoute);
 app.route('/plans', plansRoute);
 app.route('/subscriptions', subscriptionsRoute);
 app.route('/subscriber-users', subscriberUsersRoute);

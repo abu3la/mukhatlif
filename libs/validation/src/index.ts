@@ -67,3 +67,22 @@ export {
   studioRoleSchema,
 } from './role';
 export type { CreateStudioRoleInput, StudioRoleParams } from './role';
+
+export {
+  createGuestSchema,
+  createGuestSocialSchema,
+  guestAppearanceSchema,
+  socialPlatformSchema,
+  updateGuestSchema,
+  updateGuestSocialSchema,
+} from './guest';
+export type {
+  CreateGuestInput,
+  CreateGuestSocialInput,
+  GuestAppearanceInput,
+  UpdateGuestInput,
+  UpdateGuestSocialInput,
+} from './guest';
+
+export { isPaginatedRequest, listQuerySchema, resolveListQuery } from './pagination';
+export type { ListQueryInput } from './pagination';

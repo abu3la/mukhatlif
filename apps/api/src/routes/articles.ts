@@ -1,16 +1,19 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
-import type {
-  Article,
-  ArticleAuthor,
-  MailchimpCapability,
-  NewsletterCampaignResult,
-  NewsletterSendResult,
+import {
+  toPaginatedList,
+  type Article,
+  type ArticleAuthor,
+  type MailchimpCapability,
+  type NewsletterCampaignResult,
+  type NewsletterSendResult,
 } from '@mukhtalif/types';
 import {
   articleStatusSchema,
   createArticleSchema,
+  isPaginatedRequest,
+  listQuerySchema,
+  resolveListQuery,
   normalizeArticleAuthorDisplayName,
   sendNewsletterSchema,
   syncNewsletterCampaignSchema,
@@ -29,10 +32,8 @@ import { renderRichText } from '../publishing/rich-text';
 import { canonicalizeRichTextMedia, MediaReferenceError } from '../publishing/media';
 import { getRepository, type Repository } from '../repo';
 
-const listQuerySchema = z
-  .object({
-    status: articleStatusSchema.optional(),
-  })
+const studioArticleListQuerySchema = listQuerySchema
+  .extend({ status: articleStatusSchema.optional() })
   .strict();
 
 const newsletterError = (code: string, error: string) => ({ code, error });
@@ -150,9 +151,13 @@ export const studioArticlesRoute = new Hono<AppEnv>()
     };
     return c.json(capability);
   })
-  .get('/', zValidator('query', listQuerySchema), async (c) => {
-    const articles = await getRepository(c.env).listArticles(c.req.valid('query'));
-    return c.json(articles);
+  .get('/', zValidator('query', studioArticleListQuerySchema), async (c) => {
+    const input = c.req.valid('query');
+    const filter = { status: input.status };
+    const repo = getRepository(c.env);
+    if (!isPaginatedRequest(input)) return c.json(await repo.listArticles(filter));
+    const query = resolveListQuery(input);
+    return c.json(toPaginatedList(await repo.listArticlesPage(filter, query), query));
   })
   .post(
     '/',

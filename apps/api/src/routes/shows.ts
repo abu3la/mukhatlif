@@ -1,13 +1,23 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { createShowSchema, updateShowSchema } from '@mukhtalif/validation';
+import { toPaginatedList } from '@mukhtalif/types';
+import {
+  createShowSchema,
+  isPaginatedRequest,
+  listQuerySchema,
+  resolveListQuery,
+  updateShowSchema,
+} from '@mukhtalif/validation';
 import { requirePermission, type AppEnv } from '../auth';
 import { getRepository } from '../repo';
 
 export const showsRoute = new Hono<AppEnv>()
-  .get('/', async (c) => {
-    const shows = await getRepository(c.env).listShows();
-    return c.json(shows);
+  .get('/', zValidator('query', listQuerySchema), async (c) => {
+    const input = c.req.valid('query');
+    const repo = getRepository(c.env);
+    if (!isPaginatedRequest(input)) return c.json(await repo.listShows());
+    const query = resolveListQuery(input);
+    return c.json(toPaginatedList(await repo.listShowsPage(query), query));
   })
   .get('/:idOrSlug', async (c) => {
     const repo = getRepository(c.env);
