@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "mukhtalif-web",
+  "account_id": "c4b180c5ae20a242ec7024e2fc0a3478",
   "main": ".open-next/worker.js",
   // nodejs_compat requires a compatibility date of 2024-09-23 or later.
   "compatibility_date": "2026-08-01",

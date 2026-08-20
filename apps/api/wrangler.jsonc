@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "mukhtalif-api",
+  "account_id": "c4b180c5ae20a242ec7024e2fc0a3478",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
   "vars": {
@@ -22,12 +23,14 @@
   // MAILCHIMP_AUDIENCE_ID, MAILCHIMP_FROM_NAME, MAILCHIMP_REPLY_TO and
   // PUBLIC_WEB_URL as deployment variables. All six are required together.
   //
-  // Episode audio streams from R2. To enable it, create the bucket
-  // (wrangler r2 bucket create mukhtalif-audio) and uncomment:
-  // "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "mukhtalif-audio" }],
-  //
-  // Sanitized article images use a separate private R2 bucket. Bind it as
-  // MEDIA and set MEDIA_PUBLIC_ORIGIN to the deployed API HTTPS origin:
-  // "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "mukhtalif-media" }],
+  // Episode audio and sanitized article images live in two private R2 buckets.
+  // `wrangler dev` simulates both locally, so these bindings are safe offline.
+  // MEDIA_PUBLIC_ORIGIN must be set to the deployed API origin outside
+  // development; the API refuses to start otherwise rather than mint image URLs
+  // against whatever origin a request happened to arrive on.
+  "r2_buckets": [
+    { "binding": "AUDIO", "bucket_name": "mukhtalif-audio" },
+    { "binding": "MEDIA", "bucket_name": "mukhtalif-media" },
+  ],
   "observability": { "enabled": true },
 }
