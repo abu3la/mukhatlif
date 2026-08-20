@@ -36,7 +36,7 @@ describe('createAdminRepository', () => {
     ).toThrowError(/VITE_API_URL/);
   });
 
-  it('selects Hono explicitly and keeps unsupported capabilities explicit', () => {
+  it('selects Hono explicitly and still reports analytics as unsupported', () => {
     const repository = createAdminRepository({
       env: {
         MODE: 'development',
@@ -50,7 +50,10 @@ describe('createAdminRepository', () => {
 
     expect(repository.kind).toBe('hono');
     expect(repository.capabilities['core-dashboard']).toBe(true);
-    expect(repository.capabilities['guest-management']).toBe(false);
+    // Guests are served by /studio/guests as of ADR 0007.
+    expect(repository.capabilities['guest-management']).toBe(true);
+    // There is still no analytics service behind the API, and an adapter must
+    // not disguise that by deriving figures the server never produced.
     expect(repository.capabilities['admin-analytics']).toBe(false);
   });
 });

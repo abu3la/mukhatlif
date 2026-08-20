@@ -2,6 +2,7 @@ import {
   NEWSLETTER_STATUSES,
   PERMISSION_IDS,
   isPermissionId,
+  isSocialPlatform,
   resolveAudioMediaMimeType,
 } from '@mukhtalif/types';
 import {
@@ -17,6 +18,10 @@ import type {
   AuthenticatedStudioMember as ApiAuthenticatedStudioMember,
   Episode as ApiEpisode,
   EpisodeStatus as ApiEpisodeStatus,
+  Guest as ApiGuest,
+  GuestAppearance as ApiGuestAppearance,
+  GuestDirectory as ApiGuestDirectory,
+  GuestSocial as ApiGuestSocial,
   PermissionId as ApiPermissionId,
   Plan as ApiPlan,
   Show as ApiShow,
@@ -94,7 +99,7 @@ const HONO_CAPABILITIES = {
   'content-mutations': true,
   'subscription-mutations': true,
   'episode-audio-upload': true,
-  'guest-management': false,
+  'guest-management': true,
   'admin-analytics': false,
   'access-management': true,
 } as const;
@@ -184,6 +189,48 @@ function isApiEpisode(value: unknown): value is ApiEpisode {
     EPISODE_STATUSES.has(value.status as ApiEpisodeStatus) &&
     hasOptionalString(value, 'publishAt') &&
     hasString(value, 'createdAt')
+  );
+}
+
+function isApiGuest(value: unknown): value is ApiGuest {
+  if (!isRecord(value)) return false;
+  return (
+    hasString(value, 'id') &&
+    hasString(value, 'slug') &&
+    hasString(value, 'name') &&
+    hasString(value, 'role') &&
+    hasString(value, 'city') &&
+    hasString(value, 'email') &&
+    hasString(value, 'bio') &&
+    hasOptionalString(value, 'photoUrl') &&
+    hasString(value, 'createdAt')
+  );
+}
+
+function isApiGuestSocial(value: unknown): value is ApiGuestSocial {
+  if (!isRecord(value)) return false;
+  return (
+    hasString(value, 'id') &&
+    hasString(value, 'guestId') &&
+    typeof value.platform === 'string' &&
+    isSocialPlatform(value.platform) &&
+    hasString(value, 'handle')
+  );
+}
+
+function isApiGuestAppearance(value: unknown): value is ApiGuestAppearance {
+  return isRecord(value) && hasString(value, 'guestId') && hasString(value, 'episodeId');
+}
+
+function isApiGuestDirectory(value: unknown): value is ApiGuestDirectory {
+  if (!isRecord(value)) return false;
+  return (
+    Array.isArray(value.guests) &&
+    value.guests.every(isApiGuest) &&
+    Array.isArray(value.socials) &&
+    value.socials.every(isApiGuestSocial) &&
+    Array.isArray(value.appearances) &&
+    value.appearances.every(isApiGuestAppearance)
   );
 }
 
@@ -520,6 +567,32 @@ function extractFileName(value: string | undefined): string | undefined {
   }
 }
 
+/** Sends only the fields the API accepts; the slug stays server-owned. */
+function guestBody(command: CreateGuestCommand | UpdateGuestCommand): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  for (const key of ['name', 'role', 'city', 'email', 'bio', 'photoUrl'] as const) {
+    const value = command[key];
+    if (value !== undefined) body[key] = value;
+  }
+  return body;
+}
+
+function toAdminGuestSocial(social: ApiGuestSocial): GuestSocial {
+  return {
+    id: encodeId('guest_social', social.id) as GuestSocialId,
+    guestId: encodeId('guest', social.guestId) as GuestId,
+    platform: social.platform,
+    handle: social.handle,
+  };
+}
+
+function toAdminGuestAppearance(appearance: ApiGuestAppearance): GuestAppearance {
+  return {
+    guestId: encodeId('guest', appearance.guestId) as GuestId,
+    episodeId: encodeId('episode', appearance.episodeId) as EpisodeId,
+  };
+}
+
 function encodeId(prefix: string, remoteId: string): string {
   return `${prefix}_${encodeURIComponent(remoteId)}`;
 }
@@ -682,16 +755,52 @@ export class HonoAdminRepository implements AdminRepository {
     );
   }
 
-  readGuestDirectory(): Promise<AdminGuestDirectory> {
-    return Promise.reject(unsupportedCapability('readGuestDirectory', 'guest-management'));
+  async readGuestDirectory(): Promise<AdminGuestDirectory> {
+    const operation = 'readGuestDirectory';
+    // Without a paging parameter the API answers with the whole directory,
+    // which is the shape this view renders.
+    const payload = await this.requestJson(operation, '/studio/guests');
+    const directory = expectEntity(payload, isApiGuestDirectory, operation, 'guest directory');
+    return {
+      guests: directory.guests.map((guest) => this.toAdminGuest(guest)),
+      guestSocials: directory.socials.map((social) => toAdminGuestSocial(social)),
+      guestAppearances: directory.appearances.map((appearance) =>
+        toAdminGuestAppearance(appearance),
+      ),
+    };
   }
 
   readAnalytics(): Promise<AdminAnalyticsSnapshot> {
     return Promise.reject(unsupportedCapability('readAnalytics', 'admin-analytics'));
   }
 
-  readDashboard(): Promise<AdminStudioData> {
-    return Promise.reject(unsupportedCapability('readDashboard', 'guest-management'));
+  /**
+   * The strict all-data read. It composes the narrower reads, so a caller
+   * lacking subscriber or access permissions fails here rather than receiving a
+   * document with silently empty collections.
+   */
+  async readDashboard(): Promise<AdminStudioData> {
+    const [viewer, content, guests, members, subscribers] = await Promise.all([
+      this.readViewer(),
+      this.readContentWorkspace(),
+      this.readGuestDirectory(),
+      this.readStudioMemberDirectory(),
+      this.readSubscriberDirectory(),
+    ]);
+    return {
+      asOf: content.asOf,
+      viewer,
+      plusPlan: subscribers.plusPlan,
+      shows: content.shows,
+      episodes: content.episodes,
+      articles: content.articles,
+      guests: guests.guests,
+      guestSocials: guests.guestSocials,
+      guestAppearances: guests.guestAppearances,
+      studioMembers: members.studioMembers,
+      users: subscribers.users,
+      subscriptions: subscribers.subscriptions,
+    };
   }
 
   async createShow(command: CreateShowCommand): Promise<Show> {
@@ -1343,35 +1452,97 @@ export class HonoAdminRepository implements AdminRepository {
     return this.toAdminRole(result);
   }
 
-  createGuest(_command: CreateGuestCommand = {}): Promise<Guest> {
-    return Promise.reject(unsupportedCapability('createGuest', 'guest-management'));
+  async createGuest(command: CreateGuestCommand = {}): Promise<Guest> {
+    const operation = 'createGuest';
+    const payload = await this.requestJson(
+      operation,
+      '/studio/guests',
+      // The slug is server-owned, so only editorial fields are sent.
+      { method: 'POST', body: JSON.stringify(guestBody(command)) },
+      true,
+      201,
+    );
+    return this.toAdminGuest(expectEntity(payload, isApiGuest, operation, 'guest'));
   }
 
-  updateGuest(_id: GuestId, _command: UpdateGuestCommand): Promise<Guest> {
-    return Promise.reject(unsupportedCapability('updateGuest', 'guest-management'));
+  async updateGuest(id: GuestId, command: UpdateGuestCommand): Promise<Guest> {
+    const operation = 'updateGuest';
+    const payload = await this.requestJson(
+      operation,
+      `/studio/guests/${encodeURIComponent(decodeId(id, 'guest', operation))}`,
+      { method: 'PATCH', body: JSON.stringify(guestBody(command)) },
+    );
+    return this.toAdminGuest(expectEntity(payload, isApiGuest, operation, 'guest'));
   }
 
-  createGuestSocial(_command: CreateGuestSocialCommand): Promise<GuestSocial> {
-    return Promise.reject(unsupportedCapability('createGuestSocial', 'guest-management'));
+  async createGuestSocial(command: CreateGuestSocialCommand): Promise<GuestSocial> {
+    const operation = 'createGuestSocial';
+    const guestId = decodeId(command.guestId, 'guest', operation);
+    const payload = await this.requestJson(
+      operation,
+      `/studio/guests/${encodeURIComponent(guestId)}/socials`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ platform: command.platform, handle: command.handle }),
+      },
+      true,
+      201,
+    );
+    return toAdminGuestSocial(expectEntity(payload, isApiGuestSocial, operation, 'guest link'));
   }
 
-  updateGuestSocial(
-    _id: GuestSocialId,
-    _command: UpdateGuestSocialCommand,
+  async updateGuestSocial(
+    id: GuestSocialId,
+    command: UpdateGuestSocialCommand,
   ): Promise<GuestSocial> {
-    return Promise.reject(unsupportedCapability('updateGuestSocial', 'guest-management'));
+    const operation = 'updateGuestSocial';
+    const payload = await this.requestJson(
+      operation,
+      `/studio/guests/socials/${encodeURIComponent(decodeId(id, 'guest_social', operation))}`,
+      { method: 'PATCH', body: JSON.stringify(command) },
+    );
+    return toAdminGuestSocial(expectEntity(payload, isApiGuestSocial, operation, 'guest link'));
   }
 
-  removeGuestSocial(_id: GuestSocialId): Promise<void> {
-    return Promise.reject(unsupportedCapability('removeGuestSocial', 'guest-management'));
+  async removeGuestSocial(id: GuestSocialId): Promise<void> {
+    const operation = 'removeGuestSocial';
+    await this.requestJson(
+      operation,
+      `/studio/guests/socials/${encodeURIComponent(decodeId(id, 'guest_social', operation))}`,
+      { method: 'DELETE' },
+      false,
+      204,
+    );
   }
 
-  linkGuestAppearance(_guestId: GuestId, _episodeId: EpisodeId): Promise<GuestAppearance> {
-    return Promise.reject(unsupportedCapability('linkGuestAppearance', 'guest-management'));
+  async linkGuestAppearance(guestId: GuestId, episodeId: EpisodeId): Promise<GuestAppearance> {
+    const operation = 'linkGuestAppearance';
+    const payload = await this.requestJson(
+      operation,
+      `/studio/guests/${encodeURIComponent(decodeId(guestId, 'guest', operation))}/appearances`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ episodeId: decodeId(episodeId, 'episode', operation) }),
+      },
+      // Linking is idempotent: a fresh link is 201 and a repeat is 200, so no
+      // single status can be asserted here.
+    );
+    return toAdminGuestAppearance(
+      expectEntity(payload, isApiGuestAppearance, operation, 'guest appearance'),
+    );
   }
 
-  unlinkGuestAppearance(_guestId: GuestId, _episodeId: EpisodeId): Promise<void> {
-    return Promise.reject(unsupportedCapability('unlinkGuestAppearance', 'guest-management'));
+  async unlinkGuestAppearance(guestId: GuestId, episodeId: EpisodeId): Promise<void> {
+    const operation = 'unlinkGuestAppearance';
+    const guest = encodeURIComponent(decodeId(guestId, 'guest', operation));
+    const episode = encodeURIComponent(decodeId(episodeId, 'episode', operation));
+    await this.requestJson(
+      operation,
+      `/studio/guests/${guest}/appearances/${episode}`,
+      { method: 'DELETE' },
+      false,
+      204,
+    );
   }
 
   private async mediaUploadAuthHeaders(operation: string): Promise<Headers> {
@@ -1630,6 +1801,20 @@ export class HonoAdminRepository implements AdminRepository {
         episode.status === 'published' || episode.status === 'archived'
           ? episode.publishAt
           : undefined,
+    };
+  }
+
+  private toAdminGuest(guest: ApiGuest): Guest {
+    return {
+      id: encodeId('guest', guest.id) as GuestId,
+      slug: guest.slug,
+      name: guest.name,
+      role: guest.role,
+      city: guest.city,
+      email: guest.email,
+      bio: guest.bio,
+      photoUrl: guest.photoUrl,
+      createdAt: guest.createdAt,
     };
   }
 
