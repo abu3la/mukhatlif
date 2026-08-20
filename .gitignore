@@ -27,3 +27,4 @@ next-env.d.ts
 
 # graphify knowledge graph (rebuildable)
 graphify-out/
+.migrate-error.log
