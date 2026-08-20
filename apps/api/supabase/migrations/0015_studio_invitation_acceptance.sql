@@ -18,18 +18,22 @@ alter table public.studio_members
 alter table public.studio_members
   add constraint studio_members_status_check check (status in ('invited', 'active'));
 
+-- Rows that predate this migration were provisioned before invitations existed
+-- or have already signed in, so they are active as of their creation.
+--
+-- This backfill must run BEFORE the constraint below. Every existing row takes
+-- the 'active' default with a null accepted_at, so adding that constraint first
+-- would fail validation against rows this statement is about to repair.
+update public.studio_members
+set accepted_at = created_at
+where accepted_at is null;
+
 -- An active member must record when acceptance happened; an invited one must not.
 alter table public.studio_members
   add constraint studio_members_accepted_at_check check (
     (status = 'active' and accepted_at is not null)
     or (status = 'invited' and accepted_at is null)
   );
-
--- Rows that predate this migration were provisioned before invitations existed
--- or have already signed in, so they are active as of their creation.
-update public.studio_members
-set accepted_at = created_at
-where accepted_at is null;
 
 create index studio_members_invited_idx
   on public.studio_members (created_at)

@@ -61,11 +61,32 @@ if [ "$mode" = "--verify" ]; then
   exit 0
 fi
 
+# A ledger makes the runner resumable. Without it, re-running after a mid-chain
+# failure replays 0001 against tables that already exist and fails for the wrong
+# reason, which hides the real error.
+run -c "create table if not exists public.schema_migrations (
+          filename text primary key,
+          applied_at timestamptz not null default now()
+        );
+        alter table public.schema_migrations enable row level security;
+        revoke all on table public.schema_migrations from anon, authenticated;" >/dev/null
+
+recorded="$(run -tAc 'select filename from public.schema_migrations')"
+
 applied=0
+skipped=0
 for file in "$MIGRATIONS"/*.sql; do
   name="$(basename "$file")"
+  if printf '%s\n' "$recorded" | grep -qxF "$name"; then
+    printf '  %-46s' "$name"; dim "already applied"
+    skipped=$((skipped + 1))
+    continue
+  fi
   printf '  %-46s' "$name"
   if run -f "$file" >/dev/null 2>"$ROOT/.migrate-error.log"; then
+    # Recorded immediately after the file succeeds. Several migrations manage
+    # their own transaction, so this cannot be folded into theirs.
+    run -c "insert into public.schema_migrations (filename) values ('$name')" >/dev/null
     green "ok"
     applied=$((applied + 1))
   else
@@ -83,7 +104,11 @@ done
 rm -f "$ROOT/.migrate-error.log"
 
 echo
-green "Applied $applied migrations."
+if [ "$skipped" -gt 0 ]; then
+  green "Applied $applied migrations ($skipped already in place)."
+else
+  green "Applied $applied migrations."
+fi
 echo
 echo "Verifying…"
 run -f "$VERIFY"
