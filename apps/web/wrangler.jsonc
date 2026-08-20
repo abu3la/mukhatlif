@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mukhtalif-web",
+  "main": ".open-next/worker.js",
+  // nodejs_compat requires a compatibility date of 2024-09-23 or later.
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true },
+
+  // MUKHTALIF_API_URL and PUBLIC_WEB_URL are deployment variables, not secrets:
+  // neither is a credential and both are visible in rendered output anyway.
+  // Set them per environment rather than committing an origin here, so a
+  // staging deploy can never point at the production API by accident:
+  //   wrangler deploy --var MUKHTALIF_API_URL:https://api.mukhtalif.net \
+  //                   --var PUBLIC_WEB_URL:https://mukhtalif.net
+  //
+  // PUBLIC_WEB_URL must name the same origin as the API Worker's own
+  // PUBLIC_WEB_URL. The API builds absolute article links into newsletters from
+  // that value, and a sent email cannot be rewritten.
+  "vars": {}
+}

@@ -31,17 +31,24 @@ export class NotFoundError extends Error {
 
 const REVALIDATE_SECONDS = 60;
 
+/**
+ * Fails a read without letting the failure become static output.
+ *
+ * `connection()` resolves normally at request time, but during a prerender it
+ * throws Next's bail-out signal, which marks the route dynamic instead. Every
+ * unavailability path goes through here, so a build run against an absent or
+ * unreachable API cannot bake an error page that would then be served to real
+ * readers until it revalidates. A 404 is deliberately not routed through this:
+ * "no such article" is a real, cacheable answer, not a fault.
+ */
+async function unavailable(detail: string): Promise<never> {
+  await connection();
+  throw new ApiUnavailableError(detail);
+}
+
 async function read<T>(path: string): Promise<T> {
   const origin = apiOrigin();
-  if (!origin) {
-    /*
-     * Without an API origin there is nothing to prerender. Opting into
-     * request-time rendering here stops the build from baking a failure into a
-     * static page that would then be served to real readers until it revalidates.
-     */
-    await connection();
-    throw new ApiUnavailableError('MUKHTALIF_API_URL is not configured');
-  }
+  if (!origin) return unavailable('MUKHTALIF_API_URL is not configured');
 
   let response: Response;
   try {
@@ -50,15 +57,15 @@ async function read<T>(path: string): Promise<T> {
       next: { revalidate: REVALIDATE_SECONDS },
     });
   } catch (error) {
-    throw new ApiUnavailableError(error instanceof Error ? error.message : 'Network error');
+    return unavailable(error instanceof Error ? error.message : 'Network error');
   }
 
   if (response.status === 404) throw new NotFoundError();
-  if (!response.ok) throw new ApiUnavailableError(`API responded ${response.status}`);
+  if (!response.ok) return unavailable(`API responded ${response.status}`);
   try {
     return (await response.json()) as T;
   } catch {
-    throw new ApiUnavailableError('API returned a malformed response');
+    return unavailable('API returned a malformed response');
   }
 }
 

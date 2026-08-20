@@ -68,6 +68,19 @@ the mark stays visible when motion is reduced or unavailable.
 Layout is written for RTL only and uses logical properties throughout, so there
 are no left/right values to flip.
 
+## Deploying
+
+The app targets Cloudflare Workers through `@opennextjs/cloudflare`. See
+`docs/DEPLOYMENT.md` §5 for the full sequence; the short form is:
+
+```bash
+pnpm --filter @mukhtalif/web preview
+```
+
+`wrangler.jsonc` ships with an empty `vars` block on purpose, so a staging
+deploy cannot silently inherit a production API origin. Pass the two values at
+deploy time instead.
+
 ## Commands
 
 ```bash
