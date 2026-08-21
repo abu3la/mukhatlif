@@ -97,10 +97,13 @@ Production secrets go in with `wrangler secret put`, never into `wrangler.jsonc`
   bakes absolute article links from it into sent email, and **a delivered
   message cannot be rewritten** — so do not enable Mailchimp until the final
   domain is settled.
-- **Nobody can sign in to the Studio yet.** `auth.users` is empty and the seeded
-  member `usr-admin-1` (`studio@mukhtalif.net`) has a null `auth_user_id`.
-  Someone must create the Auth user themselves, then the UUID gets linked to
-  that row. Claude does not create accounts or set passwords.
+- **One Auth identity exists: `studio@mukhtalif.net`, linked to the seeded
+  member `usr-admin-1` (admin, 13 permissions).** It was created for testing
+  with a generated password and the password lives only in the chat transcript
+  that made it, so rotate it before anyone treats this as a real account. There
+  is no second account and no invitation has been sent — the Studio's own
+  invitation-acceptance screen is still unbuilt, so do not send production
+  invitations yet.
 - **`x-dev-user` is inert the moment Supabase is configured**, and again in
   production. The gate needs `APP_ENV=development` *and* `ALLOW_DEV_AUTH=true`.
 - **`MEDIA_PUBLIC_ORIGIN` is required whenever the `MEDIA` binding exists
