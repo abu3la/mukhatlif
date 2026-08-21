@@ -100,10 +100,14 @@ Production secrets go in with `wrangler secret put`, never into `wrangler.jsonc`
 - **One Auth identity exists: `studio@mukhtalif.net`, linked to the seeded
   member `usr-admin-1` (admin, 13 permissions).** It was created for testing
   with a generated password and the password lives only in the chat transcript
-  that made it, so rotate it before anyone treats this as a real account. There
-  is no second account and no invitation has been sent — the Studio's own
-  invitation-acceptance screen is still unbuilt, so do not send production
-  invitations yet.
+  that made it, so rotate it before anyone treats this as a real account.
+- **The invitation email carries a link, not a code, until custom SMTP is
+  configured.** Supabase refuses to edit email templates on its default SMTP
+  ("Set up custom SMTP to edit templates"), and the stock invite body only has
+  `{{ .ConfirmationURL }}`. `/invite` therefore accepts both: it consumes the
+  `token_hash` from a link automatically, and takes a typed six-digit code once
+  a template can include `{{ .Token }}`. Configure SMTP before promising anyone
+  a code.
 - **`x-dev-user` is inert the moment Supabase is configured**, and again in
   production. The gate needs `APP_ENV=development` *and* `ALLOW_DEV_AUTH=true`.
 - **`MEDIA_PUBLIC_ORIGIN` is required whenever the `MEDIA` binding exists

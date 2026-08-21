@@ -66,6 +66,7 @@ import type {
 } from '@/lib';
 import type {
   AdminAnalyticsSnapshot,
+  AdminInvitationState,
   ArticleMediaAsset,
   AdminNewsletterCampaignResult,
   AdminNewsletterSendResult,
@@ -293,6 +294,16 @@ function isApiArticleAuthor(value: unknown): value is ApiArticleAuthor {
 
 function isApiArticleAuthorCandidate(value: unknown): value is ApiArticleAuthorCandidate {
   return isRecord(value) && hasString(value, 'studioMemberId') && hasString(value, 'displayName');
+}
+
+function isAdminInvitationState(value: unknown): value is AdminInvitationState {
+  if (!isRecord(value)) return false;
+  return (
+    (value.status === 'invited' || value.status === 'active' || value.status === 'none') &&
+    hasOptionalString(value, 'email') &&
+    hasOptionalString(value, 'displayName') &&
+    hasOptionalString(value, 'roleName')
+  );
 }
 
 function isMailchimpCapability(value: unknown): value is MailchimpCapability {
@@ -1323,6 +1334,19 @@ export class HonoAdminRepository implements AdminRepository {
       expectEntity(payload, isApiSubscription, operation, 'subscription'),
       operation,
     );
+  }
+
+  async readInvitation(): Promise<AdminInvitationState> {
+    const operation = 'readInvitation';
+    const payload = await this.requestJson(operation, '/studio/invitations/me');
+    return expectEntity(payload, isAdminInvitationState, operation, 'invitation state');
+  }
+
+  async acceptInvitation(password: string): Promise<void> {
+    await this.requestJson('acceptInvitation', '/studio/invitations/accept', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    });
   }
 
   async createStudioMember(

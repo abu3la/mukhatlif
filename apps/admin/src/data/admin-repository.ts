@@ -174,6 +174,14 @@ export interface CreateStudioMemberCommand {
   readonly locale: 'ar' | 'en';
 }
 
+/** What the acceptance screen learns about the caller's own invitation. */
+export interface AdminInvitationState {
+  readonly status: 'invited' | 'active' | 'none';
+  readonly email?: string;
+  readonly displayName?: string;
+  readonly roleName?: string;
+}
+
 export interface CreateRoleCommand {
   readonly name: string;
   readonly description: string;
@@ -261,6 +269,14 @@ export interface AdminRepository {
     id: SubscriptionId,
     status: SubscriptionStatus,
   ): Promise<Subscription>;
+
+  /**
+   * Invitation acceptance. Both reads authenticate on the verified Auth
+   * identity rather than a Studio permission, because an invitee holds none
+   * until they accept.
+   */
+  readInvitation(): Promise<AdminInvitationState>;
+  acceptInvitation(password: string): Promise<void>;
 
   createStudioMember(command: CreateStudioMemberCommand): Promise<StudioMember>;
   updateStudioMemberRole(id: StudioMemberId, role: RoleId): Promise<StudioMember>;

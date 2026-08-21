@@ -3,6 +3,7 @@ import type { ArticleId, EpisodeId, GuestId, RoleId, StudioPageId } from '@/lib'
 export const adminRouteIds = {
   studio: 'studio',
   login: 'login',
+  invite: 'invite',
   overview: 'overview',
   episodes: 'episodes',
   episodeNew: 'episode-new',
@@ -28,6 +29,7 @@ export const adminRouteIds = {
 export const adminRoutePatterns = {
   root: '/',
   login: '/login',
+  invite: '/invite',
   episodes: '/episodes',
   episodeNew: '/episodes/new',
   episodeDetails: '/episodes/:episodeId',
@@ -52,6 +54,7 @@ export const adminRoutePatterns = {
 export const adminPaths = {
   overview: adminRoutePatterns.root,
   login: adminRoutePatterns.login,
+  invite: adminRoutePatterns.invite,
   episodes: adminRoutePatterns.episodes,
   episodeNew: adminRoutePatterns.episodeNew,
   episode: (episodeId: EpisodeId): `/episodes/${string}` =>

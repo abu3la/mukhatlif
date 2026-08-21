@@ -68,6 +68,7 @@ import type {
   UpdateShowCommand,
   UploadArticleImageCommand,
 } from './admin-repository';
+import type { AdminInvitationState } from './admin-repository';
 import type { DemoAdminAccount } from './admin-auth-gateway';
 import { AdminRepositoryError } from './repository-error';
 import { normalizeCreateStudioMemberCommand } from './studio-member-command';
@@ -1500,6 +1501,21 @@ export class FixtureAdminRepository implements AdminRepository {
     };
     this.roles[roleIndex] = updated;
     return this.roleSnapshot(updated);
+  }
+
+  async readInvitation(): Promise<AdminInvitationState> {
+    // No invitation can be pending in a process-local fixture: accounts here
+    // are created already active.
+    return { status: 'none' };
+  }
+
+  async acceptInvitation(): Promise<void> {
+    throw new AdminRepositoryError({
+      code: 'UNSUPPORTED_CAPABILITY',
+      operation: 'acceptInvitation',
+      message: 'The local fixture does not deliver invitations.',
+      retryable: false,
+    });
   }
 
   async createGuest(command: CreateGuestCommand = {}): Promise<Guest> {

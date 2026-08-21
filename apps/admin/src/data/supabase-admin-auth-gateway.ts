@@ -3,6 +3,7 @@ import {
   AdminAuthError,
   type AdminAuthGateway,
   type AdminAuthSession,
+  type EmailCodePurpose,
 } from './admin-auth-gateway';
 
 export interface SupabaseAdminAuthGatewayConfig {
@@ -23,6 +24,14 @@ function mapAuthError(error: { message: string; status?: number; code?: string }
   const normalized = `${error.code ?? ''} ${error.message}`.toLowerCase();
   if (error.status === 429 || normalized.includes('rate')) {
     return new AdminAuthError('RATE_LIMITED', error.message);
+  }
+  // Distinguished from a wrong code because the remedy differs: a wrong code is
+  // retyped, an expired one has to be sent again.
+  if (normalized.includes('expired')) {
+    return new AdminAuthError('EXPIRED_CODE', error.message);
+  }
+  if (normalized.includes('otp') || normalized.includes('token')) {
+    return new AdminAuthError('INVALID_CODE', error.message);
   }
   if (
     error.status === 400 ||
@@ -89,6 +98,54 @@ export class SupabaseAdminAuthGateway implements AdminAuthGateway {
     }
     this.session = session;
     return session;
+  }
+
+  async verifyEmailCode(
+    email: string,
+    code: string,
+    purpose: EmailCodePurpose,
+  ): Promise<AdminAuthSession> {
+    const { data, error } = await this.client.auth.verifyOtp({
+      email: email.trim(),
+      token: code.trim(),
+      type: purpose === 'invite' ? 'invite' : 'email',
+    });
+    if (error) throw mapAuthError(error);
+    const session = mapSession(data.session);
+    if (!session) {
+      throw new AdminAuthError('UNKNOWN', 'Supabase returned no session after verification.');
+    }
+    this.session = session;
+    return session;
+  }
+
+  async verifyEmailLink(
+    tokenHash: string,
+    purpose: EmailCodePurpose,
+  ): Promise<AdminAuthSession> {
+    // A link carries token_hash rather than the six-digit token, and it
+    // identifies the address itself, so no email is supplied here.
+    const { data, error } = await this.client.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: purpose === 'invite' ? 'invite' : 'email',
+    });
+    if (error) throw mapAuthError(error);
+    const session = mapSession(data.session);
+    if (!session) {
+      throw new AdminAuthError('UNKNOWN', 'Supabase returned no session after verification.');
+    }
+    this.session = session;
+    return session;
+  }
+
+  async sendEmailCode(email: string): Promise<void> {
+    // shouldCreateUser is false so this can never mint an account: it only ever
+    // re-reaches somebody an administrator already invited.
+    const { error } = await this.client.auth.signInWithOtp({
+      email: email.trim(),
+      options: { shouldCreateUser: false },
+    });
+    if (error) throw mapAuthError(error);
   }
 
   async signOut(): Promise<void> {

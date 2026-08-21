@@ -1,6 +1,7 @@
 import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { adminRouteIds, adminRoutePatterns } from '@/application';
-import type { AdminRepository } from '@/data';
+import type { AdminAuthGateway, AdminRepository } from '@/data';
+import { InviteView } from '@/features/auth/ui/invite-page';
 import {
   AdminRouteLayout,
   RoleDirectoryRouteLayout,
@@ -89,12 +90,20 @@ const guestRoutes = [
   },
 ] satisfies RouteObject[];
 
-export function createAdminRoutes(repository: AdminRepository): RouteObject[] {
+export function createAdminRoutes(repository: AdminRepository, authGateway: AdminAuthGateway): RouteObject[] {
   return [
     {
       id: adminRouteIds.login,
       path: adminRoutePatterns.login,
       lazy: () => import('./routes/login.route'),
+      errorElement: <RouteErrorView />,
+    },
+    {
+      // Public by design: an invitee has no Studio membership until they
+      // accept, so this route must sit outside every authenticated layout.
+      id: adminRouteIds.invite,
+      path: adminRoutePatterns.invite,
+      element: <InviteView authGateway={authGateway} repository={repository} />,
       errorElement: <RouteErrorView />,
     },
     {
@@ -181,6 +190,6 @@ export function createAdminRoutes(repository: AdminRepository): RouteObject[] {
   ];
 }
 
-export function createAdminRouter(repository: AdminRepository) {
-  return createBrowserRouter(createAdminRoutes(repository));
+export function createAdminRouter(repository: AdminRepository, authGateway: AdminAuthGateway) {
+  return createBrowserRouter(createAdminRoutes(repository, authGateway));
 }

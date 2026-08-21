@@ -60,7 +60,7 @@ async function renderRoute(
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  const router = createMemoryRouter(createAdminRoutes(repository), {
+  const router = createMemoryRouter(createAdminRoutes(repository, gateway), {
     initialEntries: [path],
   });
   render(
@@ -441,7 +441,11 @@ describe('admin auth routing', () => {
       value: { ...repository.capabilities, 'guest-management': false },
     });
 
-    const studioRoute = createAdminRoutes(repositoryWithoutGuests).find(
+    // Only the route table is inspected here, so a bare gateway is enough.
+    const studioRoute = createAdminRoutes(
+      repositoryWithoutGuests,
+      new FixtureAdminAuthGateway({ storage: null }),
+    ).find(
       (route) => route.id === 'studio',
     );
     const routeIds = studioRoute?.children?.map((route) => route.id);

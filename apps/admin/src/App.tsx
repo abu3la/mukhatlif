@@ -11,7 +11,10 @@ export function App({
   authGateway: AdminAuthGateway;
   repository: AdminRepository;
 }) {
-  const router = useMemo(() => createAdminRouter(repository), [repository]);
+  const router = useMemo(
+    () => createAdminRouter(repository, authGateway),
+    [repository, authGateway],
+  );
   return (
     <AppProviders authGateway={authGateway} repository={repository}>
       <RouterProvider router={router} />
