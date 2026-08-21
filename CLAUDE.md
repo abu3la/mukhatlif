@@ -101,13 +101,15 @@ Production secrets go in with `wrangler secret put`, never into `wrangler.jsonc`
   member `usr-admin-1` (admin, 13 permissions).** It was created for testing
   with a generated password and the password lives only in the chat transcript
   that made it, so rotate it before anyone treats this as a real account.
-- **The invitation email carries a link, not a code, until custom SMTP is
-  configured.** Supabase refuses to edit email templates on its default SMTP
-  ("Set up custom SMTP to edit templates"), and the stock invite body only has
-  `{{ .ConfirmationURL }}`. `/invite` therefore accepts both: it consumes the
-  `token_hash` from a link automatically, and takes a typed six-digit code once
-  a template can include `{{ .Token }}`. Configure SMTP before promising anyone
-  a code.
+- **Invitation acceptance is link-based, at `/invite`.** The screen consumes the
+  `token_hash` an invitation link carries and goes straight to setting a
+  password. A typed six-digit code was built and then removed: Supabase refuses
+  to edit email templates on its default SMTP, so the stock invite body only has
+  `{{ .ConfirmationURL }}` and no code is ever delivered. Do not reintroduce a
+  code field without first configuring custom SMTP and a template containing
+  `{{ .Token }}`.
+- **Supabase's default SMTP has a very low quota and is unfit for production.**
+  Configure a real provider before inviting a team.
 - **`x-dev-user` is inert the moment Supabase is configured**, and again in
   production. The gate needs `APP_ENV=development` *and* `ALLOW_DEV_AUTH=true`.
 - **`MEDIA_PUBLIC_ORIGIN` is required whenever the `MEDIA` binding exists

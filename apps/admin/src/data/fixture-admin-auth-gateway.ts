@@ -136,17 +136,10 @@ export class FixtureAdminAuthGateway implements AdminAuthGateway {
   }
 
   /**
-   * The fixture has no mail path, so an emailed code cannot exist here. It
+   * The fixture has no mail path, so an invitation link cannot exist here. It
    * refuses rather than pretending, which keeps the meeting build from
    * demonstrating a flow production would handle differently.
    */
-  async verifyEmailCode(): Promise<AdminAuthSession> {
-    throw new AdminAuthError(
-      'UNSUPPORTED',
-      'The local fixture cannot deliver an email code. Use a demo account.',
-    );
-  }
-
   async verifyEmailLink(): Promise<AdminAuthSession> {
     throw new AdminAuthError(
       'UNSUPPORTED',
@@ -154,10 +147,10 @@ export class FixtureAdminAuthGateway implements AdminAuthGateway {
     );
   }
 
-  async sendEmailCode(): Promise<void> {
+  async sendSignInEmail(): Promise<void> {
     throw new AdminAuthError(
       'UNSUPPORTED',
-      'The local fixture cannot deliver an email code. Use a demo account.',
+      'The local fixture cannot deliver an invitation link. Use a demo account.',
     );
   }
 

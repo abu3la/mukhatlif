@@ -7,7 +7,7 @@ import {
   type AdminAuthGateway,
   type AdminInvitationState,
   type AdminRepository,
-  type EmailCodePurpose,
+  type EmailLinkPurpose,
 } from '@/data';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { Button, Field, Input } from '@/shared/ui/primitives';
@@ -16,25 +16,24 @@ import { Button, Field, Input } from '@/shared/ui/primitives';
  * Invitation acceptance.
  *
  * This is the one screen reachable by somebody who is not yet an operator, so
- * it authenticates on the emailed code rather than a password — an invitee has
- * none until the last step of this flow.
+ * it authenticates on the link they were emailed rather than a password — an
+ * invitee has none until the last step of this flow.
  *
- * Verification and password setting are deliberately separate calls. The code
- * only proves control of the mailbox; the API sets the password with its own
- * credential and flips the membership to active in the same audited step, so a
+ * Verifying the link only proves control of the mailbox, so it is a separate
+ * step from setting the password. The API sets the password with its own
+ * credential and flips the membership to active in one audited operation, so a
  * half-finished acceptance leaves a retryable pending invitation rather than an
  * active member who cannot sign in.
  */
-const CODE_LENGTH = 6;
 const MIN_PASSWORD_LENGTH = 12;
 
-function codeErrorMessage(error: unknown): string {
+function linkErrorMessage(error: unknown): string {
   if (error instanceof AdminAuthError) {
-    if (error.code === 'EXPIRED_CODE') {
-      return 'انتهت صلاحية الرمز. اطلب رمزًا جديدًا.';
+    if (error.code === 'EXPIRED_LINK') {
+      return 'انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطًا جديدًا.';
     }
-    if (error.code === 'INVALID_CODE' || error.code === 'INVALID_CREDENTIALS') {
-      return 'الرمز غير صحيح. تأكد من آخر رسالة وصلتك.';
+    if (error.code === 'INVALID_LINK' || error.code === 'INVALID_CREDENTIALS') {
+      return 'الرابط غير صالح. تأكد من فتحه كاملًا من رسالة الدعوة.';
     }
     if (error.code === 'RATE_LIMITED') {
       return 'تكررت المحاولات بسرعة. انتظر قليلًا ثم حاول مرة أخرى.';
@@ -43,16 +42,16 @@ function codeErrorMessage(error: unknown): string {
       return 'تعذّر الاتصال بخدمة الدخول. تحقق من الشبكة وحاول مرة أخرى.';
     }
     if (error.code === 'UNSUPPORTED') {
-      return 'هذه النسخة المحلية لا ترسل رموزًا بالبريد.';
+      return 'هذه النسخة المحلية لا ترسل روابط بالبريد.';
     }
   }
-  return 'تعذّر التحقق من الرمز. حاول مرة أخرى.';
+  return 'تعذّر التحقق من الرابط. حاول مرة أخرى.';
 }
 
 function acceptErrorMessage(error: unknown): string {
   if (error instanceof AdminRepositoryError) {
     if (error.code === 'CONFLICT') return 'قُبلت هذه الدعوة من قبل. سجّل الدخول بكلمة مرورك.';
-    if (error.code === 'FORBIDDEN') return 'لا توجد دعوة مرتبطة بهذا البريد.';
+    if (error.code === 'FORBIDDEN') return 'لا توجد دعوة مرتبطة بهذا الحساب.';
     if (error.code === 'VALIDATION') {
       return `كلمة المرور لا تحقق الحد الأدنى: ${MIN_PASSWORD_LENGTH} محرفًا على الأقل.`;
     }
@@ -69,13 +68,8 @@ export function InviteView({
 }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [step, setStep] = useState<'code' | 'password' | 'done'>('code');
+  const [step, setStep] = useState<'link' | 'password' | 'done'>('link');
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  // Tracks which email the code came from. Supabase issues invitation tokens
-  // and re-sent sign-in codes under different types, so this is remembered
-  // rather than guessed.
-  const [purpose, setPurpose] = useState<EmailCodePurpose>('invite');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [invitation, setInvitation] = useState<AdminInvitationState | null>(null);
@@ -85,26 +79,27 @@ export function InviteView({
   const linkConsumed = useRef(false);
 
   /**
-   * Accepts the token an invitation link carries.
+   * Consumes the token the invitation link carries.
    *
-   * Supabase's default invite email sends a link, not a visible code, so
-   * without this an invitee lands on a form asking for something they were
-   * never sent. The token is removed from the URL immediately: leaving a
-   * single-use credential in the address bar puts it into history, and into
-   * the Referer header of anything the page loads next.
+   * The token is removed from the URL immediately: a single-use credential left
+   * in the address bar reaches browser history and the Referer header of
+   * whatever the page loads next.
    */
   useEffect(() => {
     const tokenHash = searchParams.get('token_hash');
     if (!tokenHash || linkConsumed.current) return;
     linkConsumed.current = true;
-    const linkPurpose: EmailCodePurpose =
+    const purpose: EmailLinkPurpose =
       searchParams.get('type') === 'invite' ? 'invite' : 'signin';
     setSearchParams(new URLSearchParams(), { replace: true });
 
     void (async () => {
       setBusy(true);
+      setError('');
       try {
-        await authGateway.verifyEmailLink(tokenHash, linkPurpose);
+        await authGateway.verifyEmailLink(tokenHash, purpose);
+        // A verified link proves the mailbox, not Studio membership. Confirm
+        // the invitation before offering to set a password for it.
         const state = await repository.readInvitation();
         if (state.status === 'invited') {
           setInvitation(state);
@@ -118,54 +113,25 @@ export function InviteView({
         );
         await authGateway.signOut();
       } catch (caught) {
-        setError(codeErrorMessage(caught));
+        setError(linkErrorMessage(caught));
       } finally {
         setBusy(false);
       }
     })();
   }, [authGateway, repository, searchParams, setSearchParams]);
 
-  async function verify(event: FormEvent<HTMLFormElement>) {
+  async function resend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
     setNotice('');
     setBusy(true);
     try {
-      await authGateway.verifyEmailCode(email, code, purpose);
-      // The session now exists, but it does not by itself mean this person was
-      // invited to the Studio: confirm the membership before offering to set a
-      // password for it.
-      const state = await repository.readInvitation();
-      if (state.status === 'none') {
-        setError('لا توجد دعوة إلى الاستوديو مرتبطة بهذا البريد.');
-        await authGateway.signOut();
-        return;
-      }
-      if (state.status === 'active') {
-        setError('قُبلت هذه الدعوة من قبل. سجّل الدخول بكلمة مرورك.');
-        await authGateway.signOut();
-        return;
-      }
-      setInvitation(state);
-      setStep('password');
+      await authGateway.sendSignInEmail(email);
+      // Deliberately the same message whether or not the address is known:
+      // a different one would let anyone probe who has been invited.
+      setNotice('إن كان هذا البريد مدعوًّا، فسيصله رابط جديد خلال دقائق.');
     } catch (caught) {
-      setError(codeErrorMessage(caught));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function resend() {
-    setError('');
-    setNotice('');
-    setBusy(true);
-    try {
-      await authGateway.sendEmailCode(email);
-      setPurpose('signin');
-      setCode('');
-      setNotice('أرسلنا رمزًا جديدًا. استخدم آخر رسالة وصلتك.');
-    } catch (caught) {
-      setError(codeErrorMessage(caught));
+      setError(linkErrorMessage(caught));
     } finally {
       setBusy(false);
     }
@@ -197,8 +163,8 @@ export function InviteView({
           <div>
             <h1 id="invite-title">قبول دعوة الاستوديو</h1>
             <p>
-              {step === 'code'
-                ? 'أدخل بريدك والرمز الذي وصلك، ثم اختر كلمة مرور.'
+              {step === 'link'
+                ? 'افتح رابط الدعوة من رسالة البريد لإكمال إنشاء حسابك.'
                 : step === 'password'
                   ? 'بقي أن تختار كلمة مرور لحسابك.'
                   : 'اكتمل إعداد حسابك.'}
@@ -206,46 +172,11 @@ export function InviteView({
           </div>
         </header>
 
-        <ol className="invite-steps" aria-label="خطوات قبول الدعوة">
-          <li aria-current={step === 'code' ? 'step' : undefined}>التحقق من البريد</li>
-          <li aria-current={step === 'password' ? 'step' : undefined}>كلمة المرور</li>
-          <li aria-current={step === 'done' ? 'step' : undefined}>تم</li>
-        </ol>
-
-        {step === 'code' ? (
-          <form className="auth-form" onSubmit={(event) => void verify(event)}>
-            <Field label="البريد الإلكتروني">
-              <Input
-                type="email"
-                name="email"
-                value={email}
-                dir="ltr"
-                lang="en"
-                inputMode="email"
-                autoComplete="username"
-                required
-                disabled={busy}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            </Field>
-            <Field label={`رمز التأكيد (${CODE_LENGTH} أرقام)`}>
-              <Input
-                name="code"
-                value={code}
-                dir="ltr"
-                lang="en"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                pattern="[0-9]*"
-                maxLength={CODE_LENGTH}
-                required
-                disabled={busy}
-                onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
-              />
-            </Field>
-            {notice ? (
-              <p className="notice" role="status">
-                {notice}
+        {step === 'link' ? (
+          <>
+            {busy ? (
+              <p className="notice" role="status" aria-live="polite">
+                جارٍ التحقق من الرابط…
               </p>
             ) : null}
             {error ? (
@@ -253,24 +184,40 @@ export function InviteView({
                 {error}
               </p>
             ) : null}
-            <Button
-              className="auth-form__submit"
-              type="submit"
-              variant="primary"
-              disabled={busy || code.length !== CODE_LENGTH}
-              aria-busy={busy}
-            >
-              {busy ? 'جارٍ التحقق…' : 'تأكيد الرمز'}
-            </Button>
-            <Button
-              type="button"
-              variant="quiet"
-              disabled={busy || !email}
-              onClick={() => void resend()}
-            >
-              انتهت صلاحية الرمز؟ أرسل رمزًا جديدًا
-            </Button>
-          </form>
+            {notice ? (
+              <p className="notice" role="status">
+                {notice}
+              </p>
+            ) : null}
+            <form className="auth-form" onSubmit={(event) => void resend(event)}>
+              <p className="invite-hint">
+                إن لم يصلك الرابط أو انتهت صلاحيته، أدخل بريدك لإرسال رابط جديد.
+              </p>
+              <Field label="البريد الإلكتروني">
+                <Input
+                  type="email"
+                  name="email"
+                  value={email}
+                  dir="ltr"
+                  lang="en"
+                  inputMode="email"
+                  autoComplete="username"
+                  required
+                  disabled={busy}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </Field>
+              <Button
+                className="auth-form__submit"
+                type="submit"
+                variant="primary"
+                disabled={busy || !email}
+                aria-busy={busy}
+              >
+                {busy ? 'جارٍ الإرسال…' : 'إرسال رابط جديد'}
+              </Button>
+            </form>
+          </>
         ) : null}
 
         {step === 'password' ? (

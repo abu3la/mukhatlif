@@ -21,21 +21,21 @@ export interface DemoAdminAccount extends AdminAuthSubject {
 
 export type AdminAuthErrorCode =
   | 'INVALID_CREDENTIALS'
-  | 'INVALID_CODE'
-  | 'EXPIRED_CODE'
+  | 'INVALID_LINK'
+  | 'EXPIRED_LINK'
   | 'RATE_LIMITED'
   | 'NETWORK'
   | 'UNSUPPORTED'
   | 'UNKNOWN';
 
 /**
- * Which email carried the code being verified.
+ * Which email the link came from.
  *
- * Supabase issues invitation tokens and freshly requested sign-in codes under
- * different types, and verifying with the wrong one fails. The screen knows
- * which email the person is reading from, so it says so rather than guessing.
+ * Supabase issues invitation tokens and re-sent sign-in tokens under different
+ * types, and verifying with the wrong one fails. The link says which it is, so
+ * this is read rather than guessed.
  */
-export type EmailCodePurpose = 'invite' | 'signin';
+export type EmailLinkPurpose = 'invite' | 'signin';
 
 export class AdminAuthError extends Error {
   readonly code: AdminAuthErrorCode;
@@ -56,22 +56,13 @@ export interface AdminAuthGateway {
   restoreSession(): Promise<AdminAuthSession | null>;
   signInWithPassword(email: string, password: string): Promise<AdminAuthSession>;
   /**
-   * Exchanges an emailed code for a session. This is the only way an invited
-   * person can authenticate: they have no password until they set one.
+   * Exchanges the token an invitation link carries for a session. This is the
+   * only way an invited person can authenticate: they have no password until
+   * they set one at the end of the acceptance flow.
    */
-  verifyEmailCode(
-    email: string,
-    code: string,
-    purpose: EmailCodePurpose,
-  ): Promise<AdminAuthSession>;
-  /**
-   * Exchanges the token an invitation link carries in its query string.
-   * Supabase's default invite email sends a link rather than a visible code,
-   * so this is the path that works before custom SMTP is configured.
-   */
-  verifyEmailLink(tokenHash: string, purpose: EmailCodePurpose): Promise<AdminAuthSession>;
-  /** Sends a fresh sign-in code, for an invitation email that expired. */
-  sendEmailCode(email: string): Promise<void>;
+  verifyEmailLink(tokenHash: string, purpose: EmailLinkPurpose): Promise<AdminAuthSession>;
+  /** Sends a fresh sign-in link, for an invitation link that expired. */
+  sendSignInEmail(email: string): Promise<void>;
   signOut(): Promise<void>;
   subscribe(listener: (session: AdminAuthSession | null) => void): () => void;
 }

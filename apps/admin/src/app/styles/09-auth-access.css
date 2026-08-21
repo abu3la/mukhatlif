@@ -63,6 +63,22 @@
   margin-block-start: 2px;
 }
 
+/* Invitation acceptance: the one screen a non-operator can reach. */
+.invite-hint {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+/* Names who the verified link belongs to, so nobody sets a password on an
+   account they did not expect. */
+.invite-identity {
+  margin: 0;
+  padding-block-end: 4px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
 .demo-account-panel {
   display: grid;
   gap: 14px;
