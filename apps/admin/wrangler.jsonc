@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mukhtalif-admin",
+  "account_id": "c4b180c5ae20a242ec7024e2fc0a3478",
+  "compatibility_date": "2026-08-01",
+  "assets": {
+    "directory": "dist",
+    // The Studio is a client-routed SPA, so an unknown path must return
+    // index.html rather than a 404 — ADR 0001 records this as a hosting
+    // requirement, not a convenience.
+    "not_found_handling": "single-page-application"
+  },
+  "observability": { "enabled": true },
+  // Versioned preview URLs would publish additional origins that the API's
+  // CORS allowlist does not name, so every request from them would fail
+  // confusingly. Nothing needs them.
+  "preview_urls": false
+}

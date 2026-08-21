@@ -22,5 +22,11 @@
   // PUBLIC_WEB_URL must name the same origin as the API Worker's own
   // PUBLIC_WEB_URL. The API builds absolute article links into newsletters from
   // that value, and a sent email cannot be rewritten.
-  "vars": {}
+  "vars": {
+    "MUKHTALIF_API_URL": "https://mukhtalif-api.mukhtalif.workers.dev",
+    // Must match the API Worker's own PUBLIC_WEB_URL once newsletters are
+    // enabled: the API bakes absolute article links from that value into sent
+    // email, and a delivered message cannot be rewritten afterwards.
+    "PUBLIC_WEB_URL": "https://mukhtalif-web.mukhtalif.workers.dev"
+  }
 }
