@@ -6,8 +6,22 @@
   "compatibility_date": "2026-08-01",
   "vars": {
     "APP_ENV": "production",
+    // The dev identity header is gated on APP_ENV=development *and* this flag.
+    // Both must fail closed in production.
     "ALLOW_DEV_AUTH": "false",
+    // Only the Studio calls this API from a browser. The public site reads it
+    // server-side, so its origin does not belong here. A wildcard is rejected.
+    "CORS_ALLOWED_ORIGINS": "https://mukhtalif-admin.mukhtalif.workers.dev",
+    // This Worker serves /media/:id itself, so the origin is its own. Required
+    // whenever MEDIA is bound outside development.
+    "MEDIA_PUBLIC_ORIGIN": "https://mukhtalif-api.mukhtalif.workers.dev",
+    // PUBLIC_WEB_URL is deliberately absent: it is one of six Mailchimp settings
+    // that must be configured together, and setting it alone is treated as a
+    // configuration error rather than a partial setup.
   },
+  // Versioned preview URLs would publish this same API, with these same
+  // secrets, at additional unpredictable origins. Nothing needs them.
+  "preview_urls": false,
   // Supabase URL and service-role key are secrets:
   //   local dev  -> apps/api/.dev.vars (copy .dev.vars.example)
   //   production -> wrangler secret put SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
