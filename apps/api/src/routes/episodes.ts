@@ -18,7 +18,7 @@ import {
   updateEpisodeSchema,
   updateEpisodeStatusSchema,
 } from '@mukhtalif/validation';
-import { requirePermission, type AppEnv } from '../auth';
+import { requireAuth, requirePermission, type AppEnv } from '../auth';
 import { getRepository } from '../repo';
 
 const audioError = (code: string, error: string) => ({ code, error });
@@ -127,11 +127,20 @@ export const publicEpisodesRoute = new Hono<AppEnv>()
   .get('/:id/audio', audioHandler(false));
 
 /**
- * Signed-in listener audio. The handler is identical to the public one; the
- * separate mount exists so the listener namespace owns its own surface guard
- * and can diverge later without touching the anonymous catalogue.
+ * Signed-in listener audio.
+ *
+ * `requireAuth` is what makes the listener namespace uniform: every /app route
+ * needs an application user. Without it this handler was reachable anonymously
+ * and merely duplicated the public one, so the namespace's own rule did not
+ * hold for it. Anonymous playback of a free episode belongs on the public
+ * catalogue route, which already answers 401 when a premium episode is asked
+ * for without a subscriber.
  */
-export const appEpisodesRoute = new Hono<AppEnv>().get('/:id/audio', audioHandler(false));
+export const appEpisodesRoute = new Hono<AppEnv>().get(
+  '/:id/audio',
+  requireAuth,
+  audioHandler(false),
+);
 
 /** Operator management and preview. Every handler requires a permission. */
 export const studioEpisodesRoute = new Hono<AppEnv>()
