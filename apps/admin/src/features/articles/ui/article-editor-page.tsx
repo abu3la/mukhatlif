@@ -1,6 +1,8 @@
 import {
   type ChangeEvent,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useId,
@@ -10,6 +12,7 @@ import {
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { JSONContent } from '@tiptap/react';
+import { ChevronDown, ClipboardCopy, FileDown, FileText } from 'lucide-react';
 import { adminPaths, canManagePage, useAdminAuth, useStudioData } from '@/application';
 import {
   type CreateArticleCommand,
@@ -33,6 +36,11 @@ import { EMPTY_ARTICLE_DOCUMENT, RichTextEditor, type RichTextValue } from './ri
 import { ArticleContentPreview } from './article-media';
 import { ArticleCoverCropDialog } from './article-cover-crop-dialog';
 import {
+  copyNewsletterExport,
+  downloadNewsletterExport,
+  type NewsletterExportFormat,
+} from './article-newsletter-export';
+import {
   articleImageErrorMessage,
   prepareArticleCoverImage,
   type PreparedArticleImage,
@@ -42,6 +50,7 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 type PreviewChannel = 'web' | 'newsletter';
 type EditorOperation = 'save' | 'publish' | 'preview' | 'campaign' | 'send' | 'reconcile' | null;
+type CollapsibleEditorSection = 'cover' | 'preview' | 'seo' | 'newsletter';
 
 interface EditorFields {
   readonly title: string;
@@ -253,6 +262,227 @@ function SeoCounter({ value, maximum }: { readonly value: string; readonly maxim
   );
 }
 
+function CollapsibleArticleSection({
+  id,
+  title,
+  description,
+  open,
+  onToggle,
+  className = '',
+  children,
+}: {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string;
+  readonly open: boolean;
+  readonly onToggle: () => void;
+  readonly className?: string;
+  readonly children: ReactNode;
+}) {
+  const panelId = `${id}-panel`;
+  return (
+    <section
+      className={`card article-publisher__section article-publisher__section--collapsible ${className}`.trim()}
+      aria-labelledby={id}
+    >
+      <div className="article-publisher__section-heading">
+        <div>
+          <h2 id={id}>{title}</h2>
+          <p>{description}</p>
+        </div>
+        <button
+          type="button"
+          className="article-publisher__section-toggle"
+          aria-label={`${open ? 'إغلاق' : 'فتح'} قسم ${title}`}
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={onToggle}
+        >
+          <span>{open ? 'إغلاق' : 'فتح'}</span>
+          <ChevronDown aria-hidden="true" focusable="false" size={17} strokeWidth={2} />
+        </button>
+      </div>
+      <div id={panelId} hidden={!open}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function NewsletterExportMenu({
+  disabled,
+  preparing,
+  previewReady,
+  onPrepare,
+  onCopy,
+  onDownload,
+}: {
+  readonly disabled: boolean;
+  readonly preparing: boolean;
+  readonly previewReady: boolean;
+  readonly onPrepare: () => Promise<boolean>;
+  readonly onCopy: (format: NewsletterExportFormat) => Promise<boolean>;
+  readonly onDownload: (format: NewsletterExportFormat) => boolean;
+}) {
+  const menuId = useId();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+
+  const closeMenu = useCallback((restoreFocus = false) => {
+    setOpen(false);
+    if (restoreFocus) requestAnimationFrame(() => triggerRef.current?.focus());
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const focusFrame = requestAnimationFrame(() => {
+      menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+    });
+    const closeFromOutside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !wrapperRef.current?.contains(event.target)) {
+        closeMenu();
+      }
+    };
+    const closeWithEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      closeMenu(true);
+    };
+    document.addEventListener('pointerdown', closeFromOutside);
+    document.addEventListener('keydown', closeWithEscape);
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      document.removeEventListener('pointerdown', closeFromOutside);
+      document.removeEventListener('keydown', closeWithEscape);
+    };
+  }, [closeMenu, open]);
+
+  useEffect(() => {
+    if (disabled || !previewReady) closeMenu();
+  }, [closeMenu, disabled, previewReady]);
+
+  async function toggleMenu() {
+    if (open) {
+      closeMenu(true);
+      return;
+    }
+    if (!previewReady && !(await onPrepare())) return;
+    setOpen(true);
+  }
+
+  function moveMenuFocus(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [],
+    );
+    if (!items.length) return;
+    event.preventDefault();
+    const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement);
+    const nextIndex =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? items.length - 1
+          : event.key === 'ArrowDown'
+            ? (Math.max(currentIndex, -1) + 1) % items.length
+            : (currentIndex <= 0 ? items.length : currentIndex) - 1;
+    items[nextIndex]?.focus();
+  }
+
+  return (
+    <div
+      ref={wrapperRef}
+      className="article-publisher__export-menu"
+      onBlur={(event) => {
+        if (
+          open &&
+          (!event.relatedTarget ||
+            (event.relatedTarget instanceof Node &&
+              !event.currentTarget.contains(event.relatedTarget)))
+        ) {
+          closeMenu();
+        }
+      }}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        className="button button--primary article-publisher__export-trigger"
+        disabled={disabled}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => void toggleMenu()}
+      >
+        <FileDown aria-hidden="true" focusable="false" size={18} strokeWidth={1.9} />
+        <span>{preparing ? 'جارٍ تجهيز خيارات التصدير…' : 'تصدير البريد للإرسال'}</span>
+        <ChevronDown aria-hidden="true" focusable="false" size={16} strokeWidth={1.9} />
+      </button>
+      {open ? (
+        <div
+          ref={menuRef}
+          id={menuId}
+          className="article-publisher__export-options"
+          role="menu"
+          aria-label="خيارات تصدير البريد"
+          onKeyDown={moveMenuFocus}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => void onCopy('html').then((copied) => copied && closeMenu(true))}
+          >
+            <ClipboardCopy aria-hidden="true" focusable="false" size={18} strokeWidth={1.9} />
+            <span>
+              <b>نسخ HTML</b>
+              <small>الصقه في حملة Mailchimp</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              if (onDownload('html')) closeMenu(true);
+            }}
+          >
+            <FileDown aria-hidden="true" focusable="false" size={18} strokeWidth={1.9} />
+            <span>
+              <b>تنزيل ملف HTML</b>
+              <small>للحفظ أو الاستيراد</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => void onCopy('text').then((copied) => copied && closeMenu(true))}
+          >
+            <FileText aria-hidden="true" focusable="false" size={18} strokeWidth={1.9} />
+            <span>
+              <b>نسخ النص</b>
+              <small>نسخة بديلة بلا تنسيق</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              if (onDownload('text')) closeMenu(true);
+            }}
+          >
+            <FileText aria-hidden="true" focusable="false" size={18} strokeWidth={1.9} />
+            <span>
+              <b>تنزيل ملف النص</b>
+              <small>نسخة بديلة بلا تنسيق</small>
+            </span>
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function ArticleEditorView() {
   const { articleId: routeArticleId } = useParams<{ articleId: string }>();
   const navigate = useNavigate();
@@ -316,6 +546,12 @@ export function ArticleEditorView() {
   const [feedback, setFeedback] = useState('');
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<CollapsibleEditorSection, boolean>>({
+    cover: true,
+    preview: true,
+    seo: true,
+    newsletter: true,
+  });
   const [sendConfirmation, setSendConfirmation] = useState<NewsletterSendConfirmation | null>(null);
   const [mediaAssets, setMediaAssets] = useState<ArticleMediaAsset[]>([]);
   const [mediaLoadError, setMediaLoadError] = useState('');
@@ -386,9 +622,7 @@ export function ArticleEditorView() {
           if (!isNewRoute || current.type !== 'studio_member' || current.studioMemberId) {
             return current;
           }
-          const preferred = candidates.find(
-            (candidate) => candidate.studioMemberId === viewer?.id,
-          );
+          const preferred = candidates.find((candidate) => candidate.studioMemberId === viewer?.id);
           return preferred ? { ...current, studioMemberId: preferred.studioMemberId } : current;
         });
       })
@@ -539,11 +773,7 @@ export function ArticleEditorView() {
         : 'أضف نصًا أو صورة أو فيديو إلى محتوى المقال.',
     };
     setValidationErrors(nextValidationErrors);
-    if (
-      nextValidationErrors.title ||
-      nextValidationErrors.author ||
-      nextValidationErrors.content
-    ) {
+    if (nextValidationErrors.title || nextValidationErrors.author || nextValidationErrors.content) {
       return 'راجع عنوان المقال وكاتبه ومحتواه.';
     }
     if (!fields.slug.trim()) {
@@ -678,21 +908,65 @@ export function ArticleEditorView() {
     }
   }
 
-  async function refreshEmailPreview() {
-    if (!workingArticleId || dirty || busy) return;
+  function toggleSection(section: CollapsibleEditorSection) {
+    setOpenSections((current) => ({ ...current, [section]: !current[section] }));
+  }
+
+  async function prepareNewsletterExport(): Promise<boolean> {
+    if (!workingArticleId || dirty || busy) return false;
     setOperation('preview');
     setError('');
     try {
       setEmailPreview(await previewArticleNewsletter(workingArticleId));
       setFeedback(
-        mailchimp?.mode === 'simulation'
-          ? 'حُدّثت المعاينة التمثيلية المحلية.'
-          : 'حُدّثت معاينة قالب البريد.',
+        mailchimp?.mode === 'simulation' ? 'جُهّز البريد للتصدير المحلي.' : 'جُهّز البريد للتصدير.',
       );
+      return true;
     } catch (cause) {
       setError(editorErrorMessage(cause, 'preview'));
+      return false;
     } finally {
       setOperation(null);
+    }
+  }
+
+  async function copyNewsletter(format: NewsletterExportFormat): Promise<boolean> {
+    if (!emailPreview || busy || dirty) return false;
+    setError('');
+    setFeedback('');
+    try {
+      await copyNewsletterExport(format === 'html' ? emailPreview.html : emailPreview.text);
+      setFeedback(
+        format === 'html'
+          ? 'نُسخ HTML للنشرة. الصقه يدويًا في محرر Mailchimp.'
+          : 'نُسخت النسخة النصية للنشرة.',
+      );
+      return true;
+    } catch {
+      setError('تعذّر نسخ ملف النشرة. استخدم التنزيل بدلًا من ذلك.');
+      return false;
+    }
+  }
+
+  function downloadNewsletter(format: NewsletterExportFormat): boolean {
+    if (!emailPreview || busy || dirty) return false;
+    setError('');
+    setFeedback('');
+    try {
+      downloadNewsletterExport(
+        format === 'html' ? emailPreview.html : emailPreview.text,
+        fields.slug,
+        format,
+      );
+      setFeedback(
+        format === 'html'
+          ? 'نُزّل ملف HTML للنشرة. يمكنك رفعه أو لصقه في Mailchimp.'
+          : 'نُزّلت النسخة النصية للنشرة.',
+      );
+      return true;
+    } catch {
+      setError('تعذّر تنزيل ملف النشرة. حدّث قالب البريد ثم حاول مرة أخرى.');
+      return false;
     }
   }
 
@@ -1042,10 +1316,7 @@ export function ArticleEditorView() {
                     ) : null}
                   </Field>
                 ) : (
-                  <Field
-                    label="اسم الكاتب (مطلوب)"
-                    hint="سيظهر هذا الاسم للقراء."
-                  >
+                  <Field label="اسم الكاتب (مطلوب)" hint="سيظهر هذا الاسم للقراء.">
                     <Input
                       dir="auto"
                       value={authorFields.customDisplayName}
@@ -1081,10 +1352,7 @@ export function ArticleEditorView() {
                     disabled={!canManage || busy}
                     required
                     onChange={(event) =>
-                      changeField(
-                        'authorPlacement',
-                        event.target.value as ArticleAuthorPlacement,
-                      )
+                      changeField('authorPlacement', event.target.value as ArticleAuthorPlacement)
                     }
                   >
                     <option value="after_title">بعد العنوان</option>
@@ -1127,9 +1395,7 @@ export function ArticleEditorView() {
                 required
                 invalid={Boolean(validationErrors.content)}
                 describedBy={
-                  validationErrors.content
-                    ? `${contentHelpId} ${contentErrorId}`
-                    : contentHelpId
+                  validationErrors.content ? `${contentHelpId} ${contentErrorId}` : contentHelpId
                 }
                 mediaAssets={mediaAssets}
                 refreshMedia={refreshMedia}
@@ -1164,16 +1430,13 @@ export function ArticleEditorView() {
             </div>
           </section>
 
-          <section
-            className="card article-publisher__section"
-            aria-labelledby="article-media-title"
+          <CollapsibleArticleSection
+            id="article-media-title"
+            title="صورة الغلاف"
+            description="ارفع صورة من جهازك، أو استخدم رابطًا بديلًا عند الحاجة."
+            open={openSections.cover}
+            onToggle={() => toggleSection('cover')}
           >
-            <div className="article-publisher__section-heading">
-              <div>
-                <h2 id="article-media-title">صورة الغلاف</h2>
-                <p>ارفع صورة من جهازك، أو استخدم رابطًا بديلًا عند الحاجة.</p>
-              </div>
-            </div>
             <div className="article-publisher__fields article-cover-manager">
               <div className="article-cover-upload" aria-busy={coverUploadProgress !== null}>
                 {canManage ? (
@@ -1200,9 +1463,9 @@ export function ArticleEditorView() {
                     />
                     <span>{selectedCoverImage?.file.name ?? 'لم تختر صورة بعد.'}</span>
                     <small>
-                      JPEG أو PNG. بعد الاختيار ستقصّ الغلاف بنسبة 16:9. يجب أن تكفي أبعاد
-                      الصورة لقصّ غلاف لا يقل عن 1200 × 675 بكسل، ونوصي بـ 1600 × 900. الحد
-                      الأقصى 10 م.ب و24 مليون بكسل إجمالًا.
+                      JPEG أو PNG. بعد الاختيار ستقصّ الغلاف بنسبة 16:9. يجب أن تكفي أبعاد الصورة
+                      لقصّ غلاف لا يقل عن 1200 × 675 بكسل، ونوصي بـ 1600 × 900. الحد الأقصى 10 م.ب
+                      و24 مليون بكسل إجمالًا.
                     </small>
                   </div>
                 ) : null}
@@ -1308,14 +1571,17 @@ export function ArticleEditorView() {
                 </div>
               </details>
             </div>
-          </section>
+          </CollapsibleArticleSection>
 
-          <section
-            className="card article-publisher__section"
-            aria-labelledby="article-preview-title"
+          <CollapsibleArticleSection
+            id="article-preview-title"
+            title="المعاينة"
+            description="راجع شكل المقال والبريد قبل النشر أو التصدير."
+            open={openSections.preview}
+            onToggle={() => toggleSection('preview')}
+            className="article-publisher__section--preview"
           >
-            <div className="article-publisher__preview-heading">
-              <h2 id="article-preview-title">المعاينة</h2>
+            <div className="article-publisher__preview-toolbar">
               <div
                 className="article-publisher__preview-tabs"
                 role="group"
@@ -1419,26 +1685,31 @@ export function ArticleEditorView() {
                     ? 'هذه معاينة محلية تمثيلية. لا تُرسل الرسالة خارج الجهاز.'
                     : 'المعاينة المحلية تتبع المحتوى الحالي. قالب الخادم يتاح بعد الحفظ.'}
                 </p>
-                <Button
-                  type="button"
-                  disabled={!workingArticleId || dirty || busy || !fields.newsletterEnabled}
-                  onClick={() => void refreshEmailPreview()}
-                >
-                  {operation === 'preview' ? 'جارٍ التحديث…' : 'تحديث قالب البريد'}
-                </Button>
+                <div className="article-publisher__preview-actions">
+                  {canManage ? (
+                    <NewsletterExportMenu
+                      disabled={!workingArticleId || dirty || busy || !fields.newsletterEnabled}
+                      preparing={operation === 'preview'}
+                      previewReady={Boolean(emailPreview)}
+                      onPrepare={prepareNewsletterExport}
+                      onCopy={copyNewsletter}
+                      onDownload={downloadNewsletter}
+                    />
+                  ) : null}
+                </div>
               </div>
             ) : null}
-          </section>
+          </CollapsibleArticleSection>
         </main>
 
         <aside className="article-publisher__aside">
-          <section className="card article-publisher__section" aria-labelledby="article-seo-title">
-            <div className="article-publisher__section-heading">
-              <div>
-                <h2 id="article-seo-title">إعدادات البحث</h2>
-                <p>تحكم في ظهور المقال عند مشاركته وفي نتائج البحث.</p>
-              </div>
-            </div>
+          <CollapsibleArticleSection
+            id="article-seo-title"
+            title="إعدادات البحث"
+            description="تحكم في ظهور المقال عند مشاركته وفي نتائج البحث."
+            open={openSections.seo}
+            onToggle={() => toggleSection('seo')}
+          >
             <div className="article-publisher__fields">
               <Field label="عنوان نتائج البحث">
                 <Input
@@ -1517,18 +1788,15 @@ export function ArticleEditorView() {
               <h3>{fields.seoTitle.trim() || displayTitle}</h3>
               <p>{fields.seoDescription.trim() || derivedSummary || 'أضف وصفًا واضحًا للمقال.'}</p>
             </div>
-          </section>
+          </CollapsibleArticleSection>
 
-          <section
-            className="card article-publisher__section"
-            aria-labelledby="newsletter-settings-title"
+          <CollapsibleArticleSection
+            id="newsletter-settings-title"
+            title="النشرة الأسبوعية"
+            description="يُستخدم محتوى المقال نفسه في رسالة Mailchimp."
+            open={openSections.newsletter}
+            onToggle={() => toggleSection('newsletter')}
           >
-            <div className="article-publisher__section-heading">
-              <div>
-                <h2 id="newsletter-settings-title">النشرة الأسبوعية</h2>
-                <p>يُستخدم محتوى المقال نفسه في رسالة Mailchimp.</p>
-              </div>
-            </div>
             <div className="article-publisher__fields">
               <label className="article-publisher__check-row">
                 <input
@@ -1659,7 +1927,7 @@ export function ArticleEditorView() {
                 )}
               </div>
             ) : null}
-          </section>
+          </CollapsibleArticleSection>
         </aside>
 
         {canManage ? (

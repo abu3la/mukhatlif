@@ -194,6 +194,18 @@ function stubCoverCanvas() {
   return drawImage;
 }
 
+function replaceClipboard(writeText: ReturnType<typeof vi.fn>): () => void {
+  const previous = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText },
+  });
+  return () => {
+    if (previous) Object.defineProperty(navigator, 'clipboard', previous);
+    else Reflect.deleteProperty(navigator, 'clipboard');
+  };
+}
+
 async function applyInitialCoverCrop(
   user: ReturnType<typeof userEvent.setup>,
   width = 1_600,
@@ -262,6 +274,41 @@ describe('ArticleEditorView', () => {
 
     expect(container.querySelector('.article-web-preview__excerpt')).not.toBeInTheDocument();
     expect(screen.getByText(/اتركه فارغًا إذا لم تحتج إليه/)).toBeVisible();
+  });
+
+  it('lets editors collapse supporting sections while keeping the article open', async () => {
+    const user = userEvent.setup();
+    renderEditor([structuredClone(demoData.articles[0]!)]);
+
+    const sections = [
+      ['صورة الغلاف', 'article-media-title-panel'],
+      ['المعاينة', 'article-preview-title-panel'],
+      ['إعدادات البحث', 'article-seo-title-panel'],
+      ['النشرة الأسبوعية', 'newsletter-settings-title-panel'],
+    ] as const;
+
+    for (const [label, panelId] of sections) {
+      const toggle = screen.getByRole('button', { name: `إغلاق قسم ${label}` });
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      expect(toggle).toHaveAttribute('aria-controls', panelId);
+    }
+    expect(screen.queryByRole('button', { name: /قسم المقال/ })).not.toBeInTheDocument();
+
+    const seoToggle = screen.getByRole('button', { name: 'إغلاق قسم إعدادات البحث' });
+    const seoPanel = document.getElementById('article-seo-title-panel');
+    expect(seoPanel).not.toHaveAttribute('hidden');
+    await user.click(seoToggle);
+    expect(seoPanel).toHaveAttribute('hidden');
+    expect(screen.getByRole('button', { name: 'فتح قسم إعدادات البحث' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'فتح قسم إعدادات البحث' }));
+    expect(seoPanel).not.toHaveAttribute('hidden');
+    expect(screen.getByRole('textbox', { name: 'عنوان نتائج البحث' })).toHaveValue(
+      demoData.articles[0]!.seo.title,
+    );
   });
 
   it('saves a custom author and shows the byline with automatic text direction', async () => {
@@ -404,7 +451,9 @@ describe('ArticleEditorView', () => {
 
     const memberSelect = await screen.findByRole('combobox', { name: /^عضو الفريق/ });
     expect(memberSelect).toHaveValue('member-former');
-    expect(within(memberSelect).getByRole('option', { name: 'كاتب من الأرشيف' })).toBeInTheDocument();
+    expect(
+      within(memberSelect).getByRole('option', { name: 'كاتب من الأرشيف' }),
+    ).toBeInTheDocument();
   });
 
   it('preserves the stored author snapshot on an unrelated article update', async () => {
@@ -418,7 +467,10 @@ describe('ArticleEditorView', () => {
       },
     };
     const updateArticle = vi.fn(
-      async (_id: Article['id'], command: Parameters<StudioDataContextValue['updateArticle']>[1]) => ({
+      async (
+        _id: Article['id'],
+        command: Parameters<StudioDataContextValue['updateArticle']>[1],
+      ) => ({
         ...article,
         title: command.title ?? article.title,
         version: article.version + 1,
@@ -475,7 +527,9 @@ describe('ArticleEditorView', () => {
 
     const memberSelect = screen.getByRole('combobox', { name: /^عضو الفريق/ });
     expect(memberSelect).toBeDisabled();
-    expect(within(memberSelect).getByRole('option', { name: 'جارٍ تحميل أعضاء الفريق…' })).toBeVisible();
+    expect(
+      within(memberSelect).getByRole('option', { name: 'جارٍ تحميل أعضاء الفريق…' }),
+    ).toBeVisible();
     const loadingStatus = screen.getByText('جارٍ تحميل أعضاء فريق الاستوديو…');
     expect(loadingStatus.parentElement).toHaveAttribute('role', 'status');
 
@@ -509,9 +563,7 @@ describe('ArticleEditorView', () => {
     );
     await user.click(screen.getByRole('button', { name: 'حفظ المسودة' }));
 
-    expect(
-      screen.getByText('أضف نصًا أو صورة أو فيديو إلى محتوى المقال.'),
-    ).toBeVisible();
+    expect(screen.getByText('أضف نصًا أو صورة أو فيديو إلى محتوى المقال.')).toBeVisible();
     expect(screen.getByRole('textbox', { name: 'محتوى المقال' })).toHaveAttribute(
       'aria-invalid',
       'true',
@@ -548,7 +600,9 @@ describe('ArticleEditorView', () => {
     await user.click(screen.getByRole('button', { name: 'حفظ المسودة' }));
 
     await waitFor(() => expect(updateArticle).toHaveBeenCalledTimes(1));
-    expect(screen.queryByText(/أضف نصًا أو صورة أو فيديو إلى محتوى المقال/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/أضف نصًا أو صورة أو فيديو إلى محتوى المقال/),
+    ).not.toBeInTheDocument();
   });
 
   it('requires alternative text before enabling a cover upload', async () => {
@@ -578,15 +632,12 @@ describe('ArticleEditorView', () => {
     const alternativeTextInput = screen.getByRole('textbox', { name: /^الوصف البديل/ });
     expect(coverPreview).toHaveAttribute('src', 'blob:cover');
     expect(
-      coverPreview.compareDocumentPosition(alternativeTextInput) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      coverPreview.compareDocumentPosition(alternativeTextInput) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     const validStatus = screen.getByText(/صورة مطابقة لمتطلبات الغلاف/);
     expect(validStatus).toHaveAttribute('role', 'status');
     expect(validStatus).toHaveTextContent('1,600 × 900');
-    expect(
-      screen.queryByText('أضف وصفًا بديلًا لتتمكن من رفع الغلاف.'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('أضف وصفًا بديلًا لتتمكن من رفع الغلاف.')).not.toBeInTheDocument();
     expect(screen.queryByText(/الغلاف جاهز/)).not.toBeInTheDocument();
     expect(uploadArticleImage).not.toHaveBeenCalled();
 
@@ -617,22 +668,23 @@ describe('ArticleEditorView', () => {
     ['الطولية', 1_200, 1_600],
     ['المربعة', 1_200, 1_200],
     ['الأفقية ذات النسبة المختلفة', 1_200, 800],
-  ])('opens the cropper for a %s source and produces a 16:9 cover', async (_case, width, height) => {
-    stubImageDimensions(width, height);
-    const user = userEvent.setup();
-    renderNewEditor();
+  ])(
+    'opens the cropper for a %s source and produces a 16:9 cover',
+    async (_case, width, height) => {
+      stubImageDimensions(width, height);
+      const user = userEvent.setup();
+      renderNewEditor();
 
-    await user.upload(
-      screen.getByLabelText('ملف صورة الغلاف'),
-      new File(['cover'], 'crop-source.png', { type: 'image/png' }),
-    );
-    await applyInitialCoverCrop(user, width, height);
+      await user.upload(
+        screen.getByLabelText('ملف صورة الغلاف'),
+        new File(['cover'], 'crop-source.png', { type: 'image/png' }),
+      );
+      await applyInitialCoverCrop(user, width, height);
 
-    expect(screen.getByText(/صورة مطابقة لمتطلبات الغلاف/)).toHaveTextContent(
-      '1,200 × 675',
-    );
-    expect(screen.getByRole('button', { name: 'رفع صورة الغلاف' })).toBeDisabled();
-  });
+      expect(screen.getByText(/صورة مطابقة لمتطلبات الغلاف/)).toHaveTextContent('1,200 × 675');
+      expect(screen.getByRole('button', { name: 'رفع صورة الغلاف' })).toBeDisabled();
+    },
+  );
 
   it('keeps the previous crop when Escape closes a replacement and returns focus', async () => {
     stubImageDimensions();
@@ -707,10 +759,7 @@ describe('ArticleEditorView', () => {
     await user.type(screen.getByRole('textbox', { name: 'محتوى المقال' }), 'محتوى تجريبي للغلاف.');
     await user.type(screen.getByRole('textbox', { name: /^الوصف البديل/ }), coverAlt);
     const originalCoverFile = new File(['cover'], 'weekly-cover.png', { type: 'image/png' });
-    await user.upload(
-      screen.getByLabelText('ملف صورة الغلاف'),
-      originalCoverFile,
-    );
+    await user.upload(screen.getByLabelText('ملف صورة الغلاف'), originalCoverFile);
     await applyInitialCoverCrop(user);
     await user.click(await screen.findByRole('button', { name: 'رفع صورة الغلاف' }));
 
@@ -735,8 +784,9 @@ describe('ArticleEditorView', () => {
     expect(uploadArticleImage.mock.calls[0]?.[0].body).not.toBe(originalCoverFile);
     const coverPreviews = screen.getAllByAltText(coverAlt);
     expect(coverPreviews).toHaveLength(2);
-    expect(coverPreviews.filter((image) => image.classList.contains('article-web-preview__cover')))
-      .toHaveLength(1);
+    expect(
+      coverPreviews.filter((image) => image.classList.contains('article-web-preview__cover')),
+    ).toHaveLength(1);
     expect(screen.getByText('رُفعت صورة الغلاف وأضيفت إلى المقال.')).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'النشرة الأسبوعية' }));
     expect(container.querySelector('.article-newsletter-preview__cover')).toHaveAttribute(
@@ -793,6 +843,59 @@ describe('ArticleEditorView', () => {
 
     expect(syncArticleNewsletterCampaign).toHaveBeenCalledWith(article.id, article.version);
     expect(updateArticle).not.toHaveBeenCalled();
+  });
+
+  it('exports the exact server preview manually without creating a Mailchimp campaign', async () => {
+    const user = userEvent.setup();
+    const html = '<p>قالب الخادم النهائي</p>';
+    const text = 'قالب الخادم النهائي';
+    const previewArticleNewsletter = vi.fn(async () => ({
+      subject: 'عنوان النشرة',
+      html,
+      text,
+    }));
+    const syncArticleNewsletterCampaign = vi.fn(async () => ({
+      article: demoData.articles[0]!,
+      operation: 'created' as const,
+    }));
+    const sendArticleNewsletter = vi.fn(async () => ({
+      article: demoData.articles[0]!,
+      operation: 'sent' as const,
+    }));
+    const writeText = vi.fn(async () => undefined);
+    const restoreClipboard = replaceClipboard(writeText);
+
+    renderEditor([structuredClone(demoData.articles[0]!)], {
+      previewArticleNewsletter,
+      syncArticleNewsletterCampaign,
+      sendArticleNewsletter,
+    });
+
+    await user.click(screen.getByRole('button', { name: 'النشرة الأسبوعية' }));
+    expect(screen.queryByRole('button', { name: 'نسخ HTML' })).not.toBeInTheDocument();
+
+    const exportTrigger = screen.getByRole('button', { name: 'تصدير البريد للإرسال' });
+    expect(exportTrigger).toHaveClass('button--primary');
+    expect(exportTrigger).toHaveAttribute('aria-haspopup', 'menu');
+    await user.click(exportTrigger);
+    await waitFor(() => expect(previewArticleNewsletter).toHaveBeenCalledTimes(1));
+    expect(screen.getByTitle('معاينة قالب النشرة')).toBeInTheDocument();
+    expect(screen.getByRole('menu', { name: 'خيارات تصدير البريد' })).toBeVisible();
+    expect(screen.getByRole('menuitem', { name: /تنزيل ملف HTML/ })).toBeEnabled();
+    expect(screen.getByRole('menuitem', { name: /نسخ النص/ })).toBeEnabled();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('menu', { name: 'خيارات تصدير البريد' })).not.toBeInTheDocument();
+    expect(exportTrigger).toHaveFocus();
+
+    await user.click(exportTrigger);
+    await user.click(screen.getByRole('menuitem', { name: /نسخ HTML/ }));
+
+    expect(writeText).toHaveBeenCalledWith(html);
+    expect(screen.getByText('نُسخ HTML للنشرة. الصقه يدويًا في محرر Mailchimp.')).toBeVisible();
+    expect(syncArticleNewsletterCampaign).not.toHaveBeenCalled();
+    expect(sendArticleNewsletter).not.toHaveBeenCalled();
+    restoreClipboard();
   });
 
   it('keeps the native send dialog closed until requested and restores focus after Escape', async () => {
@@ -964,10 +1067,7 @@ describe('ArticleEditorView', () => {
     const title = screen.getByRole('textbox', { name: 'عنوان المقال' });
     await user.clear(title);
     await user.type(title, 'قائمة قراءة محدّثة');
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: /^موضع اسم الكاتب/ }),
-      'end',
-    );
+    await user.selectOptions(screen.getByRole('combobox', { name: /^موضع اسم الكاتب/ }), 'end');
     await user.click(screen.getByRole('button', { name: 'حفظ المسودة' }));
 
     expect(updateArticle).toHaveBeenCalledWith(
@@ -1036,10 +1136,7 @@ describe('ArticleEditorView', () => {
     const title = screen.getByRole('textbox', { name: 'عنوان المقال' });
     await user.clear(title);
     await user.type(title, 'دليل الضيف أثناء الإرسال');
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: /^موضع اسم الكاتب/ }),
-      'end',
-    );
+    await user.selectOptions(screen.getByRole('combobox', { name: /^موضع اسم الكاتب/ }), 'end');
     await user.click(screen.getByRole('button', { name: 'حفظ المسودة' }));
 
     expect(updateArticle).toHaveBeenCalledWith(
