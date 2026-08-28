@@ -311,6 +311,90 @@ describe('ArticleEditorView', () => {
     );
   });
 
+  it('copies the AI template and imports its draft into the editable article without publishing', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn(async () => undefined);
+    const restoreClipboard = replaceClipboard(writeText);
+    const createArticle = vi.fn(async () => demoData.articles[0]!.id);
+    const transitionArticleStatus = vi.fn(async () => demoData.articles[0]!);
+    const syncArticleNewsletterCampaign = vi.fn(async () => ({
+      article: demoData.articles[0]!,
+      operation: 'created' as const,
+    }));
+    const sendArticleNewsletter = vi.fn(async () => ({
+      article: demoData.articles[0]!,
+      operation: 'sent' as const,
+    }));
+    renderNewEditor({
+      createArticle,
+      transitionArticleStatus,
+      syncArticleNewsletterCampaign,
+      sendArticleNewsletter,
+    });
+
+    expect(screen.getByRole('button', { name: 'إغلاق قسم مقال بمساعدة AI' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    await user.click(screen.getByRole('button', { name: 'نسخ قالب AI' }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('mukhtalif.article-ai/v1'));
+
+    const payload = JSON.stringify({
+      schema: 'mukhtalif.article-ai/v1',
+      title: 'كيف نعد مقابلة أفضل',
+      slug: 'prepare-a-better-interview',
+      excerpt: 'مسودة عملية لتحضير مقابلة مفيدة.',
+      seo: {
+        title: 'تحضير مقابلة أفضل',
+        description: 'خطوات عملية قبل إجراء المقابلة.',
+      },
+      blocks: [
+        { type: 'paragraph', text: 'ابدأ بهدف واضح للمقابلة.' },
+        { type: 'heading', level: 2, text: 'قبل التسجيل' },
+        { type: 'bullets', items: ['راجع البحث', 'رتّب الأسئلة'] },
+      ],
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: 'ناتج AI بصيغة JSON' }), {
+      target: { value: payload },
+    });
+    await user.click(screen.getByRole('button', { name: 'استيراد إلى المسودة' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: 'عنوان المقال' })).toHaveValue('كيف نعد مقابلة أفضل'),
+    );
+    expect(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ })).toHaveValue(
+      'prepare-a-better-interview',
+    );
+    expect(screen.getByRole('textbox', { name: 'ملخص المقال' })).toHaveValue(
+      'مسودة عملية لتحضير مقابلة مفيدة.',
+    );
+    expect(screen.getByRole('textbox', { name: 'محتوى المقال' })).toHaveTextContent(
+      'ابدأ بهدف واضح للمقابلة.',
+    );
+    expect(screen.getByText('أُضيفت المسودة. لم يُنشر المقال ولم يُرسل أي بريد.')).toBeVisible();
+    expect(createArticle).not.toHaveBeenCalled();
+    expect(transitionArticleStatus).not.toHaveBeenCalled();
+    expect(syncArticleNewsletterCampaign).not.toHaveBeenCalled();
+    expect(sendArticleNewsletter).not.toHaveBeenCalled();
+    restoreClipboard();
+  });
+
+  it('leaves the article unchanged when the AI result is not the approved contract', async () => {
+    const user = userEvent.setup();
+    const article = structuredClone(demoData.articles[0]!);
+    renderEditor([article]);
+
+    await user.click(screen.getByRole('button', { name: 'فتح قسم مقال بمساعدة AI' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'ناتج AI بصيغة JSON' }), {
+      target: { value: JSON.stringify({ title: 'مقال غير موثوق', blocks: [] }) },
+    });
+    await user.click(screen.getByRole('button', { name: 'استيراد إلى المسودة' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('استخدم قالب مختلف الرسمي');
+    expect(screen.getByRole('textbox', { name: 'عنوان المقال' })).toHaveValue(article.title);
+    expect(screen.getByRole('textbox', { name: 'محتوى المقال' })).toHaveTextContent(article.body);
+  });
+
   it('saves a custom author and shows the byline with automatic text direction', async () => {
     const user = userEvent.setup();
     const createArticle = vi.fn(

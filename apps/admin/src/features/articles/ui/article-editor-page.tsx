@@ -12,7 +12,7 @@ import {
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { JSONContent } from '@tiptap/react';
-import { ChevronDown, ClipboardCopy, FileDown, FileText } from 'lucide-react';
+import { ChevronDown, ClipboardCopy, FileDown, FileText, Sparkles } from 'lucide-react';
 import { adminPaths, canManagePage, useAdminAuth, useStudioData } from '@/application';
 import {
   type CreateArticleCommand,
@@ -32,7 +32,16 @@ import {
   type RichTextDocument,
 } from '@/lib';
 import { Button, Field, Input, PageBreadcrumb, Select, Textarea } from '@/shared/ui/primitives';
-import { EMPTY_ARTICLE_DOCUMENT, RichTextEditor, type RichTextValue } from './rich-text-editor';
+import {
+  EMPTY_ARTICLE_DOCUMENT,
+  RichTextEditor,
+  type RichTextValue,
+} from './rich-text-editor';
+import {
+  copyAiArticleTemplate,
+  parseAiArticleDraft,
+  AiArticleImportError,
+} from './article-ai-import';
 import { ArticleContentPreview } from './article-media';
 import { ArticleCoverCropDialog } from './article-cover-crop-dialog';
 import {
@@ -50,7 +59,7 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 type PreviewChannel = 'web' | 'newsletter';
 type EditorOperation = 'save' | 'publish' | 'preview' | 'campaign' | 'send' | 'reconcile' | null;
-type CollapsibleEditorSection = 'cover' | 'preview' | 'seo' | 'newsletter';
+type CollapsibleEditorSection = 'ai' | 'cover' | 'preview' | 'seo' | 'newsletter';
 
 interface EditorFields {
   readonly title: string;
@@ -538,6 +547,10 @@ export function ArticleEditorView() {
     html: loadedArticle?.contentHtml ?? '<p></p>',
     text: loadedArticle?.body ?? '',
   }));
+  const [richTextRevision, setRichTextRevision] = useState(0);
+  const [aiDraftPayload, setAiDraftPayload] = useState('');
+  const [aiImportError, setAiImportError] = useState('');
+  const [aiImportFeedback, setAiImportFeedback] = useState('');
   const [previewChannel, setPreviewChannel] = useState<PreviewChannel>('web');
   const [mailchimp, setMailchimp] = useState<MailchimpCapability | null>(null);
   const [mailchimpError, setMailchimpError] = useState('');
@@ -546,12 +559,15 @@ export function ArticleEditorView() {
   const [feedback, setFeedback] = useState('');
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
-  const [openSections, setOpenSections] = useState<Record<CollapsibleEditorSection, boolean>>({
-    cover: true,
-    preview: true,
-    seo: true,
-    newsletter: true,
-  });
+  const [openSections, setOpenSections] = useState<Record<CollapsibleEditorSection, boolean>>(
+    () => ({
+      ai: isNewRoute,
+      cover: true,
+      preview: true,
+      seo: true,
+      newsletter: true,
+    }),
+  );
   const [sendConfirmation, setSendConfirmation] = useState<NewsletterSendConfirmation | null>(null);
   const [mediaAssets, setMediaAssets] = useState<ArticleMediaAsset[]>([]);
   const [mediaLoadError, setMediaLoadError] = useState('');
@@ -912,6 +928,54 @@ export function ArticleEditorView() {
     setOpenSections((current) => ({ ...current, [section]: !current[section] }));
   }
 
+  async function copyAiTemplate() {
+    if (!canManage || busy) return;
+    setAiImportError('');
+    setAiImportFeedback('');
+    try {
+      await copyAiArticleTemplate();
+      setAiImportFeedback('نُسخ القالب. أضف موضوعك ومصادرك إلى المساعد، ثم الصق ناتج JSON هنا.');
+    } catch {
+      setAiImportError('تعذّر نسخ القالب. انسخه يدويًا أو امنح المتصفح إذن الحافظة.');
+    }
+  }
+
+  function importAiDraft() {
+    if (!canManage || busy) return;
+    setAiImportError('');
+    setAiImportFeedback('');
+    try {
+      const imported = parseAiArticleDraft(aiDraftPayload);
+      setFields((current) => ({
+        ...current,
+        title: imported.title,
+        slug: imported.slug,
+        ...(imported.excerpt !== undefined ? { excerpt: imported.excerpt } : {}),
+        ...(imported.seoTitle !== undefined ? { seoTitle: imported.seoTitle } : {}),
+        ...(imported.seoDescription !== undefined
+          ? { seoDescription: imported.seoDescription }
+          : {}),
+      }));
+      setRichText({
+        document: imported.document,
+        html: '',
+        text: imported.text,
+      });
+      setRichTextRevision((current) => current + 1);
+      setValidationErrors((current) => ({ ...current, title: undefined, content: undefined }));
+      setDirty(true);
+      setEmailPreview(null);
+      setFeedback('أُضيفت مسودة AI إلى المحرر. راجعها ثم احفظها.');
+      setAiImportFeedback('أُضيفت المسودة. لم يُنشر المقال ولم يُرسل أي بريد.');
+    } catch (cause) {
+      setAiImportError(
+        cause instanceof AiArticleImportError
+          ? cause.message
+          : 'تعذّر استيراد المسودة. راجع ناتج AI ثم حاول مرة أخرى.',
+      );
+    }
+  }
+
   async function prepareNewsletterExport(): Promise<boolean> {
     if (!workingArticleId || dirty || busy) return false;
     setOperation('preview');
@@ -1198,6 +1262,82 @@ export function ArticleEditorView() {
         noValidate
       >
         <main className="article-publisher__main">
+          <CollapsibleArticleSection
+            id="article-ai-title"
+            title="مقال بمساعدة AI"
+            description="أنشئ مسودة منظمة، ثم راجعها داخل المحرر قبل الحفظ."
+            open={openSections.ai}
+            onToggle={() => toggleSection('ai')}
+            className="article-publisher__section--ai"
+          >
+            <div className="article-publisher__ai-panel">
+              <p className="article-publisher__ai-intro">
+                انسخ القالب إلى المساعد الذي تفضله، وأضف له الموضوع والمصادر. الصق ناتج JSON هنا
+                ليصبح مسودة قابلة للتحرير.
+              </p>
+              <div className="article-publisher__ai-actions">
+                <Button
+                  type="button"
+                  className="article-publisher__ai-template-button"
+                  disabled={!canManage || busy}
+                  onClick={() => void copyAiTemplate()}
+                >
+                  <ClipboardCopy aria-hidden="true" focusable="false" size={17} strokeWidth={1.9} />
+                  نسخ قالب AI
+                </Button>
+                <p>
+                  القالب لا يمنح المساعد صلاحية النشر أو الإرسال، ولا يضيف صورًا أو روابطًا تلقائيًا.
+                </p>
+              </div>
+              <Field
+                label="ناتج AI بصيغة JSON"
+                hint="الصق الناتج كاملًا كما هو. لا يُرسل شيء إلى الموقع أو Mailchimp عند الاستيراد."
+              >
+                <Textarea
+                  className="article-publisher__ai-input"
+                  dir="ltr"
+                  aria-label="ناتج AI بصيغة JSON"
+                  value={aiDraftPayload}
+                  readOnly={!canManage}
+                  disabled={busy}
+                  rows={14}
+                  maxLength={220_000}
+                  placeholder={'{\n  "schema": "mukhtalif.article-ai/v1",\n  "title": "..."\n}'}
+                  spellCheck={false}
+                  onChange={(event) => {
+                    setAiDraftPayload(event.target.value);
+                    setAiImportError('');
+                    setAiImportFeedback('');
+                  }}
+                />
+              </Field>
+              <div className="article-publisher__ai-import-row">
+                <Button
+                  type="button"
+                  variant="primary"
+                  className="article-publisher__ai-import-button"
+                  disabled={!canManage || busy || !aiDraftPayload.trim()}
+                  onClick={importAiDraft}
+                >
+                  <Sparkles aria-hidden="true" focusable="false" size={18} strokeWidth={1.9} />
+                  استيراد إلى المسودة
+                </Button>
+                <p>
+                  سيستبدل العنوان والمحتوى الحاليين. تبقى صورة الغلاف والكاتب وإعدادات النشرة كما هي.
+                </p>
+              </div>
+              {aiImportError ? (
+                <p className="article-publisher__ai-status article-publisher__ai-status--error" role="alert">
+                  {aiImportError}
+                </p>
+              ) : aiImportFeedback ? (
+                <p className="article-publisher__ai-status" role="status">
+                  {aiImportFeedback}
+                </p>
+              ) : null}
+            </div>
+          </CollapsibleArticleSection>
+
           <section
             className="card article-publisher__section"
             aria-labelledby="article-content-title"
@@ -1390,6 +1530,7 @@ export function ArticleEditorView() {
             <div className="article-publisher__editor-field">
               <span className="field__label">محتوى المقال (مطلوب)</span>
               <RichTextEditor
+                key={richTextRevision}
                 initialDocument={richText.document}
                 disabled={!canManage || busy}
                 required
