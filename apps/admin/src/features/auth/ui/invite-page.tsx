@@ -49,6 +49,13 @@ function linkErrorMessage(error: unknown): string {
 }
 
 function acceptErrorMessage(error: unknown): string {
+  // Supabase intentionally signs a user out of every existing session whenever
+  // an administrator sets a password. The invitation has already been accepted
+  // when the fresh password sign-in below fails, so do not mislead the invitee
+  // into thinking their new password was discarded.
+  if (error instanceof AdminAuthError) {
+    return 'تم إعداد كلمة المرور، لكن تعذّر بدء الجلسة. سجّل الدخول بكلمة المرور التي اخترتها.';
+  }
   if (error instanceof AdminRepositoryError) {
     if (error.code === 'CONFLICT') return 'قُبلت هذه الدعوة من قبل. سجّل الدخول بكلمة مرورك.';
     if (error.code === 'FORBIDDEN') return 'لا توجد دعوة مرتبطة بهذا الحساب.';
@@ -155,9 +162,19 @@ export function InviteView({
       setError('كلمتا المرور غير متطابقتين.');
       return;
     }
+    const invitationEmail = invitation?.email;
+    if (!invitationEmail) {
+      setError('تعذّر تحديد بريد الدعوة. افتح رابط الدعوة من البريد مرة أخرى.');
+      return;
+    }
     setBusy(true);
     try {
       await repository.acceptInvitation(password);
+      // Supabase invalidates the one-time link session when the Worker sets the
+      // first password with auth.admin.updateUserById. Establish a fresh
+      // password session before the provider rechecks Studio access; otherwise
+      // the otherwise successful acceptance immediately ends in a 401.
+      await authGateway.signInWithPassword(invitationEmail, password);
       // The provider may have already classified this session as denied while
       // the membership was still invited. Refresh it before offering the
       // transition to the Studio route.

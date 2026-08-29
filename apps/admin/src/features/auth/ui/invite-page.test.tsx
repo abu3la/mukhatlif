@@ -20,9 +20,7 @@ function gatewayStub(overrides: Partial<AdminAuthGateway> = {}): AdminAuthGatewa
     getAccessToken: () => null,
     restoreSession: vi.fn(async () => null),
     restoreInvitationSession: vi.fn(async () => null),
-    signInWithPassword: async () => {
-      throw new Error('not used');
-    },
+    signInWithPassword: vi.fn(async () => INVITE_SESSION),
     verifyEmailLink: vi.fn(async () => ({
       subject: { id: 'auth-1', email: 'new@mukhtalif.test' },
       accessToken: 'token',
@@ -253,36 +251,70 @@ describe('invitation acceptance', () => {
   it('accepts a matching password and confirms completion', async () => {
     const user = userEvent.setup();
     const repository = repositoryStub(INVITED);
-    renderInvite(gatewayStub(), repository, INVITE_LINK);
+    const gateway = gatewayStub();
+    renderInvite(gateway, repository, INVITE_LINK);
 
     await setPassword(user, 'a-long-enough-pass');
 
     expect(repository.acceptInvitation).toHaveBeenCalledWith('a-long-enough-pass');
+    expect(gateway.signInWithPassword).toHaveBeenCalledWith(
+      'new@mukhtalif.test',
+      'a-long-enough-pass',
+    );
     expect(await screen.findByRole('status')).toHaveTextContent(/أصبح حسابك جاهزًا/);
   });
 
-  it('refreshes authorization before offering the Studio transition after acceptance', async () => {
+  it('starts a fresh password session before refreshing access after acceptance', async () => {
     const user = userEvent.setup();
     const repository = repositoryStub(INVITED);
+    const calls: string[] = [];
+    const gateway = gatewayStub({
+      signInWithPassword: vi.fn(async () => {
+        calls.push('password-sign-in');
+        return INVITE_SESSION;
+      }),
+    });
     let resolveRetry: (() => void) | undefined;
     const retry = vi.fn(
       () =>
         new Promise<void>((resolve) => {
+          calls.push('retry');
           resolveRetry = resolve;
         }),
     );
     const auth = authStub({ retry });
-    renderInvite(gatewayStub(), repository, INVITE_LINK, auth);
+    renderInvite(gateway, repository, INVITE_LINK, auth);
 
     await setPassword(user, 'a-long-enough-pass');
 
     await waitFor(() => expect(repository.acceptInvitation).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(retry).toHaveBeenCalledTimes(1));
+    expect(gateway.signInWithPassword).toHaveBeenCalledWith(
+      'new@mukhtalif.test',
+      'a-long-enough-pass',
+    );
+    expect(calls).toEqual(['password-sign-in', 'retry']);
     expect(screen.queryByText(/أصبح حسابك جاهزًا/)).not.toBeInTheDocument();
 
     resolveRetry?.();
 
     expect(await screen.findByRole('status')).toHaveTextContent(/أصبح حسابك جاهزًا/);
+  });
+
+  it('explains how to recover when the accepted invitation cannot start a new session', async () => {
+    const user = userEvent.setup();
+    const gateway = gatewayStub({
+      signInWithPassword: vi.fn(async () => {
+        throw new AdminAuthError('NETWORK', 'offline');
+      }),
+    });
+    const auth = authStub();
+    renderInvite(gateway, repositoryStub(INVITED), INVITE_LINK, auth);
+
+    await setPassword(user, 'a-long-enough-pass');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/تم إعداد كلمة المرور/);
+    expect(auth.retry).not.toHaveBeenCalled();
   });
 
   it('reports a replayed acceptance as already used rather than a generic failure', async () => {
