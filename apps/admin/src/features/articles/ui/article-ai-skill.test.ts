@@ -7,10 +7,10 @@ import {
 
 describe('article AI Skill download', () => {
   it('points to the versioned downloadable Skill package', () => {
-    expect(AI_ARTICLE_SKILL_VERSION).toBe('1.0.0');
-    expect(AI_ARTICLE_SKILL_FILENAME).toBe('mukhtalif-article-writer-1.0.0.zip');
+    expect(AI_ARTICLE_SKILL_VERSION).toBe('1.0.1');
+    expect(AI_ARTICLE_SKILL_FILENAME).toBe('mukhtalif-article-writer-1.0.1.zip');
     expect(AI_ARTICLE_SKILL_DOWNLOAD_URL).toBe(
-      '/skills/mukhtalif-article-writer/1.0.0/mukhtalif-article-writer-1.0.0.zip',
+      '/skills/mukhtalif-article-writer/1.0.1/mukhtalif-article-writer-1.0.1.zip',
     );
     expect(AI_ARTICLE_SKILL_DOWNLOAD_URL).not.toContain('.codex');
   });

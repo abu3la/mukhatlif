@@ -1276,8 +1276,9 @@ export function ArticleEditorView() {
           >
             <div className="article-publisher__ai-panel">
               <p className="article-publisher__ai-intro">
-                اختر قالبًا سريعًا لمسودة واحدة، أو نزّل Skill لـ Codex ليجمع المعلومات أولًا ثم
-                يعيد JSON قابلًا للاستيراد.
+                اختر قالبًا سريعًا لمسودة واحدة، أو نزّل سكيلًا متوافقًا مع{' '}
+                <bdi dir="ltr">Codex</bdi> و<bdi dir="ltr">Claude</bdi> ليجمع المعلومات أولًا ثم يعيد JSON
+                قابلًا للاستيراد.
               </p>
               <div className="article-publisher__ai-methods" aria-label="خيارات إعداد المقال بمساعدة AI">
                 <section className="article-publisher__ai-method" aria-labelledby="article-ai-template-title">
@@ -1297,8 +1298,10 @@ export function ArticleEditorView() {
                 </section>
                 <section className="article-publisher__ai-method" aria-labelledby="article-ai-skill-title">
                   <div>
-                    <h3 id="article-ai-skill-title">Skill لـ Codex</h3>
-                    <p>حزمة جاهزة تسأل عن الفكرة والجمهور والمصادر، ثم تجهز JSON المتوافق.</p>
+                    <h3 id="article-ai-skill-title">
+                      سكيل لـ <bdi dir="ltr">Codex</bdi> و<bdi dir="ltr">Claude</bdi>
+                    </h3>
+                    <p>حزمة واحدة تسأل عن الفكرة والجمهور والمصادر، ثم تجهز JSON المتوافق.</p>
                   </div>
                   <a
                     className="button button--quiet article-publisher__ai-skill-button"
@@ -1306,7 +1309,7 @@ export function ArticleEditorView() {
                     download={AI_ARTICLE_SKILL_FILENAME}
                   >
                     <FileDown aria-hidden="true" focusable="false" size={17} strokeWidth={1.9} />
-                    تنزيل Skill لـ Codex
+                    تنزيل السكيل
                   </a>
                 </section>
               </div>

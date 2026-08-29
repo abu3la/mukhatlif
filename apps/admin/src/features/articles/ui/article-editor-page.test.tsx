@@ -341,7 +341,8 @@ describe('ArticleEditorView', () => {
       'true',
     );
     expect(screen.getByRole('button', { name: 'نسخ القالب' })).toBeVisible();
-    const skillDownload = screen.getByRole('link', { name: 'تنزيل Skill لـ Codex' });
+    expect(screen.getByRole('heading', { name: 'سكيل لـ Codex وClaude' })).toBeVisible();
+    const skillDownload = screen.getByRole('link', { name: 'تنزيل السكيل' });
     expect(skillDownload).toHaveAttribute('href', AI_ARTICLE_SKILL_DOWNLOAD_URL);
     expect(skillDownload).toHaveAttribute('download', AI_ARTICLE_SKILL_FILENAME);
     expect(
