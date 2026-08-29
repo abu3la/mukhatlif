@@ -54,6 +54,11 @@ export interface AdminAuthGateway {
   getCurrentSession(): AdminAuthSession | null;
   getAccessToken(): string | null;
   restoreSession(): Promise<AdminAuthSession | null>;
+  /**
+   * Restores only the session Supabase just received in a default invitation
+   * URL. It must never fall back to an unrelated persisted Studio session.
+   */
+  restoreInvitationSession(): Promise<AdminAuthSession | null>;
   signInWithPassword(email: string, password: string): Promise<AdminAuthSession>;
   /**
    * Exchanges the token an invitation link carries for a session. This is the

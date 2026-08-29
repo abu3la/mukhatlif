@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { adminPaths } from '@/application';
+import { adminPaths, useAdminAuth } from '@/application';
 import {
   AdminAuthError,
   AdminRepositoryError,
@@ -67,6 +67,7 @@ export function InviteView({
   repository: AdminRepository;
 }) {
   const navigate = useNavigate();
+  const auth = useAdminAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [step, setStep] = useState<'link' | 'password' | 'done'>('link');
   const [email, setEmail] = useState('');
@@ -79,25 +80,35 @@ export function InviteView({
   const linkConsumed = useRef(false);
 
   /**
-   * Consumes the token the invitation link carries.
+   * Accepts either supported Supabase invitation link form:
    *
-   * The token is removed from the URL immediately: a single-use credential left
-   * in the address bar reaches browser history and the Referer header of
-   * whatever the page loads next.
+   * - token_hash in the query string, used by re-sent sign-in links;
+   * - an Auth session in the URL hash, used by default Supabase invitations.
+   *
+   * A query token is removed immediately: a single-use credential left in the
+   * address bar reaches browser history and the Referer header of whatever the
+   * page loads next.
    */
   useEffect(() => {
     const tokenHash = searchParams.get('token_hash');
-    if (!tokenHash || linkConsumed.current) return;
+    if (linkConsumed.current) return;
     linkConsumed.current = true;
-    const purpose: EmailLinkPurpose =
-      searchParams.get('type') === 'invite' ? 'invite' : 'signin';
-    setSearchParams(new URLSearchParams(), { replace: true });
+    const purpose: EmailLinkPurpose = searchParams.get('type') === 'invite' ? 'invite' : 'signin';
+    if (tokenHash) setSearchParams(new URLSearchParams(), { replace: true });
 
     void (async () => {
       setBusy(true);
       setError('');
       try {
-        await authGateway.verifyEmailLink(tokenHash, purpose);
+        if (tokenHash) {
+          await authGateway.verifyEmailLink(tokenHash, purpose);
+        } else {
+          const session = await authGateway.restoreInvitationSession();
+          // Opening /invite normally is not enough to grant password setup.
+          // Only a session that Supabase recovered from an invitation URL can
+          // proceed to the invitation lookup below.
+          if (!session) return;
+        }
         // A verified link proves the mailbox, not Studio membership. Confirm
         // the invitation before offering to set a password for it.
         const state = await repository.readInvitation();
@@ -147,6 +158,10 @@ export function InviteView({
     setBusy(true);
     try {
       await repository.acceptInvitation(password);
+      // The provider may have already classified this session as denied while
+      // the membership was still invited. Refresh it before offering the
+      // transition to the Studio route.
+      await auth.retry();
       setStep('done');
     } catch (caught) {
       setError(acceptErrorMessage(caught));

@@ -27,6 +27,16 @@ describe('FixtureAdminAuthGateway', () => {
     },
   );
 
+  it('does not expose a persisted fixture session as an invitation session', async () => {
+    const gateway = new FixtureAdminAuthGateway({ storage });
+    await gateway.signInWithPassword(
+      FIXTURE_ADMIN_ACCOUNTS[0].email,
+      FIXTURE_ADMIN_ACCOUNTS[0].password,
+    );
+
+    await expect(gateway.restoreInvitationSession()).resolves.toBeNull();
+  });
+
   it('rejects invalid credentials without creating a session', async () => {
     const gateway = new FixtureAdminAuthGateway({ storage });
 

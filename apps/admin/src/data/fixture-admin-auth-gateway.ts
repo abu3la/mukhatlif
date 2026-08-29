@@ -117,6 +117,13 @@ export class FixtureAdminAuthGateway implements AdminAuthGateway {
     return this.session;
   }
 
+  async restoreInvitationSession(): Promise<AdminAuthSession | null> {
+    // Fixture mode does not receive Supabase callback fragments. In
+    // particular, it must not treat a locally persisted demo session as an
+    // invitation credential.
+    return null;
+  }
+
   async signInWithPassword(email: string, password: string): Promise<AdminAuthSession> {
     const normalizedEmail = normalizeEmail(email);
     const account = this.accounts.find(
