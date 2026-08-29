@@ -10,6 +10,10 @@ import {
 } from '@/application';
 import { AdminRepositoryError, type ArticleMediaAsset } from '@/data';
 import { demoData, type Article, type PermissionId } from '@/lib';
+import {
+  AI_ARTICLE_SKILL_DOWNLOAD_URL,
+  AI_ARTICLE_SKILL_FILENAME,
+} from './article-ai-skill';
 import { ArticleEditorRouteView, ArticleEditorView } from './article-editor-page';
 
 const ARTICLE_PERMISSIONS: PermissionId[] = ['articles.view', 'articles.manage'];
@@ -336,7 +340,15 @@ describe('ArticleEditorView', () => {
       'aria-expanded',
       'true',
     );
-    await user.click(screen.getByRole('button', { name: 'نسخ قالب AI' }));
+    expect(screen.getByRole('button', { name: 'نسخ القالب' })).toBeVisible();
+    const skillDownload = screen.getByRole('link', { name: 'تنزيل Skill لـ Codex' });
+    expect(skillDownload).toHaveAttribute('href', AI_ARTICLE_SKILL_DOWNLOAD_URL);
+    expect(skillDownload).toHaveAttribute('download', AI_ARTICLE_SKILL_FILENAME);
+    expect(
+      screen.getByText('كلا الخيارين ينشئان مسودة فقط. لا ينشران المقال ولا يرسلان بريدًا.'),
+    ).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'نسخ القالب' }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('mukhtalif.article-ai/v1'));
 
     const payload = JSON.stringify({

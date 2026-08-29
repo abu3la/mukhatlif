@@ -141,14 +141,19 @@
   line-height: 1.75;
 }
 
-.article-publisher__ai-actions,
+.article-publisher__ai-boundary {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
 .article-publisher__ai-import-row {
   display: flex;
   align-items: center;
   gap: 12px 16px;
 }
 
-.article-publisher__ai-actions > p,
 .article-publisher__ai-import-row > p {
   flex: 1 1 260px;
   margin: 0;
@@ -158,14 +163,65 @@
 }
 
 .article-publisher__ai-template-button,
+.article-publisher__ai-skill-button,
 .article-publisher__ai-import-button {
   flex: none;
   gap: 8px;
 }
 
+.article-publisher__ai-skill-button {
+  text-decoration: none;
+}
+
+.article-publisher__ai-method > .button {
+  color: var(--ink);
+  background: var(--canvas);
+  border-color: var(--field-line);
+}
+
+.article-publisher__ai-method > .button:hover {
+  color: var(--ink);
+  background: var(--sunken);
+}
+
 .article-publisher__ai-template-button svg,
+.article-publisher__ai-skill-button svg,
 .article-publisher__ai-import-button svg {
   flex: none;
+}
+
+.article-publisher__ai-methods {
+  display: grid;
+  border-block: 1px solid var(--field-line);
+}
+
+.article-publisher__ai-method {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 20px;
+  padding-block: 14px;
+}
+
+.article-publisher__ai-method + .article-publisher__ai-method {
+  border-block-start: 1px solid var(--field-line);
+}
+
+.article-publisher__ai-method h3,
+.article-publisher__ai-method p {
+  margin: 0;
+}
+
+.article-publisher__ai-method h3 {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.article-publisher__ai-method p {
+  margin-block-start: 4px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.7;
 }
 
 .article-publisher__ai-input {
@@ -1737,7 +1793,6 @@
   .article-publisher__preview-toolbar,
   .article-publisher__preview-footer,
   .article-publisher__footer,
-  .article-publisher__ai-actions,
   .article-publisher__ai-import-row {
     align-items: stretch;
     flex-direction: column;
@@ -1747,8 +1802,13 @@
   .article-publisher__preview-actions,
   .article-publisher__footer-actions,
   .article-publisher__ai-template-button,
+  .article-publisher__ai-skill-button,
   .article-publisher__ai-import-button {
     inline-size: 100%;
+  }
+
+  .article-publisher__ai-method {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .article-publisher__preview-actions {

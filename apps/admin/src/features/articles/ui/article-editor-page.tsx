@@ -42,6 +42,10 @@ import {
   parseAiArticleDraft,
   AiArticleImportError,
 } from './article-ai-import';
+import {
+  AI_ARTICLE_SKILL_DOWNLOAD_URL,
+  AI_ARTICLE_SKILL_FILENAME,
+} from './article-ai-skill';
 import { ArticleContentPreview } from './article-media';
 import { ArticleCoverCropDialog } from './article-cover-crop-dialog';
 import {
@@ -1272,23 +1276,43 @@ export function ArticleEditorView() {
           >
             <div className="article-publisher__ai-panel">
               <p className="article-publisher__ai-intro">
-                انسخ القالب إلى المساعد الذي تفضله، وأضف له الموضوع والمصادر. الصق ناتج JSON هنا
-                ليصبح مسودة قابلة للتحرير.
+                اختر قالبًا سريعًا لمسودة واحدة، أو نزّل Skill لـ Codex ليجمع المعلومات أولًا ثم
+                يعيد JSON قابلًا للاستيراد.
               </p>
-              <div className="article-publisher__ai-actions">
-                <Button
-                  type="button"
-                  className="article-publisher__ai-template-button"
-                  disabled={!canManage || busy}
-                  onClick={() => void copyAiTemplate()}
-                >
-                  <ClipboardCopy aria-hidden="true" focusable="false" size={17} strokeWidth={1.9} />
-                  نسخ قالب AI
-                </Button>
-                <p>
-                  القالب لا يمنح المساعد صلاحية النشر أو الإرسال، ولا يضيف صورًا أو روابطًا تلقائيًا.
-                </p>
+              <div className="article-publisher__ai-methods" aria-label="خيارات إعداد المقال بمساعدة AI">
+                <section className="article-publisher__ai-method" aria-labelledby="article-ai-template-title">
+                  <div>
+                    <h3 id="article-ai-template-title">القالب</h3>
+                    <p>انسخه إلى Claude أو ChatGPT أو أي مساعد لإنشاء مسودة من موضوعك ومصادرك.</p>
+                  </div>
+                  <Button
+                    type="button"
+                    className="article-publisher__ai-template-button"
+                    disabled={!canManage || busy}
+                    onClick={() => void copyAiTemplate()}
+                  >
+                    <ClipboardCopy aria-hidden="true" focusable="false" size={17} strokeWidth={1.9} />
+                    نسخ القالب
+                  </Button>
+                </section>
+                <section className="article-publisher__ai-method" aria-labelledby="article-ai-skill-title">
+                  <div>
+                    <h3 id="article-ai-skill-title">Skill لـ Codex</h3>
+                    <p>حزمة جاهزة تسأل عن الفكرة والجمهور والمصادر، ثم تجهز JSON المتوافق.</p>
+                  </div>
+                  <a
+                    className="button button--quiet article-publisher__ai-skill-button"
+                    href={AI_ARTICLE_SKILL_DOWNLOAD_URL}
+                    download={AI_ARTICLE_SKILL_FILENAME}
+                  >
+                    <FileDown aria-hidden="true" focusable="false" size={17} strokeWidth={1.9} />
+                    تنزيل Skill لـ Codex
+                  </a>
+                </section>
               </div>
+              <p className="article-publisher__ai-boundary">
+                كلا الخيارين ينشئان مسودة فقط. لا ينشران المقال ولا يرسلان بريدًا.
+              </p>
               <Field
                 label="ناتج AI بصيغة JSON"
                 hint="الصق الناتج كاملًا كما هو. لا يُرسل شيء إلى الموقع أو Mailchimp عند الاستيراد."
