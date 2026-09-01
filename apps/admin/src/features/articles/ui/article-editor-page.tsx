@@ -1277,8 +1277,8 @@ export function ArticleEditorView() {
             <div className="article-publisher__ai-panel">
               <p className="article-publisher__ai-intro">
                 اختر قالبًا سريعًا لمسودة واحدة، أو نزّل سكيلًا متوافقًا مع{' '}
-                <bdi dir="ltr">Codex</bdi> و<bdi dir="ltr">Claude</bdi> ليجمع المعلومات أولًا ثم يعيد JSON
-                قابلًا للاستيراد.
+                <bdi dir="ltr">Codex</bdi> و<bdi dir="ltr">Claude</bdi> ليسألك في المحادثة سؤالًا واحدًا
+                في كل مرة، ثم يعيد JSON قابلًا للاستيراد.
               </p>
               <div className="article-publisher__ai-methods" aria-label="خيارات إعداد المقال بمساعدة AI">
                 <section className="article-publisher__ai-method" aria-labelledby="article-ai-template-title">
@@ -1301,7 +1301,7 @@ export function ArticleEditorView() {
                     <h3 id="article-ai-skill-title">
                       سكيل لـ <bdi dir="ltr">Codex</bdi> و<bdi dir="ltr">Claude</bdi>
                     </h3>
-                    <p>حزمة واحدة تسأل عن الفكرة والجمهور والمصادر، ثم تجهز JSON المتوافق.</p>
+                    <p>حزمة تسأل مباشرة سؤالًا واحدًا في كل مرة، وتنتظر إجابتك قبل متابعة البريف.</p>
                   </div>
                   <a
                     className="button button--quiet article-publisher__ai-skill-button"

@@ -17,6 +17,10 @@ import {
   type ArticleId,
   type ArticleStatus,
 } from '@/lib';
+import {
+  AI_ARTICLE_SKILL_DOWNLOAD_URL,
+  AI_ARTICLE_SKILL_FILENAME,
+} from './article-ai-skill';
 
 type ArticleFilter = 'all' | ArticleStatus;
 
@@ -154,9 +158,18 @@ export function ArticlesView() {
         title="المقالات"
         action={
           canManageArticles ? (
-            <Link to={adminPaths.articleNew} className="button button--primary">
-              مقال جديد
-            </Link>
+            <>
+              <Link to={adminPaths.articleNew} className="button button--primary">
+                مقال جديد
+              </Link>
+              <a
+                className="text-link"
+                href={AI_ARTICLE_SKILL_DOWNLOAD_URL}
+                download={AI_ARTICLE_SKILL_FILENAME}
+              >
+                تنزيل سكيل المقالات
+              </a>
+            </>
           ) : null
         }
       />
