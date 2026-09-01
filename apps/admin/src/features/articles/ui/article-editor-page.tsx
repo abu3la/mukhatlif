@@ -42,10 +42,7 @@ import {
   parseAiArticleDraft,
   AiArticleImportError,
 } from './article-ai-import';
-import {
-  AI_ARTICLE_SKILL_DOWNLOAD_URL,
-  AI_ARTICLE_SKILL_FILENAME,
-} from './article-ai-skill';
+import { ArticleAiSkillGuide } from './article-ai-skill-guide';
 import { ArticleContentPreview } from './article-media';
 import { ArticleCoverCropDialog } from './article-cover-crop-dialog';
 import {
@@ -1276,12 +1273,25 @@ export function ArticleEditorView() {
           >
             <div className="article-publisher__ai-panel">
               <p className="article-publisher__ai-intro">
-                اختر قالبًا سريعًا لمسودة واحدة، أو نزّل سكيلًا متوافقًا مع{' '}
-                <bdi dir="ltr">Codex</bdi> و<bdi dir="ltr">Claude</bdi> ليسألك في المحادثة سؤالًا واحدًا
-                في كل مرة، ثم يعيد JSON قابلًا للاستيراد.
+                {isNewRoute ? (
+                  <>
+                    اختر قالبًا سريعًا لمسودة واحدة، أو نزّل سكيلًا متوافقًا مع{' '}
+                    <bdi dir="ltr">ChatGPT Desktop</bdi>&nbsp;و&nbsp;
+                    <bdi dir="ltr">Claude</bdi> ليسألك في المحادثة سؤالًا واحدًا في كل مرة، ثم يعيد
+                    JSON قابلًا للاستيراد.
+                  </>
+                ) : (
+                  <>انسخ قالبًا سريعًا لإنشاء مسودة منظمة، ثم الصق ناتج JSON هنا.</>
+                )}
               </p>
-              <div className="article-publisher__ai-methods" aria-label="خيارات إعداد المقال بمساعدة AI">
-                <section className="article-publisher__ai-method" aria-labelledby="article-ai-template-title">
+              <div
+                className="article-publisher__ai-methods"
+                aria-label="خيارات إعداد المقال بمساعدة AI"
+              >
+                <section
+                  className="article-publisher__ai-method"
+                  aria-labelledby="article-ai-template-title"
+                >
                   <div>
                     <h3 id="article-ai-template-title">القالب</h3>
                     <p>انسخه إلى Claude أو ChatGPT أو أي مساعد لإنشاء مسودة من موضوعك ومصادرك.</p>
@@ -1296,25 +1306,10 @@ export function ArticleEditorView() {
                     نسخ القالب
                   </Button>
                 </section>
-                <section className="article-publisher__ai-method" aria-labelledby="article-ai-skill-title">
-                  <div>
-                    <h3 id="article-ai-skill-title">
-                      سكيل لـ <bdi dir="ltr">Codex</bdi> و<bdi dir="ltr">Claude</bdi>
-                    </h3>
-                    <p>حزمة تسأل مباشرة سؤالًا واحدًا في كل مرة، وتنتظر إجابتك قبل متابعة البريف.</p>
-                  </div>
-                  <a
-                    className="button button--quiet article-publisher__ai-skill-button"
-                    href={AI_ARTICLE_SKILL_DOWNLOAD_URL}
-                    download={AI_ARTICLE_SKILL_FILENAME}
-                  >
-                    <FileDown aria-hidden="true" focusable="false" size={17} strokeWidth={1.9} />
-                    تنزيل السكيل
-                  </a>
-                </section>
+                {isNewRoute ? <ArticleAiSkillGuide /> : null}
               </div>
               <p className="article-publisher__ai-boundary">
-                كلا الخيارين ينشئان مسودة فقط. لا ينشران المقال ولا يرسلان بريدًا.
+                هذه الأدوات تنشئ مسودة فقط. لا تنشر المقال ولا ترسل بريدًا.
               </p>
               <Field
                 label="ناتج AI بصيغة JSON"

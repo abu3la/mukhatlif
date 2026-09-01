@@ -37,6 +37,20 @@ body .demo-account-panel__credentials bdi {
   overflow-wrap: anywhere;
 }
 
+@media (max-width: 1360px) {
+  .article-ai-skill-guide__platforms {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .article-ai-skill-guide__platforms > section + section {
+    padding-block-start: 20px;
+    padding-inline-start: 0;
+    border-block-start: 1px solid var(--line);
+    border-inline-start: 0;
+  }
+}
+
 @media (max-width: 1180px) {
   .button,
   .control,
@@ -134,6 +148,16 @@ body .demo-account-panel__credentials bdi {
   .switch__knob {
     inset-block-start: 13px;
     z-index: 1;
+  }
+}
+
+@media (max-width: 620px) {
+  .article-ai-skill-guide__lead {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .article-ai-skill-guide__download {
+    inline-size: 100%;
   }
 }
 

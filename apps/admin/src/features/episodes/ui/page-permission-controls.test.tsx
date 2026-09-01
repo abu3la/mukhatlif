@@ -13,10 +13,6 @@ import {
 } from '@/application';
 import { demoData, type PermissionId } from '@/lib';
 import { ArticlesView, CreateArticleView } from '@/features/articles/ui/articles-page';
-import {
-  AI_ARTICLE_SKILL_DOWNLOAD_URL,
-  AI_ARTICLE_SKILL_FILENAME,
-} from '@/features/articles/ui/article-ai-skill';
 import { OverviewView } from '@/features/overview/ui/overview-page';
 import { CreateShowView, ShowsView } from '@/features/shows/ui/shows-page';
 import { SubscribersView } from '@/features/subscribers/ui/subscribers-page';
@@ -231,6 +227,9 @@ describe('page mutation controls', () => {
     });
     expect(screen.queryByRole('link', { name: 'مقال جديد' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'تنزيل سكيل المقالات' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: 'سكيل المقالات في محادثتك' }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'نشر' })).not.toBeInTheDocument();
     expect(screen.queryByRole('form')).not.toBeInTheDocument();
     articleRender.unmount();
@@ -263,14 +262,10 @@ describe('page mutation controls', () => {
       'href',
       '/articles/new',
     );
-    expect(screen.getByRole('link', { name: 'تنزيل سكيل المقالات' })).toHaveAttribute(
-      'href',
-      AI_ARTICLE_SKILL_DOWNLOAD_URL,
-    );
-    expect(screen.getByRole('link', { name: 'تنزيل سكيل المقالات' })).toHaveAttribute(
-      'download',
-      AI_ARTICLE_SKILL_FILENAME,
-    );
+    expect(screen.queryByRole('link', { name: 'تنزيل سكيل المقالات' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: 'سكيل المقالات في محادثتك' }),
+    ).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'نشر' }).length).toBeGreaterThan(0);
     expect(screen.queryByRole('form')).not.toBeInTheDocument();
     articleRender.unmount();

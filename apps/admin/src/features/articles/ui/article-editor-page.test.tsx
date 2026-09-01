@@ -341,16 +341,23 @@ describe('ArticleEditorView', () => {
       'true',
     );
     expect(screen.getByRole('button', { name: 'نسخ القالب' })).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'سكيل لـ Codex وClaude' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'سكيل المقالات في محادثتك' })).toBeVisible();
     expect(
-      screen.getByText('حزمة تسأل مباشرة سؤالًا واحدًا في كل مرة، وتنتظر إجابتك قبل متابعة البريف.'),
+      screen.getByText(/ويسألك سؤالًا واحدًا في كل مرة قبل تجهيز مسودة قابلة للاستيراد/),
     ).toBeVisible();
-    const skillDownload = screen.getByRole('link', { name: 'تنزيل السكيل' });
+    const skillDownload = screen.getByRole('link', { name: 'تنزيل سكيل المقالات' });
     expect(skillDownload).toHaveAttribute('href', AI_ARTICLE_SKILL_DOWNLOAD_URL);
     expect(skillDownload).toHaveAttribute('download', AI_ARTICLE_SKILL_FILENAME);
     expect(
-      screen.getByText('كلا الخيارين ينشئان مسودة فقط. لا ينشران المقال ولا يرسلان بريدًا.'),
+      screen.getByText('هذه الأدوات تنشئ مسودة فقط. لا تنشر المقال ولا ترسل بريدًا.'),
     ).toBeVisible();
+
+    const installSummary = screen
+      .getByRole('region', { name: 'سكيل المقالات في محادثتك' })
+      .querySelector('summary');
+    expect(installSummary).toHaveTextContent(/طريقة التثبيت على ChatGPT Desktop\s+و\s+Claude/);
+    await user.click(installSummary!);
+    expect(screen.getByText('Asking a question')).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'نسخ القالب' }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('mukhtalif.article-ai/v1'));
@@ -393,6 +400,17 @@ describe('ArticleEditorView', () => {
     expect(syncArticleNewsletterCampaign).not.toHaveBeenCalled();
     expect(sendArticleNewsletter).not.toHaveBeenCalled();
     restoreClipboard();
+  });
+
+  it('keeps the Skill download on the new-article route only', async () => {
+    const user = userEvent.setup();
+    renderEditor([structuredClone(demoData.articles[0]!)]);
+
+    await user.click(screen.getByRole('button', { name: 'فتح قسم مقال بمساعدة AI' }));
+    expect(screen.queryByRole('link', { name: 'تنزيل سكيل المقالات' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: 'سكيل المقالات في محادثتك' }),
+    ).not.toBeInTheDocument();
   });
 
   it('leaves the article unchanged when the AI result is not the approved contract', async () => {
