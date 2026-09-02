@@ -1,7 +1,6 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   buildRssImportManifest,
@@ -11,9 +10,6 @@ import {
 } from './core.ts';
 import { parseArguments } from './cli.ts';
 import { mergeImportedRow } from './import-plan.ts';
-
-const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-const SNAPSHOTS = path.resolve(REPOSITORY_ROOT, '../../backups/wordpress/2026-09-02/rss');
 
 const SAMPLE_RSS = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
@@ -36,6 +32,33 @@ const SAMPLE_RSS = `<?xml version="1.0" encoding="UTF-8"?>
     </item>
   </channel>
 </rss>`;
+
+function rssFixture(showNumber: number, episodeCount: number): string {
+  const slug = `show-${String(showNumber).padStart(2, '0')}`;
+  const episodes = Array.from({ length: episodeCount }, (_, index) => {
+    const episodeNumber = index + 1;
+    return `
+    <item>
+      <title>حلقة ${episodeNumber}</title>
+      <description>وصف الحلقة ${episodeNumber}</description>
+      <link>https://example.com/${slug}/episodes/${episodeNumber}</link>
+      <guid isPermaLink="false">${slug}-episode-${episodeNumber}</guid>
+      <pubDate>${new Date(Date.UTC(2026, 0, episodeNumber)).toUTCString()}</pubDate>
+      <enclosure url="https://cdn.example.com/${slug}/${episodeNumber}.mp3" length="123" type="audio/mpeg"/>
+      <itunes:duration>00:01:00</itunes:duration>
+    </item>`;
+  }).join('');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>برنامج ${showNumber}</title>
+    <description>وصف البرنامج ${showNumber}</description>
+    <link>https://example.com/${slug}</link>
+    <atom:link href="https://example.com/rss/${slug}.xml" rel="self" type="application/rss+xml"/>${episodes}
+  </channel>
+</rss>`;
+}
 
 describe('RSS snapshot parser', () => {
   it('sanitizes notes and preserves channel, enclosure, and episode metadata', () => {
@@ -75,16 +98,32 @@ describe('RSS snapshot parser', () => {
     expect(first.shows[0].episodes[0].id).toMatch(/^ep-rss-sample-[0-9a-f]{16}$/);
   });
 
-  it('parses all 16 snapshots into 836 unique episodes', async () => {
-    const manifest = await buildRssImportManifest({
-      rssDirectory: SNAPSHOTS,
-      snapshot: '2026-09-02',
-    });
-    const episodes = manifest.shows.flatMap((show) => show.episodes);
-    expect(manifest.shows).toHaveLength(16);
-    expect(episodes).toHaveLength(836);
-    expect(new Set(episodes.map((episode) => episode.id))).toHaveLength(836);
-    expect(new Set(episodes.map((episode) => episode.guid))).toHaveLength(836);
+  it('parses 16 independent snapshots into 836 unique episodes', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'mukhtalif-rss-collection-'));
+    try {
+      await Promise.all(
+        Array.from({ length: 16 }, (_, index) => {
+          const showNumber = index + 1;
+          const episodeCount = showNumber <= 4 ? 53 : 52;
+          return writeFile(
+            path.join(directory, `show-${String(showNumber).padStart(2, '0')}.xml`),
+            rssFixture(showNumber, episodeCount),
+          );
+        }),
+      );
+
+      const manifest = await buildRssImportManifest({
+        rssDirectory: directory,
+        snapshot: 'test',
+      });
+      const episodes = manifest.shows.flatMap((show) => show.episodes);
+      expect(manifest.shows).toHaveLength(16);
+      expect(episodes).toHaveLength(836);
+      expect(new Set(episodes.map((episode) => episode.id))).toHaveLength(836);
+      expect(new Set(episodes.map((episode) => episode.guid))).toHaveLength(836);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 
   it('removes unsafe markup without flattening paragraphs', () => {

@@ -1,0 +1,16 @@
+# mukhtalif-hostinger-spa-fallback-v1
+# Hostinger serves this Vite application from Apache/LiteSpeed. Keep generated
+# files on their normal paths, and internally serve index.html only when the
+# requested path does not exist so React Router can resolve deep links.
+
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  RewriteRule ^ index.html [L]
+</IfModule>

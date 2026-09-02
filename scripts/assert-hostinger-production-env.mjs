@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { validateEmailEnvironment } from './email-environment-policy.mjs';
+import { supabaseKeyKind, supabaseProjectRef } from './supabase-key-policy.mjs';
 
 const problems = validateEmailEnvironment(process.env, 'production');
 const mediaOrigin = String(process.env.MEDIA_PUBLIC_ORIGIN ?? '');
@@ -25,20 +26,16 @@ if (mediaOrigin !== 'https://api.mukhtalif.net') problems.push('MEDIA_PUBLIC_ORI
 if (process.env.ALLOW_DEV_AUTH !== 'false') problems.push('ALLOW_DEV_AUTH');
 
 const supabaseUrl = String(process.env.SUPABASE_URL ?? '').trim();
-try {
-  const url = new URL(supabaseUrl);
-  if (url.protocol !== 'https:' || url.username || url.password || url.pathname !== '/') {
-    problems.push('SUPABASE_URL');
-  }
-  if (url.hostname === 'pacpdxvujkjvnaeeuute.supabase.co') {
-    problems.push('SUPABASE_URL (development project is forbidden)');
-  }
-} catch {
-  problems.push('SUPABASE_URL');
+const expectedSupabaseRef = String(process.env.PRODUCTION_SUPABASE_PROJECT_REF ?? '').trim();
+if (!/^[a-z0-9]{20}$/.test(expectedSupabaseRef)) {
+  problems.push('PRODUCTION_SUPABASE_PROJECT_REF');
+}
+if (supabaseProjectRef(supabaseUrl) !== expectedSupabaseRef) {
+  problems.push('SUPABASE_URL (must match the pinned production project)');
 }
 const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim();
-if (serviceRoleKey.length < 20 || /\s/.test(serviceRoleKey)) {
-  problems.push('SUPABASE_SERVICE_ROLE_KEY');
+if (supabaseKeyKind(serviceRoleKey) !== 'secret') {
+  problems.push('SUPABASE_SERVICE_ROLE_KEY (must be a secret/service_role key)');
 }
 if (process.env.STUDIO_INVITE_REDIRECT_URL !== 'https://studio.mukhtalif.net/invite') {
   problems.push('STUDIO_INVITE_REDIRECT_URL');

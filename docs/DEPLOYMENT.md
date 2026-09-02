@@ -331,9 +331,21 @@ Web build: pnpm --filter @mukhtalif/web build:hostinger
 Web start: pnpm --filter @mukhtalif/web start:hostinger
 ```
 
+Deploy Studio as a static React/Vite frontend, not as a Node proxy app. Its
+Hostinger build copies a validated `.htaccess` into `apps/admin/dist` so direct
+requests such as `/login`, `/invite`, and `/articles/new` resolve internally to
+`index.html` while real assets remain untouched. Confirm those three deep links
+on the Hostinger preview before assigning `studio.mukhtalif.net`.
+
 The Studio and Web build guards reject development Supabase/Worker origins and
 reject any Web canonical origin other than `https://staging.mukhtalif.net`
 during this acceptance release.
+
+Set `PRODUCTION_SUPABASE_PROJECT_REF` to the exact 20-character production
+project ref in both the API and Studio applications. The guards require the
+matching standard Supabase HTTPS origin. Studio accepts only an anon or
+publishable browser key; the API accepts only a secret or legacy service-role
+key. Never paste the service-role key into a `VITE_*` variable.
 
 Both build and start run
 `pnpm --filter @mukhtalif/api verify:hostinger-production`. Enter every variable

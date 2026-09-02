@@ -17,8 +17,9 @@ function productionEnvironment(): Record<string, string> {
     DEPLOYMENT_PLATFORM: 'hostinger',
     ALLOW_DEV_AUTH: 'false',
     CORS_ALLOWED_ORIGINS: 'https://studio.mukhtalif.net,https://staging.mukhtalif.net',
-    SUPABASE_URL: 'https://project-ref.supabase.co/',
-    SUPABASE_SERVICE_ROLE_KEY: 'service-role-key-for-runtime-tests',
+    PRODUCTION_SUPABASE_PROJECT_REF: 'abcdefghijklmnopqrst',
+    SUPABASE_URL: 'https://abcdefghijklmnopqrst.supabase.co/',
+    SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_service_role_key_for_runtime_tests',
     STUDIO_INVITE_REDIRECT_URL: 'https://studio.mukhtalif.net/invite',
     MAILCHIMP_CAMPAIGNS_ENABLED: 'false',
     MEDIA_PUBLIC_ORIGIN: 'https://api.mukhtalif.net',
@@ -96,11 +97,22 @@ describe('Hostinger runtime environment', () => {
     expect(() => createHostingerRuntime(cloudflare)).toThrow(/DEPLOYMENT_PLATFORM=hostinger/);
   });
 
-  it('rejects the canonical development Supabase project', () => {
+  it('pins the exact production Supabase project', () => {
     const env = productionEnvironment();
     env.SUPABASE_URL = 'https://pacpdxvujkjvnaeeuute.supabase.co';
 
-    expect(() => createHostingerRuntime(env)).toThrow(/development Supabase project/);
+    expect(() => createHostingerRuntime(env)).toThrow(/pinned production Supabase project/);
+
+    const spoofed = productionEnvironment();
+    spoofed.SUPABASE_URL = 'https://abcdefghijklmnopqrst.supabase.co.attacker.example';
+    expect(() => createHostingerRuntime(spoofed)).toThrow(/pinned production Supabase project/);
+  });
+
+  it('rejects a public Supabase key in the server-only slot', () => {
+    const env = productionEnvironment();
+    env.SUPABASE_SERVICE_ROLE_KEY = 'sb_publishable_public_key_for_runtime_tests';
+
+    expect(() => createHostingerRuntime(env)).toThrow(/secret\/service_role key/);
   });
 
   it('requires an explicit bounded proxy trust count', () => {

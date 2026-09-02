@@ -128,10 +128,17 @@ Production Hostinger policy:
 APP_ENV=production
 DEPLOYMENT_PLATFORM=hostinger
 ALLOW_DEV_AUTH=false
+PRODUCTION_SUPABASE_PROJECT_REF=<exact 20-character production project ref>
 RESEND_ENVIRONMENT=production
 FORMS_FROM_EMAIL=forms@notify.mukhtalif.net
 MEDIA_PUBLIC_ORIGIN=https://api.mukhtalif.net
 ```
+
+Pin that ref independently in the API and Studio environments. The production
+guards require the exact matching `*.supabase.co` origin, reject spoofed or
+path-bearing origins, reject a public key in the API service-role slot, and
+reject a secret/service-role key in Studio's browser bundle. Do not weaken this
+gate to make a build pass.
 
 Production form routing is locked:
 
@@ -199,7 +206,9 @@ Use these references instead of duplicating policy:
    and redirects.
 8. Manually deploy Studio and Web from the same approved `main` commit, after the
    API smoke tests pass. Use the production API and the same production Supabase
-   project. Configure
+   project. Deploy Studio as a static Vite frontend so its validated Hostinger
+   `.htaccess` SPA fallback remains active; prove `/login`, `/invite`, and
+   `/articles/new` as direct URLs. Configure
    `https://studio.mukhtalif.net/invite` in Supabase Auth redirects.
 9. Verify Resend with one controlled request for each form type, then confirm
    the real production routing. Verify Supabase Auth email separately.

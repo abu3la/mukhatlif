@@ -67,6 +67,23 @@ function parsePositiveInteger(value: string, name: string, maximum: number): num
   return parsed;
 }
 
+function jwtRole(token: string): string | null {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const payload = JSON.parse(atob(padded)) as { role?: unknown };
+    return typeof payload.role === 'string' ? payload.role : null;
+  } catch {
+    return null;
+  }
+}
+
+function isSupabaseSecretKey(value: string): boolean {
+  return value.startsWith('sb_secret_') || jwtRole(value) === 'service_role';
+}
+
 export function getHostingerR2Config(source: ProcessEnvironment): R2S3ClientConfig & {
   audioBucket: string;
   mediaBucket: string;
@@ -131,9 +148,20 @@ export function createHostingerRuntime(source: ProcessEnvironment): HostingerRun
   } catch {
     throw new ApiConfigurationError('Hostinger SUPABASE_URL must be a valid URL.');
   }
-  if (supabaseUrl.hostname === 'pacpdxvujkjvnaeeuute.supabase.co') {
+  const expectedSupabaseRef = requireValue(source, 'PRODUCTION_SUPABASE_PROJECT_REF');
+  if (!/^[a-z0-9]{20}$/.test(expectedSupabaseRef)) {
     throw new ApiConfigurationError(
-      'Hostinger production must not use the canonical development Supabase project.',
+      'PRODUCTION_SUPABASE_PROJECT_REF must be the exact 20-character production project ref.',
+    );
+  }
+  if (supabaseUrl.hostname !== `${expectedSupabaseRef}.supabase.co`) {
+    throw new ApiConfigurationError(
+      'Hostinger SUPABASE_URL must match the pinned production Supabase project.',
+    );
+  }
+  if (!isSupabaseSecretKey(supabase.serviceRoleKey)) {
+    throw new ApiConfigurationError(
+      'Hostinger SUPABASE_SERVICE_ROLE_KEY must be a secret/service_role key.',
     );
   }
   if (!getStudioInviteRedirectUrl(bindings)) {

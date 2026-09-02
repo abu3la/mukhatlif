@@ -25,6 +25,7 @@
     "test:elementor-newsletter-import": "vitest run tools/elementor-newsletter-import/src",
     "test:rss-import": "vitest run tools/rss-import/src",
     "test:notion-guest-import": "vitest run tools/notion-guest-import/src",
+    "test:deployment-scripts": "node --test scripts/*.test.mjs",
     "test:wordpress-import": "vitest run tools/wordpress-import/src",
     "type-check:audio-r2": "tsc -p tools/audio-r2/tsconfig.json",
     "type-check:elementor-newsletter-import": "tsc -p tools/elementor-newsletter-import/tsconfig.json",

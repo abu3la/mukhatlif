@@ -13,6 +13,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { supabaseKeyKind } from './supabase-key-policy.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const source = join(root, '.env.local');
@@ -61,37 +62,8 @@ for (const key of REQUIRED) {
   if (!env[key]) problems.push(`${key} is empty`);
 }
 
-/**
- * Reads the `role` claim from a Supabase JWT without verifying it.
- *
- * Verification is not the point: this only needs to know which key the human
- * pasted, and the claim is attacker-irrelevant here because the "attacker" is
- * a copy-paste slip.
- */
-function jwtRole(token) {
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
-  try {
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
-    return typeof payload.role === 'string' ? payload.role : null;
-  } catch {
-    return null;
-  }
-}
-
-/** 'public' | 'secret' | null, across both the legacy JWT and new key formats. */
-function keyKind(token) {
-  if (!token) return null;
-  if (token.startsWith('sb_publishable_')) return 'public';
-  if (token.startsWith('sb_secret_')) return 'secret';
-  const role = jwtRole(token);
-  if (role === 'anon') return 'public';
-  if (role === 'service_role') return 'secret';
-  return null;
-}
-
-const anonKind = keyKind(env.SUPABASE_ANON_KEY);
-const serviceKind = keyKind(env.SUPABASE_SERVICE_ROLE_KEY);
+const anonKind = supabaseKeyKind(env.SUPABASE_ANON_KEY);
+const serviceKind = supabaseKeyKind(env.SUPABASE_SERVICE_ROLE_KEY);
 
 // The single mistake worth failing hard on. A service_role key in the public
 // slot is compiled into the browser bundle, and it bypasses row level security
