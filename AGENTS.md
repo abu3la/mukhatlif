@@ -16,8 +16,8 @@ source is merged through `dev` into `main`. The authorization is limited to:
 
 The root `https://mukhtalif.net` and the previous production systems must remain
 unchanged and recoverable. Authorization does not waive any release gate below:
-use one verified `main` SHA, keep deployment manual, prepare an independent
-production Supabase project, pass migrations and data/Auth verification, and
+use one verified `main` SHA, keep deployment manual, pin the approved Supabase
+project, pass schema/data/Auth verification, and
 smoke-test API before Studio and Web. Stop instead of substituting development
 credentials or enabling automatic deployment.
 
@@ -60,7 +60,7 @@ Cloudflare production dependency is private R2 object storage.
 | Public web            | Cloudflare Worker: `web.mukhtalif-development.workers.dev`           | Hostinger acceptance: `https://staging.mukhtalif.net`; final cutover later: `https://mukhtalif.net` |
 | Studio                | Cloudflare Worker: `studio.mukhtalif-development.workers.dev`        | Hostinger: `https://studio.mukhtalif.net`                                                           |
 | API                   | Cloudflare Worker: `mukhtalif-api.mukhtalif-development.workers.dev` | Hostinger Node.js: `https://api.mukhtalif.net`                                                      |
-| Database and Auth     | Development Supabase project                                         | Explicitly selected production Supabase project                                                     |
+| Database and Auth     | Supabase project `pacpdxvujkjvnaeeuute`                              | Temporarily the same pinned project `pacpdxvujkjvnaeeuute` by explicit user decision                 |
 | Audio and media bytes | Private Cloudflare R2 buckets                                        | The same R2 service, accessed from Hostinger through its S3-compatible API                          |
 | Form email            | Resend development key/domain                                        | Separate Resend production key/domain                                                               |
 | DNS authority         | Hostinger DNS for `mukhtalif.net`                                    | Hostinger DNS for `mukhtalif.net`                                                                   |
@@ -69,6 +69,16 @@ Cloudflare Workers are not a production fallback. Never point `mukhtalif.net`,
 `studio.mukhtalif.net`, or `api.mukhtalif.net` to a `workers.dev` deployment.
 Never persist a `workers.dev` URL in production article media, canonical URLs,
 email templates, redirects, or database rows.
+
+Temporary database exception, explicitly approved on 2026-09-03: do not create
+or purchase another Supabase project for this acceptance release. Hostinger API
+and Studio must pin `PRODUCTION_SUPABASE_PROJECT_REF=pacpdxvujkjvnaeeuute` and
+use that project's matching server/browser credentials. This means Cloudflare
+development and Hostinger share data and Auth: a write through either runtime is
+visible to both. Treat the database as production data from this point, take a
+verified backup before schema/data changes, and do not describe it as an
+isolated production database. A later split requires a separately approved
+clone/cutover plan.
 
 During the acceptance phase, Web uses `https://staging.mukhtalif.net` as its
 canonical origin and must emit both HTML robots metadata and an `X-Robots-Tag`
@@ -188,9 +198,10 @@ Use these references instead of duplicating policy:
    manifests. Preserve backups outside Git with restricted permissions.
 2. Finish and test the Hostinger Node entry point plus the R2 S3 adapter. Keep
    all business routes shared with the Worker build.
-3. Prepare the production Supabase project: apply reviewed migrations in order,
-   restore/import data and Auth, run `apps/api/supabase/verify_deployment.sql`,
-   and prove the initial administrator login.
+3. Verify the explicitly approved, shared Supabase project: confirm migrations
+   `0001` through `0022`, run `apps/api/supabase/verify_deployment.sql`, take a
+   current backup, and prove the initial administrator login. Do not rerun
+   importers or create a second project for this acceptance release.
 4. Create the Hostinger API app, connect it only to `main`, disable automatic
    deployment, enter production secrets in hPanel, and make
    `pnpm --filter @mukhtalif/api verify:hostinger-production` a mandatory
@@ -205,7 +216,7 @@ Use these references instead of duplicating policy:
    article rendering, audio playback, authors, covers, inline linked images,
    and redirects.
 8. Manually deploy Studio and Web from the same approved `main` commit, after the
-   API smoke tests pass. Use the production API and the same production Supabase
+   API smoke tests pass. Use the production API and the same pinned Supabase
    project. Deploy Studio as a static Vite frontend so its validated Hostinger
    `.htaccess` SPA fallback remains active; prove `/login`, `/invite`, and
    `/articles/new` as direct URLs. Configure
@@ -224,7 +235,7 @@ GitHub verification never invokes a live provider deployment.
 
 ## Current launch blockers (update as work lands)
 
-Status recorded 2026-09-02:
+Status recorded 2026-09-03:
 
 - Resend DNS records for `devmail.mukhtalif.net` and `notify.mukhtalif.net` are
   present in Hostinger DNS and both domains are verified in Resend. Restricted,
@@ -234,13 +245,16 @@ Status recorded 2026-09-02:
   checks. Live R2 credential/read/write verification on a Hostinger preview
   remains required before the authorized release can complete.
 - Hostinger Web, Studio, and API production applications are not deployed yet.
-- The production Supabase target/cutover has not completed.
+- The user explicitly selected the existing Supabase project
+  `pacpdxvujkjvnaeeuute` for this release. It already contains migrations
+  `0001` through `0022` and the imported content; a fresh pre-release backup and
+  authenticated verification remain required because the database is shared.
 - The reviewed WordPress plan is applied to the canonical development Supabase
   project `pacpdxvujkjvnaeeuute`: 56 articles, 238 ready media rows, 17 people,
   56 bylines, 5 books, 378 source records, and 82 redirects. The post-apply
   database dry run reports zero mutations and all media references resolve.
-  Production content import and the authorized Hostinger subdomain cutover are
-  incomplete. The root-domain cutover remains out of scope.
+  No second content import is required. The authorized Hostinger subdomain
+  cutover is incomplete. The root-domain cutover remains out of scope.
 
 Any agent completing one of these items must update this section and the linked
 runbook in the same change.

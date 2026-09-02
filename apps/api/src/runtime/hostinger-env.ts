@@ -154,7 +154,16 @@ export function createHostingerRuntime(source: ProcessEnvironment): HostingerRun
       'PRODUCTION_SUPABASE_PROJECT_REF must be the exact 20-character production project ref.',
     );
   }
-  if (supabaseUrl.hostname !== `${expectedSupabaseRef}.supabase.co`) {
+  if (
+    supabaseUrl.protocol !== 'https:' ||
+    supabaseUrl.hostname !== `${expectedSupabaseRef}.supabase.co` ||
+    supabaseUrl.username ||
+    supabaseUrl.password ||
+    supabaseUrl.port ||
+    (supabaseUrl.pathname !== '' && supabaseUrl.pathname !== '/') ||
+    supabaseUrl.search ||
+    supabaseUrl.hash
+  ) {
     throw new ApiConfigurationError(
       'Hostinger SUPABASE_URL must match the pinned production Supabase project.',
     );

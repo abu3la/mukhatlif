@@ -106,6 +106,16 @@ describe('Hostinger runtime environment', () => {
     const spoofed = productionEnvironment();
     spoofed.SUPABASE_URL = 'https://abcdefghijklmnopqrst.supabase.co.attacker.example';
     expect(() => createHostingerRuntime(spoofed)).toThrow(/pinned production Supabase project/);
+
+    for (const unsafeUrl of [
+      'http://abcdefghijklmnopqrst.supabase.co',
+      'https://abcdefghijklmnopqrst.supabase.co/rest',
+      'https://user:password@abcdefghijklmnopqrst.supabase.co',
+    ]) {
+      const unsafe = productionEnvironment();
+      unsafe.SUPABASE_URL = unsafeUrl;
+      expect(() => createHostingerRuntime(unsafe)).toThrow(/pinned production Supabase project/);
+    }
   });
 
   it('rejects a public Supabase key in the server-only slot', () => {

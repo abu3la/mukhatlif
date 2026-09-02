@@ -14,7 +14,10 @@ is independent of everything below and can be configured later; the API treats a
 wholly absent Mailchimp configuration as "disabled", not as an error.
 
 Development migrations and imports have been exercised on the canonical
-development project. The Hostinger production sequence has not been executed.
+project. For this acceptance release only, the user explicitly selected that
+same project (`pacpdxvujkjvnaeeuute`) for Hostinger API and Studio instead of
+creating or purchasing another Supabase project. The Hostinger deployment
+sequence has not been executed.
 
 ---
 
@@ -22,7 +25,7 @@ development project. The Hostinger production sequence has not been executed.
 
 | You need                                 | Why                                                 |
 | ---------------------------------------- | --------------------------------------------------- |
-| A dedicated production Supabase project  | Production application data and Auth                |
+| The explicitly pinned Supabase project   | Shared acceptance data and Auth                      |
 | A Cloudflare account with Workers and R2 | Development deployments and object storage          |
 | Hostinger Node.js application hosting    | Production API and public site                      |
 | `wrangler` authenticated                 | `pnpm --filter @mukhtalif/api exec wrangler whoami` |
@@ -36,28 +39,31 @@ stores it only in Hostinger's environment secret store.
 
 ---
 
-## 1. Database migrations
+## 1. Database verification
 
-Do not assume any migration is already applied to a new production project. The
-current release contains migrations `0001` through `0022`; the production
-ledger must contain every one before the API is started.
+The current release contains migrations `0001` through `0022`. They are already
+applied to the approved shared project, but the ledger and deployment verifier
+must be checked again before the API is started. Do not rerun the importers or
+copy the data into a second project for this release.
 
-### 1.1 Apply, in this order
+### 1.1 Verify the selected target
 
-Use the guarded migration runner with a connection string for the dedicated
-production target, then confirm the ledger lists `0001` through `0022` exactly:
+Pin the same exact ref in both Hostinger applications:
 
-```bash
-./scripts/migrate.sh
+```text
+PRODUCTION_SUPABASE_PROJECT_REF=pacpdxvujkjvnaeeuute
+SUPABASE_URL=https://pacpdxvujkjvnaeeuute.supabase.co
+VITE_SUPABASE_URL=https://pacpdxvujkjvnaeeuute.supabase.co
 ```
 
-`0015` runs inside an explicit transaction and rewrites
-`provision_invited_studio_member`, so a newly invited member starts pending. If
-it fails partway it rolls back whole; re-run it after fixing the cause.
+Use the service-role key only in the API and the anon/publishable key only in
+Studio. The guards fail if either key is placed in the wrong slot or if the URL
+does not match the pinned ref exactly.
 
-Do not drop partially-created production objects manually. Stop, restore the
-verified pre-migration backup or reconcile the exact failed migration, and then
-rerun the guarded sequence.
+This is not an isolated production database. Writes made through Cloudflare
+development or Hostinger are visible to both. Take a fresh verified backup
+before any schema/data mutation and treat all rows as production data from this
+point forward.
 
 ### 1.2 Verify
 
