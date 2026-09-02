@@ -6,7 +6,7 @@
   "scripts": {
     "build": "pnpm run build:node",
     "build:hostinger": "pnpm run verify:hostinger-production && pnpm run build:node",
-    "build:node": "esbuild src/node.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/node.cjs",
+    "build:node": "esbuild src/node.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/node.cjs",
     "dev": "wrangler dev",
     "deploy": "pnpm run deploy:development",
     "deploy:development": "node ../../scripts/assert-cloudflare-development.mjs && wrangler deploy",

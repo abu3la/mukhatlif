@@ -8,6 +8,16 @@ import app from './index';
 class FakeAudioBucket {
   readonly objects = new Map<string, { bytes: Uint8Array; contentType: string }>();
 
+  async head(key: string) {
+    const object = this.objects.get(key);
+    if (!object) return null;
+    return {
+      size: object.bytes.length,
+      httpEtag: '"fixture"',
+      httpMetadata: { contentType: object.contentType },
+    };
+  }
+
   async put(key: string, value: ReadableStream | ArrayBuffer | null, options?: {
     httpMetadata?: { contentType?: string };
   }) {
@@ -197,7 +207,46 @@ describe('episode audio delivery', () => {
     );
     expect(response.status).toBe(206);
     expect(response.headers.get('content-range')).toBe(`bytes 0-3/${BYTES.length}`);
+    expect(response.headers.get('content-length')).toBe('4');
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+  });
+
+  it('supports open-ended and suffix ranges without reading beyond the object', async () => {
+    const bucket = new FakeAudioBucket();
+    expect((await upload(bucket, validHeaders)).status).toBe(200);
+
+    const openEnded = await app.request(
+      '/episodes/ep-1001/audio',
+      { headers: { range: 'bytes=4-' } },
+      audioEnv(bucket),
+    );
+    expect(openEnded.status).toBe(206);
+    expect(openEnded.headers.get('content-range')).toBe(`bytes 4-7/${BYTES.length}`);
+    expect(new Uint8Array(await openEnded.arrayBuffer())).toEqual(BYTES.slice(4));
+
+    const suffix = await app.request(
+      '/episodes/ep-1001/audio',
+      { headers: { range: 'bytes=-3' } },
+      audioEnv(bucket),
+    );
+    expect(suffix.status).toBe(206);
+    expect(suffix.headers.get('content-range')).toBe(`bytes 5-7/${BYTES.length}`);
+    expect(new Uint8Array(await suffix.arrayBuffer())).toEqual(BYTES.slice(-3));
+  });
+
+  it('returns 416 with the object size for malformed or unsatisfiable ranges', async () => {
+    const bucket = new FakeAudioBucket();
+    expect((await upload(bucket, validHeaders)).status).toBe(200);
+
+    for (const range of ['bytes=9-', 'bytes=6-2', 'bytes=0-1,4-5', 'items=0-1']) {
+      const response = await app.request(
+        '/episodes/ep-1001/audio',
+        { headers: { range } },
+        audioEnv(bucket),
+      );
+      expect(response.status).toBe(416);
+      expect(response.headers.get('content-range')).toBe(`bytes */${BYTES.length}`);
+    }
   });
 });
 

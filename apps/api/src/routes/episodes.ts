@@ -43,6 +43,40 @@ const episodeListQuerySchema = listQuerySchema.extend({
   status: episodeStatusSchema.optional(),
 });
 
+interface AudioByteRange {
+  offset: number;
+  length: number;
+  lastByte: number;
+}
+
+function parseAudioByteRange(value: string, size: number): AudioByteRange | null {
+  if (!Number.isSafeInteger(size) || size <= 0) return null;
+  const match = /^bytes=(?:(\d+)-(\d*)|-(\d+))$/.exec(value);
+  if (!match) return null;
+
+  if (match[3]) {
+    const requestedLength = Number(match[3]);
+    if (!Number.isSafeInteger(requestedLength) || requestedLength <= 0) return null;
+    const length = Math.min(requestedLength, size);
+    const offset = size - length;
+    return { offset, length, lastByte: size - 1 };
+  }
+
+  const offset = Number(match[1]);
+  const requestedEnd = match[2] ? Number(match[2]) : size - 1;
+  if (
+    !Number.isSafeInteger(offset) ||
+    !Number.isSafeInteger(requestedEnd) ||
+    offset < 0 ||
+    offset >= size ||
+    requestedEnd < offset
+  ) {
+    return null;
+  }
+  const lastByte = Math.min(requestedEnd, size - 1);
+  return { offset, length: lastByte - offset + 1, lastByte };
+}
+
 /**
  * Streams episode audio.
  *
@@ -72,20 +106,29 @@ function audioHandler(operatorView: boolean) {
 
     if (episode.audioKey && c.env.AUDIO) {
       const rangeHeader = c.req.header('range');
-      const match = rangeHeader?.match(/^bytes=(\d+)-(\d*)$/);
-      if (match) {
-        const offset = Number(match[1]);
-        const end = match[2] ? Number(match[2]) : undefined;
+      if (rangeHeader) {
+        const stored = await c.env.AUDIO.head(episode.audioKey);
+        if (!stored) return c.json({ error: 'Audio object missing' }, 404);
+        const range = parseAudioByteRange(rangeHeader, stored.size);
+        if (!range) {
+          return new Response(null, {
+            status: 416,
+            headers: {
+              ...audioDeliveryHeaders(stored.httpMetadata?.contentType),
+              'content-range': `bytes */${stored.size}`,
+            },
+          });
+        }
         const object = await c.env.AUDIO.get(episode.audioKey, {
-          range: { offset, length: end !== undefined ? end - offset + 1 : undefined },
+          range: { offset: range.offset, length: range.length },
         });
         if (!object) return c.json({ error: 'Audio object missing' }, 404);
-        const lastByte = end !== undefined ? Math.min(end, object.size - 1) : object.size - 1;
         return new Response(object.body, {
           status: 206,
           headers: {
             ...audioDeliveryHeaders(object.httpMetadata?.contentType),
-            'content-range': `bytes ${offset}-${lastByte}/${object.size}`,
+            'content-length': String(range.length),
+            'content-range': `bytes ${range.offset}-${range.lastByte}/${object.size}`,
           },
         });
       }

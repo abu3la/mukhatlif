@@ -87,7 +87,8 @@ Keep Hono. Production is not a rewrite of the API:
 
 - Cloudflare development continues to use `apps/api/src/index.ts` and native R2
   bindings.
-- Hostinger production uses a Node.js entry point for the same Hono app.
+- Hostinger production uses Node.js 22 and a Node entry point for the same Hono
+  app.
 - Put runtime-specific storage behind adapters. The Node adapter must access R2
   with an S3-compatible client and must preserve the existing repository and
   media contracts.
