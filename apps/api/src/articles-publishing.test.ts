@@ -158,6 +158,99 @@ describe('public and Studio article boundaries', () => {
     expect(JSON.stringify(listed)).not.toContain('"type"');
   });
 
+  it('rebases trusted imported media at every article response boundary without changing storage', async () => {
+    const slug = `media-origin-${crypto.randomUUID().slice(0, 8)}`;
+    const mediaId = `med-${crypto.randomUUID().replaceAll('-', '')}`;
+    const storedOrigin = 'https://mukhtalif-api.mukhtalif-development.workers.dev';
+    const runtimeOrigin = 'https://api.mukhtalif.net';
+    const storedMediaUrl = `${storedOrigin}/media/${mediaId}`;
+    const responseMediaUrl = `${runtimeOrigin}/media/${mediaId}`;
+    const env: Env = { ...localEnv, MEDIA_PUBLIC_ORIGIN: runtimeOrigin };
+    const input = articleInput(slug);
+
+    const create = await apiRequest(
+      '/studio/articles',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          ...input,
+          coverUrl: storedMediaUrl,
+          coverAlt: 'غلاف المقال',
+          seo: { ...input.seo, socialImageUrl: storedMediaUrl },
+        }),
+      },
+      env,
+    );
+    const created = (await create.json()) as Article;
+    expect(create.status).toBe(201);
+    expect(created.coverUrl).toBe(responseMediaUrl);
+    expect(created.seo.socialImageUrl).toBe(responseMediaUrl);
+
+    const stored = await getRepository(env).getArticle(created.id);
+    expect(stored?.coverUrl).toBe(storedMediaUrl);
+    expect(stored?.seo.socialImageUrl).toBe(storedMediaUrl);
+
+    const publish = await apiRequest(
+      `/studio/articles/${created.id}/status`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'published', expectedVersion: created.version }),
+      },
+      env,
+    );
+    expect(publish.status).toBe(200);
+
+    const publicDetail = (await (
+      await apiRequest(`/articles/${slug}`, { headers: { 'x-dev-user': '' } }, env)
+    ).json()) as Article;
+    expect(publicDetail.coverUrl).toBe(responseMediaUrl);
+    expect(publicDetail.seo.socialImageUrl).toBe(responseMediaUrl);
+
+    const publicList = (await (
+      await apiRequest('/articles', { headers: { 'x-dev-user': '' } }, env)
+    ).json()) as Article[];
+    expect(publicList.find((article) => article.id === created.id)?.coverUrl).toBe(
+      responseMediaUrl,
+    );
+
+    const home = (await (
+      await apiRequest('/home', { headers: { 'x-dev-user': '' } }, env)
+    ).json()) as { latestArticles: Array<{ id: string; coverUrl?: string }> };
+    expect(home.latestArticles.find((article) => article.id === created.id)?.coverUrl).toBe(
+      responseMediaUrl,
+    );
+
+    const studioDetail = (await (
+      await apiRequest(`/studio/articles/${created.id}`, {}, env)
+    ).json()) as Article;
+    expect(studioDetail.coverUrl).toBe(responseMediaUrl);
+
+    const unrelatedUpdate = await apiRequest(
+      `/studio/articles/${created.id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          expectedVersion: studioDetail.version,
+          excerptAr: 'ملخص محدث من الاستوديو',
+          coverUrl: studioDetail.coverUrl,
+          coverAlt: studioDetail.coverAlt,
+          seo: { socialImageUrl: studioDetail.seo.socialImageUrl },
+        }),
+      },
+      env,
+    );
+    expect(unrelatedUpdate.status).toBe(200);
+    const storedAfterRoundTrip = await getRepository(env).getArticle(created.id);
+    expect(storedAfterRoundTrip?.coverUrl).toBe(storedMediaUrl);
+    expect(storedAfterRoundTrip?.seo.socialImageUrl).toBe(storedMediaUrl);
+
+    const preview = (await (
+      await apiRequest(`/studio/articles/${created.id}/newsletter/preview`, { method: 'POST' }, env)
+    ).json()) as { html: string };
+    expect(preview.html).toContain(`src="${responseMediaUrl}"`);
+    expect(preview.html).not.toContain(storedOrigin);
+  });
+
   it('requires Studio access for source and manage access for writes', async () => {
     const listenerRead = await app.request(
       '/studio/articles',

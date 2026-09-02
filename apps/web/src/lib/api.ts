@@ -43,15 +43,15 @@ const REVALIDATE_SECONDS = 60;
  * throws Next's bail-out signal, which marks the route dynamic instead. Every
  * unavailability path goes through here, so a build run against an absent or
  * unreachable API cannot bake an error page that would then be served to real
- * readers until it revalidates. A 404 is deliberately not routed through this:
- * "no such article" is a real, cacheable answer, not a fault.
+ * readers until it revalidates. Detail reads opt into a real, cacheable 404;
+ * collection and home routes treat a 404 as an unavailable or stale API deploy.
  */
 async function unavailable(detail: string): Promise<never> {
   await connection();
   throw new ApiUnavailableError(detail);
 }
 
-async function read<T>(path: string): Promise<T> {
+async function read<T>(path: string, options: { notFound?: boolean } = {}): Promise<T> {
   const origin = apiOrigin();
   if (!origin) return unavailable('MUKHTALIF_API_URL is not configured');
 
@@ -70,7 +70,10 @@ async function read<T>(path: string): Promise<T> {
     return unavailable(error instanceof Error ? error.message : 'Network error');
   }
 
-  if (response.status === 404) throw new NotFoundError();
+  if (response.status === 404) {
+    if (options.notFound) throw new NotFoundError();
+    return unavailable(`API route ${path} responded 404`);
+  }
   if (!response.ok) return unavailable(`API responded ${response.status}`);
   try {
     return (await response.json()) as T;
@@ -97,7 +100,7 @@ export function listShows(): Promise<Show[]> {
 }
 
 export function getShow(idOrSlug: string): Promise<Show> {
-  return read<Show>(`/shows/${encodeURIComponent(idOrSlug)}`);
+  return read<Show>(`/shows/${encodeURIComponent(idOrSlug)}`, { notFound: true });
 }
 
 /**
@@ -121,7 +124,7 @@ export function listEpisodes(options: {
 }
 
 export function getEpisode(id: string): Promise<Episode> {
-  return read<Episode>(`/episodes/${encodeURIComponent(id)}`);
+  return read<Episode>(`/episodes/${encodeURIComponent(id)}`, { notFound: true });
 }
 
 export function listArticles(options: {
@@ -139,7 +142,7 @@ export function listArticles(options: {
 }
 
 export function getArticle(slug: string): Promise<PublishedArticle> {
-  return read<PublishedArticle>(`/articles/${encodeURIComponent(slug)}`);
+  return read<PublishedArticle>(`/articles/${encodeURIComponent(slug)}`, { notFound: true });
 }
 
 export function listGuests(options: {
@@ -157,7 +160,7 @@ export function listGuests(options: {
 }
 
 export function getGuestProfile(idOrSlug: string): Promise<PublicGuestProfile> {
-  return read<PublicGuestProfile>(`/guests/${encodeURIComponent(idOrSlug)}`);
+  return read<PublicGuestProfile>(`/guests/${encodeURIComponent(idOrSlug)}`, { notFound: true });
 }
 
 /**
@@ -165,5 +168,7 @@ export function getGuestProfile(idOrSlug: string): Promise<PublicGuestProfile> {
  * to the public site. The API returns only the destination and HTTP status.
  */
 export function resolveLegacyRedirect(path: string): Promise<LegacyRedirectResolution> {
-  return read<LegacyRedirectResolution>(`/redirects/resolve${query({ path })}`);
+  return read<LegacyRedirectResolution>(`/redirects/resolve${query({ path })}`, {
+    notFound: true,
+  });
 }

@@ -1,4 +1,5 @@
 import type { Article, NewsletterPreview } from '@mukhtalif/types';
+import { rebaseTrustedMediaUrl } from './media-public-url';
 import { escapeHtml, renderRichText, richTextToEmailPlainText } from './rich-text';
 
 function articleLink(article: Article, publicWebUrl: string | undefined): string | null {
@@ -19,8 +20,9 @@ export function renderNewsletter(
   const subject = article.newsletter.subject?.trim() || article.titleAr;
   const preheader = article.newsletter.preheader?.trim();
   const link = articleLink(article, publicWebUrl);
-  const cover = article.coverUrl
-    ? `<img src="${escapeHtml(article.coverUrl)}" alt="${escapeHtml(article.coverAlt ?? article.titleAr)}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;margin:0 0 28px">`
+  const coverUrl = rebaseTrustedMediaUrl(article.coverUrl, mediaPublicOrigin);
+  const cover = coverUrl
+    ? `<img src="${escapeHtml(coverUrl)}" alt="${escapeHtml(article.coverAlt ?? article.titleAr)}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;margin:0 0 28px">`
     : '';
   const readOnline = link
     ? `<p style="margin:30px 0 0"><a href="${escapeHtml(link)}" style="color:#171A56;font-weight:700">اقرأ المقال على موقع مختلف</a></p>`

@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import {
   toPaginatedList,
@@ -36,6 +36,7 @@ import { createAudienceConfirmationToken } from '../publishing/mailchimp-confirm
 import { hasMeaningfulRichText, toPublishedArticle } from '../publishing/rich-text';
 import { renderRichText } from '../publishing/rich-text';
 import { canonicalizeRichTextMedia, MediaReferenceError } from '../publishing/media';
+import { preserveStoredMediaUrl, rebaseArticleMediaUrls } from '../publishing/media-public-url';
 import { getRepository, type Repository } from '../repo';
 
 const studioArticleListQuerySchema = listQuerySchema
@@ -132,6 +133,21 @@ function hasMedia(content: Article['content']): boolean {
   );
 }
 
+function responseMediaOrigin(c: Context<AppEnv>): string | null {
+  return getMediaPublicOrigin(c.env, new URL(c.req.url).origin);
+}
+
+function articleForResponse(c: Context<AppEnv>, article: Article): Article {
+  return rebaseArticleMediaUrls(article, responseMediaOrigin(c));
+}
+
+function articleResultForResponse<T extends { article: Article }>(
+  c: Context<AppEnv>,
+  result: T,
+): T {
+  return { ...result, article: articleForResponse(c, result.article) };
+}
+
 /** Public, published-only API. It never returns Studio source or delivery metadata. */
 export const publicArticlesRoute = new Hono<AppEnv>()
   .get('/', zValidator('query', listQuerySchema), async (c) => {
@@ -139,7 +155,7 @@ export const publicArticlesRoute = new Hono<AppEnv>()
     const repo = getRepository(c.env);
     const mediaOrigin = getMediaPublicOrigin(c.env, new URL(c.req.url).origin);
     const render = (article: Article) => ({
-      ...toPublishedArticle(article),
+      ...toPublishedArticle(rebaseArticleMediaUrls(article, mediaOrigin)),
       contentHtml: renderRichText(article.content, { mediaBaseUrl: mediaOrigin ?? undefined }),
     });
     const filter = { status: 'published' as const };
@@ -157,7 +173,7 @@ export const publicArticlesRoute = new Hono<AppEnv>()
     }
     const mediaOrigin = getMediaPublicOrigin(c.env, new URL(c.req.url).origin);
     return c.json({
-      ...toPublishedArticle(article),
+      ...toPublishedArticle(rebaseArticleMediaUrls(article, mediaOrigin)),
       contentHtml: renderRichText(article.content, { mediaBaseUrl: mediaOrigin ?? undefined }),
     });
   });
@@ -204,9 +220,19 @@ export const studioArticlesRoute = new Hono<AppEnv>()
     const input = c.req.valid('query');
     const filter = { status: input.status };
     const repo = getRepository(c.env);
-    if (!isPaginatedRequest(input)) return c.json(await repo.listArticles(filter));
+    if (!isPaginatedRequest(input)) {
+      return c.json(
+        (await repo.listArticles(filter)).map((article) => articleForResponse(c, article)),
+      );
+    }
     const query = resolveListQuery(input);
-    return c.json(toPaginatedList(await repo.listArticlesPage(filter, query), query));
+    const page = await repo.listArticlesPage(filter, query);
+    return c.json(
+      toPaginatedList(
+        { items: page.items.map((article) => articleForResponse(c, article)), total: page.total },
+        query,
+      ),
+    );
   })
   .post(
     '/',
@@ -228,7 +254,7 @@ export const studioArticlesRoute = new Hono<AppEnv>()
         }
         const content = await canonicalContent(repo, input.content);
         const article = await repo.createArticle({ ...input, author, content });
-        return c.json(article, 201);
+        return c.json(articleForResponse(c, article), 201);
       } catch (error) {
         const failure = mediaReferenceFailure(error);
         if (failure) return c.json(failure, 422);
@@ -272,8 +298,37 @@ export const studioArticlesRoute = new Hono<AppEnv>()
         const content = requestedContent
           ? await canonicalContent(repo, requestedContent)
           : undefined;
+        const mediaOrigin = responseMediaOrigin(c);
+        const normalizedMediaInput = {
+          ...(remainingInput.coverUrl !== undefined
+            ? {
+                coverUrl: preserveStoredMediaUrl(
+                  remainingInput.coverUrl,
+                  current.coverUrl,
+                  mediaOrigin,
+                ),
+              }
+            : {}),
+          ...(remainingInput.seo
+            ? {
+                seo: {
+                  ...remainingInput.seo,
+                  ...(remainingInput.seo.socialImageUrl !== undefined
+                    ? {
+                        socialImageUrl: preserveStoredMediaUrl(
+                          remainingInput.seo.socialImageUrl,
+                          current.seo.socialImageUrl,
+                          mediaOrigin,
+                        ),
+                      }
+                    : {}),
+                },
+              }
+            : {}),
+        };
         const article = await repo.updateArticle(id, {
           ...remainingInput,
+          ...normalizedMediaInput,
           ...(author ? { author } : {}),
           ...(content ? { content } : {}),
         });
@@ -283,7 +338,7 @@ export const studioArticlesRoute = new Hono<AppEnv>()
             409,
           );
         }
-        return c.json(article);
+        return c.json(articleForResponse(c, article));
       } catch (error) {
         if (error instanceof ArticleMutationError) {
           const status = error.code === 'COVER_ALT_REQUIRED' ? 422 : 409;
@@ -343,7 +398,7 @@ export const studioArticlesRoute = new Hono<AppEnv>()
       if (!article) {
         return c.json(newsletterError('ARTICLE_WRITE_CONFLICT', 'Article changed; reload it'), 409);
       }
-      return c.json(article);
+      return c.json(articleForResponse(c, article));
     },
   )
   .post('/:id/newsletter/preview', async (c) => {
@@ -538,7 +593,7 @@ export const studioArticlesRoute = new Hono<AppEnv>()
           );
         }
         const result: NewsletterCampaignResult = { article: synced, operation };
-        return c.json(result);
+        return c.json(articleResultForResponse(c, result));
       } catch (error) {
         const ambiguousCreate =
           !snapshot.newsletter.campaignId &&
@@ -568,7 +623,7 @@ export const studioArticlesRoute = new Hono<AppEnv>()
     if (!article) return c.json({ error: 'Article not found' }, 404);
     if (article.newsletter.status === 'sent') {
       const result: NewsletterSendResult = { article, operation: 'already_sent' };
-      return c.json(result);
+      return c.json(articleResultForResponse(c, result));
     }
     const campaignId = article.newsletter.campaignId;
     if (!campaignId) {
@@ -600,12 +655,12 @@ export const studioArticlesRoute = new Hono<AppEnv>()
         );
         if (!reconciled) return c.json({ error: 'Article not found' }, 404);
         const result: NewsletterSendResult = { article: reconciled, operation: 'sent' };
-        return c.json(result);
+        return c.json(articleResultForResponse(c, result));
       }
       if (['sending', 'schedule'].includes(remote.status)) {
         const current = (await repo.getArticle(article.id)) ?? article;
         const result: NewsletterSendResult = { article: current, operation: 'accepted' };
-        return c.json(result, 202);
+        return c.json(articleResultForResponse(c, result), 202);
       }
 
       // A remote `save` response does not prove that another request which already
@@ -619,26 +674,26 @@ export const studioArticlesRoute = new Hono<AppEnv>()
         );
         if (recovered) {
           const result: NewsletterSendResult = { article: recovered, operation: 'not_sent' };
-          return c.json(result);
+          return c.json(articleResultForResponse(c, result));
         }
         const current = (await repo.getArticle(article.id)) ?? article;
         if (current.newsletter.status === 'sent') {
           const result: NewsletterSendResult = { article: current, operation: 'sent' };
-          return c.json(result);
+          return c.json(articleResultForResponse(c, result));
         }
         if (current.newsletter.status !== 'sending') {
           const result: NewsletterSendResult = { article: current, operation: 'not_sent' };
-          return c.json(result);
+          return c.json(articleResultForResponse(c, result));
         }
         const result: NewsletterSendResult = { article: current, operation: 'accepted' };
-        return c.json(result, 202);
+        return c.json(articleResultForResponse(c, result), 202);
       }
 
       const result: NewsletterSendResult = {
         article,
         operation: 'not_sent',
       };
-      return c.json(result);
+      return c.json(articleResultForResponse(c, result));
     } catch (error) {
       const failure = mailchimpFailure(error);
       return c.json(failure.body, failure.status);
@@ -677,7 +732,7 @@ export const studioArticlesRoute = new Hono<AppEnv>()
       }
       if (claim.status === 'already_sent') {
         const result: NewsletterSendResult = { article: claim.article, operation: 'already_sent' };
-        return c.json(result);
+        return c.json(articleResultForResponse(c, result));
       }
       if (claim.status === 'sync_required') {
         return c.json(
@@ -706,7 +761,7 @@ export const studioArticlesRoute = new Hono<AppEnv>()
         // The explicit reconcile endpoint can observe `sent` later without ever
         // making this campaign eligible for a second send.
         const result: NewsletterSendResult = { article: pending, operation: 'accepted' };
-        return c.json(result, 202);
+        return c.json(articleResultForResponse(c, result), 202);
       }
       if (claim.status !== 'claimed') {
         return c.json(
@@ -776,11 +831,11 @@ export const studioArticlesRoute = new Hono<AppEnv>()
           );
           if (!article) return c.json({ error: 'Article not found' }, 404);
           const result: NewsletterSendResult = { article, operation: 'already_sent' };
-          return c.json(result);
+          return c.json(articleResultForResponse(c, result));
         }
         if (['sending', 'schedule'].includes(remote.status)) {
           const result: NewsletterSendResult = { article: pending, operation: 'accepted' };
-          return c.json(result, 202);
+          return c.json(articleResultForResponse(c, result), 202);
         }
         // Mailchimp drafts can be edited outside Studio. Re-apply the canonical
         // confirmed snapshot immediately before the checklist so the provider
@@ -812,7 +867,7 @@ export const studioArticlesRoute = new Hono<AppEnv>()
         const current = await repo.getArticle(pending.id);
         if (current?.newsletter.status === 'sent') {
           const result: NewsletterSendResult = { article: current, operation: 'already_sent' };
-          return c.json(result);
+          return c.json(articleResultForResponse(c, result));
         }
         return c.json(
           newsletterError(
@@ -846,11 +901,11 @@ export const studioArticlesRoute = new Hono<AppEnv>()
           const current = article ?? (await repo.getArticle(pending.id));
           if (!current) return c.json({ error: 'Article not found' }, 404);
           const result: NewsletterSendResult = { article: current, operation: 'already_sent' };
-          return c.json(result);
+          return c.json(articleResultForResponse(c, result));
         }
         if (['sending', 'schedule'].includes(finalRemote.status)) {
           const result: NewsletterSendResult = { article: pending, operation: 'accepted' };
-          return c.json(result, 202);
+          return c.json(articleResultForResponse(c, result), 202);
         }
       } catch (error) {
         await repo.releaseArticleNewsletterSend(pending.id, sendToken);
@@ -888,7 +943,7 @@ export const studioArticlesRoute = new Hono<AppEnv>()
             const current = await repo.getArticle(pending.id);
             if (current?.newsletter.status === 'sent') {
               const result: NewsletterSendResult = { article: current, operation: 'sent' };
-              return c.json(result);
+              return c.json(articleResultForResponse(c, result));
             }
             return c.json(
               newsletterError('NEWSLETTER_STATE_CONFLICT', 'Newsletter state changed'),
@@ -896,7 +951,7 @@ export const studioArticlesRoute = new Hono<AppEnv>()
             );
           }
           const result: NewsletterSendResult = { article, operation: 'sent' };
-          return c.json(result);
+          return c.json(articleResultForResponse(c, result));
         }
       } catch {
         // The send action was accepted. Reconciliation can safely happen later.
@@ -905,7 +960,7 @@ export const studioArticlesRoute = new Hono<AppEnv>()
       const current = await repo.getArticle(pending.id);
       if (!current) return c.json({ error: 'Article not found' }, 404);
       const result: NewsletterSendResult = { article: current, operation: 'accepted' };
-      return c.json(result, 202);
+      return c.json(articleResultForResponse(c, result), 202);
     },
   )
   .get('/:idOrSlug', async (c) => {
@@ -913,5 +968,5 @@ export const studioArticlesRoute = new Hono<AppEnv>()
     const repo = getRepository(c.env);
     const article = (await repo.getArticle(key)) ?? (await repo.getArticleBySlug(key));
     if (!article) return c.json({ error: 'Article not found' }, 404);
-    return c.json(article);
+    return c.json(articleForResponse(c, article));
   });
