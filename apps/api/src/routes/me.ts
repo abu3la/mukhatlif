@@ -1,17 +1,22 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { followSchema, upsertProgressSchema } from '@mukhtalif/validation';
-import { requireAuth, type AppEnv } from '../auth';
+import { requireAuth, requireStudioAuth, type AppEnv } from '../auth';
 import { getRepository } from '../repo';
 
 export const meRoute = new Hono<AppEnv>()
   .get('/', requireAuth, async (c) => {
-    return c.json(c.get('user'));
+    return c.json(c.get('user')!);
   })
   .get('/subscription', requireAuth, async (c) => {
     const subscription = await getRepository(c.env).getSubscriptionForUser(c.get('user')!.id);
     return c.json(subscription);
   });
+
+/** Private Studio identity. App users never receive Studio permissions here. */
+export const studioMeRoute = new Hono<AppEnv>().get('/', requireStudioAuth, async (c) => {
+  return c.json({ ...c.get('studioMember')!, permissions: c.get('permissions') });
+});
 
 export const followsRoute = new Hono<AppEnv>()
   .get('/', requireAuth, async (c) => {

@@ -1,0 +1,288 @@
+.spacer {
+  block-size: 116px;
+  flex: 0 0 116px;
+}
+
+.bar {
+  position: fixed;
+  z-index: 40;
+  inset-inline: 0;
+  inset-block-end: 0;
+  min-block-size: 116px;
+  color: var(--text);
+  background: var(--ink-raised);
+  border-block-start: 1px solid var(--line);
+}
+
+.barInner {
+  inline-size: 100%;
+  max-inline-size: var(--measure);
+  min-block-size: 116px;
+  margin-inline: auto;
+  padding: 14px clamp(20px, 5vw, 48px);
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) auto minmax(260px, 1.35fr) auto auto;
+  align-items: center;
+  gap: clamp(12px, 2vw, 24px);
+}
+
+.episodeInfo {
+  min-inline-size: 0;
+}
+
+.episodeLink,
+.episodeTitle {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.episodeLink:hover {
+  color: var(--signal);
+}
+
+.showTitle,
+.status {
+  display: block;
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 12px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.error {
+  color: #ffaaa9;
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  direction: ltr;
+}
+
+.button,
+.playButton,
+.closeButton {
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  display: inline-grid;
+  place-items: center;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease;
+}
+
+.button:hover,
+.closeButton:hover {
+  color: var(--signal);
+  background: var(--ink-lifted);
+}
+
+.button:disabled,
+.playButton:disabled {
+  color: var(--text-faint);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.playButton {
+  min-inline-size: 48px;
+  min-block-size: 48px;
+  color: var(--ink);
+  background: var(--signal);
+}
+
+.playButton:hover:not(:disabled) {
+  background: var(--green-hover);
+}
+
+.labelButton {
+  grid-auto-flow: column;
+  gap: 9px;
+  inline-size: auto;
+  padding-inline: 16px;
+  font-weight: 700;
+}
+
+.icon {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+.timeline {
+  min-inline-size: 0;
+  display: grid;
+  grid-template-columns: auto minmax(90px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  direction: ltr;
+}
+
+.time {
+  min-inline-size: 3.8ch;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.range {
+  inline-size: 100%;
+  block-size: 24px;
+  margin: 0;
+  accent-color: var(--signal);
+  cursor: pointer;
+}
+
+.range:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.rateField {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-faint);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.rateSelect {
+  min-block-size: 40px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  background: var(--ink-lifted);
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.inline {
+  inline-size: 100%;
+  max-inline-size: var(--measure-prose);
+  margin-block: var(--space-xl);
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  background: var(--ink-raised);
+}
+
+.inlineHead {
+  margin-block-end: var(--space-lg);
+}
+
+.inlineTitle {
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.inlineStatus {
+  margin-block-start: 2px;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.inlineControls {
+  display: grid;
+  grid-template-columns: auto minmax(140px, 1fr) auto;
+  align-items: center;
+  gap: clamp(12px, 2vw, 22px);
+}
+
+.srOnly {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 800px) {
+  .spacer {
+    block-size: 204px;
+    flex-basis: 204px;
+  }
+
+  .bar {
+    min-block-size: 204px;
+  }
+
+  .barInner {
+    min-block-size: 204px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'info close'
+      'transport rate'
+      'timeline timeline';
+    gap: 8px 14px;
+    padding-block: 12px;
+  }
+
+  .barInner > .episodeInfo {
+    grid-area: info;
+  }
+  .barInner > .transport {
+    grid-area: transport;
+    justify-content: flex-start;
+  }
+  .barInner > .timeline {
+    grid-area: timeline;
+  }
+  .barInner > .rateField {
+    grid-area: rate;
+  }
+  .barInner > .closeButton {
+    grid-area: close;
+  }
+}
+
+@media (max-width: 520px) {
+  .inlineControls {
+    grid-template-columns: 1fr auto;
+  }
+
+  .inlineControls .transport {
+    justify-content: flex-start;
+  }
+
+  .inlineControls .timeline {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  .playButton,
+  .closeButton {
+    transition: none;
+  }
+}

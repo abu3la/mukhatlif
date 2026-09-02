@@ -143,7 +143,7 @@ insert into episodes (id, show_id, title_ar, show_notes_ar, audio_url, duration_
   ('ep-3002', 'shw-shaqla', 'الحلقة التجريبية الأولى', 'أرشيف الموسم صفر.', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3', 1500, 0, false, 'archived', '2026-02-01T05:00:00Z', '2026-01-28T09:00:00Z');
 
 insert into articles (id, slug, title_ar, body_ar, status, published_at, created_at) values
-  ('art-1', 'first-90-days', 'أول ٩٠ يومًا في وظيفتك الجديدة', 'الأشهر الثلاثة الأولى تحدد صورتك المهنية لسنوات. في هذا المقال نلخص ما ينصح به ضيوف مختلف: افهم قبل أن تقترح، وابنِ علاقات قبل أن تحتاجها، ووثّق أثرك من الأسبوع الأول.', 'published', '2026-07-20T08:00:00Z', '2026-07-18T08:00:00Z'),
+  ('art-1', 'first-90-days', 'أول 90 يومًا في وظيفتك الجديدة', 'الأشهر الثلاثة الأولى تحدد صورتك المهنية لسنوات. في هذا المقال نلخص ما ينصح به ضيوف مختلف: افهم قبل أن تقترح، وابنِ علاقات قبل أن تحتاجها، ووثّق أثرك من الأسبوع الأول.', 'published', '2026-07-20T08:00:00Z', '2026-07-18T08:00:00Z'),
   ('art-2', 'salary-negotiation', 'التفاوض على الراتب: دليل عملي', 'مسودة قيد المراجعة التحريرية.', 'draft', null, '2026-08-03T08:00:00Z');
 
 insert into plans (id, name_ar, name_en, price_minor, currency, interval) values

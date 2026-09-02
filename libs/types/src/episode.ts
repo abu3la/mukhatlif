@@ -9,7 +9,7 @@ export const EPISODE_TRANSITIONS: Record<EpisodeStatus, readonly EpisodeStatus[]
   draft: ['scheduled', 'published'],
   scheduled: ['draft', 'published'],
   published: ['archived'],
-  archived: ['published'],
+  archived: ['draft'],
 };
 
 export function canTransitionEpisode(from: EpisodeStatus, to: EpisodeStatus): boolean {
@@ -37,3 +37,10 @@ export interface Episode {
   /** ISO timestamp */
   createdAt: string;
 }
+
+/**
+ * The episode record exposed by the anonymous catalogue. Playback source
+ * fields are intentionally absent; playback always goes through the API
+ * route, where subscription checks are enforced before audio is served.
+ */
+export type PublicEpisodeRecord = Omit<Episode, 'audioKey' | 'audioUrl'>;

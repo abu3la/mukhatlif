@@ -1,14 +1,76 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "mukhtalif-api",
+  "account_id": "bb4abee6bf877ef411dc803b3be96373",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
+  "vars": {
+    // This Worker is the development deployment, but APP_ENV stays production
+    // on every public URL so auth, rate limiting, and media fail closed.
+    // DEPLOYMENT_PLATFORM + RESEND_ENVIRONMENT own the email split instead.
+    "APP_ENV": "production",
+    "DEPLOYMENT_PLATFORM": "cloudflare-workers",
+    // The dev identity header is gated on APP_ENV=development *and* this flag.
+    // It remains disabled on the remotely deployed development Worker.
+    "ALLOW_DEV_AUTH": "false",
+    // Studio uses authenticated browser calls. Public request forms post
+    // anonymously from the Web origin. A wildcard is rejected.
+    "CORS_ALLOWED_ORIGINS": "https://studio.mukhtalif-development.workers.dev,https://web.mukhtalif-development.workers.dev",
+    // This Worker serves /media/:id itself, so the origin is its own. Required
+    // whenever MEDIA is bound outside development.
+    "MEDIA_PUBLIC_ORIGIN": "https://mukhtalif-api.mukhtalif-development.workers.dev",
+    // Resend development policy. The restricted development API key is the
+    // only value stored with `wrangler secret put`; never put the production
+    // key on Cloudflare. Without the key, requests are still saved in Studio
+    // and notification delivery remains `unconfigured`.
+    "RESEND_ENVIRONMENT": "development",
+    "FORMS_FROM_EMAIL": "forms@devmail.mukhtalif.net",
+    "FORM_NOTIFICATION_RECIPIENTS_JSON": "{\"sponsorship\":[\"aaahashmi95@gmail.com\"],\"partnership\":[\"aaahashmi95@gmail.com\"],\"guest_suggestion\":[\"aaahashmi95@gmail.com\"],\"careers\":[\"aaahashmi95@gmail.com\"],\"production_service\":[\"aaahashmi95@gmail.com\"],\"guest_review\":[\"aaahashmi95@gmail.com\"]}",
+    // Keep signups durable in Supabase while the Mailchimp account is paused.
+    // Enabling sync later requires this explicit switch plus all three secrets.
+    "NEWSLETTER_MAILCHIMP_SYNC_ENABLED": "false",
+    // Keep article campaign capability, draft creation, reconciliation, and
+    // sending inert until the Mailchimp account is renewed.
+    "MAILCHIMP_CAMPAIGNS_ENABLED": "false",
+    // PUBLIC_WEB_URL is deliberately absent: it is one of seven Mailchimp settings
+    // that must be configured together, and setting it alone is treated as a
+    // configuration error rather than a partial setup.
+  },
+  // Versioned preview URLs would publish this same API, with these same
+  // secrets, at additional unpredictable origins. Nothing needs them.
+  "preview_urls": false,
   // Supabase URL and service-role key are secrets:
   //   local dev  -> apps/api/.dev.vars (copy .dev.vars.example)
-  //   production -> wrangler secret put SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+  //   deployed development -> wrangler secret put SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+  // Set STUDIO_INVITE_REDIRECT_URL to the approved HTTPS login/invite-acceptance
+  // page, and add the same URL to Supabase Auth's redirect allowlist.
   //
-  // Episode audio streams from R2. To enable it, create the bucket
-  // (wrangler r2 bucket create mukhtalif-audio) and uncomment:
-  // "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "mukhtalif-audio" }],
-  "observability": { "enabled": true }
+  // Configure CORS_ALLOWED_ORIGINS as a comma-separated allowlist for the
+  // deployed admin and public web origins. With no value, browsers receive no
+  // cross-origin access.
+  //
+  // Mailchimp is server-side only. MAILCHIMP_CAMPAIGNS_ENABLED must be set to
+  // true before any campaign provider call. Configure MAILCHIMP_API_KEY with
+  // `wrangler secret put`, and configure MAILCHIMP_SERVER_PREFIX,
+  // MAILCHIMP_AUDIENCE_ID, MAILCHIMP_RECIPIENT_SEGMENT_ID, MAILCHIMP_FROM_NAME,
+  // MAILCHIMP_REPLY_TO and PUBLIC_WEB_URL as deployment variables. All seven
+  // are required together. The segment ID must resolve to the static `nlpage`
+  // tag or every campaign action fails closed.
+  // Public newsletter double opt-in is isolated from campaign publishing:
+  // NEWSLETTER_MAILCHIMP_SYNC_ENABLED must be explicitly true before any
+  // provider call. NEWSLETTER_MAILCHIMP_API_KEY is a Worker secret, while
+  // NEWSLETTER_MAILCHIMP_SERVER_PREFIX and NEWSLETTER_MAILCHIMP_AUDIENCE_ID
+  // are variables. All three are required together. The API fixes the tag to
+  // `nlpage` and never falls back to the publishing credentials.
+  //
+  // Episode audio and sanitized article images live in two private R2 buckets.
+  // `wrangler dev` simulates both locally, so these bindings are safe offline.
+  // MEDIA_PUBLIC_ORIGIN must be set to the deployed API origin outside
+  // development; the API refuses to start otherwise rather than mint image URLs
+  // against whatever origin a request happened to arrive on.
+  "r2_buckets": [
+    { "binding": "AUDIO", "bucket_name": "mukhtalif-audio" },
+    { "binding": "MEDIA", "bucket_name": "mukhtalif-media" },
+  ],
+  "observability": { "enabled": true },
 }

@@ -1,8 +1,14 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { canTransitionSubscription } from '@mukhtalif/types';
-import { createSubscriptionSchema, updateSubscriptionStatusSchema } from '@mukhtalif/validation';
-import { requireAdmin, type AppEnv } from '../auth';
+import { canTransitionSubscription, toPaginatedList } from '@mukhtalif/types';
+import {
+  createSubscriptionSchema,
+  isPaginatedRequest,
+  listQuerySchema,
+  resolveListQuery,
+  updateSubscriptionStatusSchema,
+} from '@mukhtalif/validation';
+import { requirePermission, type AppEnv } from '../auth';
 import { getRepository } from '../repo';
 
 export const plansRoute = new Hono<AppEnv>().get('/', async (c) => {
@@ -23,31 +29,36 @@ function periodEnd(interval: 'month' | 'year'): string {
  * plan changes never affect existing subscribers.
  */
 export const subscriptionsRoute = new Hono<AppEnv>()
-  .get('/', requireAdmin, async (c) => {
+  .get('/', requirePermission('subscribers.view'), async (c) => {
     const subscriptions = await getRepository(c.env).listSubscriptions();
     return c.json(subscriptions);
   })
-  .post('/', requireAdmin, zValidator('json', createSubscriptionSchema), async (c) => {
-    const input = c.req.valid('json');
-    const repo = getRepository(c.env);
-    if (!(await repo.getUser(input.userId))) return c.json({ error: 'Unknown user' }, 422);
-    const plan = await repo.getPlan(input.planId);
-    if (!plan) return c.json({ error: 'Unknown plan' }, 422);
-    const existing = await repo.getSubscriptionForUser(input.userId);
-    if (existing) {
-      return c.json({ error: 'User already has a subscription that is not canceled' }, 422);
-    }
-    const subscription = await repo.createSubscription(
-      input,
-      plan.priceMinor,
-      plan.currency,
-      periodEnd(plan.interval),
-    );
-    return c.json(subscription, 201);
-  })
+  .post(
+    '/',
+    requirePermission('subscribers.manage'),
+    zValidator('json', createSubscriptionSchema),
+    async (c) => {
+      const input = c.req.valid('json');
+      const repo = getRepository(c.env);
+      if (!(await repo.getUser(input.userId))) return c.json({ error: 'Unknown user' }, 422);
+      const plan = await repo.getPlan(input.planId);
+      if (!plan) return c.json({ error: 'Unknown plan' }, 422);
+      const existing = await repo.getSubscriptionForUser(input.userId);
+      if (existing) {
+        return c.json({ error: 'User already has a subscription that is not canceled' }, 422);
+      }
+      const subscription = await repo.createSubscription(
+        input,
+        plan.priceMinor,
+        plan.currency,
+        periodEnd(plan.interval),
+      );
+      return c.json(subscription, 201);
+    },
+  )
   .patch(
     '/:id/status',
-    requireAdmin,
+    requirePermission('subscribers.manage'),
     zValidator('json', updateSubscriptionStatusSchema),
     async (c) => {
       const { status } = c.req.valid('json');
@@ -61,3 +72,17 @@ export const subscriptionsRoute = new Hono<AppEnv>()
       return c.json(subscription);
     },
   );
+
+/** App-user subscription candidates without Studio or Auth-linkage metadata. */
+export const subscriberUsersRoute = new Hono<AppEnv>().get(
+  '/',
+  requirePermission('subscribers.view'),
+  zValidator('query', listQuerySchema),
+  async (c) => {
+    const input = c.req.valid('query');
+    const repo = getRepository(c.env);
+    if (!isPaginatedRequest(input)) return c.json(await repo.listSubscriberUsers());
+    const query = resolveListQuery(input);
+    return c.json(toPaginatedList(await repo.listSubscriberUsersPage(query), query));
+  },
+);

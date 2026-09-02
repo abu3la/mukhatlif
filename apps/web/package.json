@@ -1,0 +1,37 @@
+{
+  "name": "@mukhtalif/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "build:hostinger": "node ../../scripts/assert-hostinger-web-env.mjs && pnpm run build",
+    "build:worker": "node scripts/build-worker.mjs && node scripts/sanitize-open-next-env.mjs",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "deploy": "pnpm run build:worker && opennextjs-cloudflare deploy",
+    "dev": "next dev --port 3000",
+    "lint": "eslint .",
+    "preview": "pnpm run build:worker && opennextjs-cloudflare preview",
+    "start": "next start --port ${PORT:-3000}",
+    "start:hostinger": "node ../../scripts/assert-hostinger-web-env.mjs && pnpm run start",
+    "test": "vitest run",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mukhtalif/design-tokens": "workspace:*",
+    "@mukhtalif/types": "workspace:*",
+    "next": "^16.3.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.2",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "eslint": "^9.34.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.120.0"
+  }
+}

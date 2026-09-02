@@ -1,28 +1,49 @@
 import type {
   Article,
+  ArticleAuthorCandidate,
   ArticleStatus,
+  AccessAuditLog,
+  AuthenticatedStudioMember,
+  AuthenticatedUser,
   Episode,
   EpisodeStatus,
   Follow,
   Plan,
   PlaybackProgress,
   Show,
+  SubscriberUser,
   Subscription,
-  User,
+  RolePermissionMatrix,
+  RolePermissionSet,
+  RoleId,
+  StudioRole,
+  StudioMemberAccess,
+  MailchimpCapability,
+  NewsletterCampaignResult,
+  NewsletterPreview,
+  NewsletterSendResult,
+  PublishedArticle,
+  MediaAsset,
+  MediaUploadReservation,
 } from '@mukhtalif/types';
 import type {
+  CreateStudioRoleInput,
   CreateArticleInput,
   CreateEpisodeInput,
   CreateShowInput,
   CreateSubscriptionInput,
+  InviteStudioMemberInput,
   UpdateArticleInput,
   UpdateEpisodeInput,
   UpdateEpisodeStatusInput,
   UpdateShowInput,
   UpdateSubscriptionStatusInput,
+  UpdateStudioMemberRoleInput,
+  UpdateRolePermissionsInput,
   UpsertProgressInput,
+  CreateMediaUploadInput,
 } from '@mukhtalif/validation';
-import { apiUrl, request } from './client';
+import { apiUrl, request, uploadRequest } from './client';
 
 export interface EpisodeFilter {
   showId?: string;
@@ -40,6 +61,16 @@ function toQuery(filter: object): string {
   }
   const encoded = params.toString();
   return encoded ? `?${encoded}` : '';
+}
+
+function updateStudioRolePermissions(
+  roleId: RoleId,
+  input: UpdateRolePermissionsInput,
+): Promise<StudioRole> {
+  return request<StudioRole>(`/permissions/${encodeURIComponent(roleId)}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
 }
 
 export const showsService = {
@@ -65,14 +96,71 @@ export const episodesService = {
 };
 
 export const articlesService = {
-  list: (filter: ArticleFilter = {}) => request<Article[]>(`/articles${toQuery(filter)}`),
-  get: (slug: string) => request<Article>(`/articles/${slug}`),
+  list: () => request<PublishedArticle[]>('/articles'),
+  get: (slug: string) => request<PublishedArticle>(`/articles/${encodeURIComponent(slug)}`),
+};
+
+export const studioArticlesService = {
+  list: (filter: ArticleFilter = {}) => request<Article[]>(`/studio/articles${toQuery(filter)}`),
+  listAuthorCandidates: () => request<ArticleAuthorCandidate[]>('/studio/articles/authors'),
+  get: (idOrSlug: string) => request<Article>(`/studio/articles/${encodeURIComponent(idOrSlug)}`),
   create: (input: CreateArticleInput) =>
-    request<Article>('/articles', { method: 'POST', body: JSON.stringify(input) }),
+    request<Article>('/studio/articles', { method: 'POST', body: JSON.stringify(input) }),
   update: (id: string, input: UpdateArticleInput) =>
-    request<Article>(`/articles/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
-  updateStatus: (id: string, input: { status: Article['status'] }) =>
-    request<Article>(`/articles/${id}/status`, { method: 'PATCH', body: JSON.stringify(input) }),
+    request<Article>(`/studio/articles/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+  updateStatus: (id: string, input: { status: Article['status']; expectedVersion: number }) =>
+    request<Article>(`/studio/articles/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+  mailchimpCapability: () => request<MailchimpCapability>('/studio/articles/mailchimp/capability'),
+  previewNewsletter: (id: string) =>
+    request<NewsletterPreview>(`/studio/articles/${encodeURIComponent(id)}/newsletter/preview`, {
+      method: 'POST',
+    }),
+  syncNewsletterCampaign: (id: string, expectedVersion: number) =>
+    request<NewsletterCampaignResult>(
+      `/studio/articles/${encodeURIComponent(id)}/newsletter/campaign`,
+      { method: 'POST', body: JSON.stringify({ expectedVersion }) },
+    ),
+  sendNewsletter: (
+    id: string,
+    audienceConfirmationToken: string,
+    expectedVersion: number,
+    expectedCampaignId: string,
+  ) =>
+    request<NewsletterSendResult>(`/studio/articles/${encodeURIComponent(id)}/newsletter/send`, {
+      method: 'POST',
+      body: JSON.stringify({
+        confirmation: 'SEND_NEWSLETTER',
+        audienceConfirmationToken,
+        expectedVersion,
+        expectedCampaignId,
+      }),
+    }),
+  reconcileNewsletter: (id: string) =>
+    request<NewsletterSendResult>(
+      `/studio/articles/${encodeURIComponent(id)}/newsletter/reconcile`,
+      { method: 'POST' },
+    ),
+};
+
+export const studioMediaService = {
+  list: () => request<MediaAsset[]>('/studio/media'),
+  reserveUpload: (input: CreateMediaUploadInput) =>
+    request<MediaUploadReservation>('/studio/media/uploads', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  uploadContent: (
+    uploadUrl: string,
+    file: Blob,
+    onProgress?: (uploadedBytes: number, totalBytes: number) => void,
+  ) => uploadRequest<MediaAsset>(uploadUrl, file, onProgress),
+  publicUrl: (id: string) => apiUrl(`/media/${encodeURIComponent(id)}`),
 };
 
 export const plansService = {
@@ -81,6 +169,7 @@ export const plansService = {
 
 export const subscriptionsService = {
   list: () => request<Subscription[]>('/subscriptions'),
+  listSubscriberUsers: () => request<SubscriberUser[]>('/subscriber-users'),
   create: (input: CreateSubscriptionInput) =>
     request<Subscription>('/subscriptions', { method: 'POST', body: JSON.stringify(input) }),
   updateStatus: (id: string, input: UpdateSubscriptionStatusInput) =>
@@ -91,12 +180,50 @@ export const subscriptionsService = {
 };
 
 export const meService = {
-  profile: () => request<User>('/me'),
+  profile: () => request<AuthenticatedUser>('/me'),
   subscription: () => request<Subscription | null>('/me/subscription'),
 };
 
-export const usersService = {
-  list: () => request<User[]>('/users'),
+export const studioMeService = {
+  profile: () => request<AuthenticatedStudioMember>('/studio/me'),
+};
+
+export const studioMembersService = {
+  list: () => request<StudioMemberAccess[]>('/studio-members'),
+  invite: (input: InviteStudioMemberInput) =>
+    request<StudioMemberAccess>('/studio-members', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  updateRole: (id: string, input: UpdateStudioMemberRoleInput) =>
+    request<StudioMemberAccess>(`/studio-members/${encodeURIComponent(id)}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+};
+
+export const auditService = {
+  listStudioAccess: () => request<AccessAuditLog[]>('/audit-logs'),
+};
+
+export const permissionsService = {
+  matrix: () => request<RolePermissionMatrix>('/permissions'),
+  updateRole: async (role: RoleId, input: UpdateRolePermissionsInput) => {
+    const updated = await updateStudioRolePermissions(role, input);
+    return {
+      role: updated.id,
+      permissions: updated.permissions,
+    } satisfies RolePermissionSet;
+  },
+};
+
+export const rolesService = {
+  list: () => request<StudioRole[]>('/roles'),
+  get: (roleId: RoleId) => request<StudioRole>(`/roles/${encodeURIComponent(roleId)}`),
+  create: (input: CreateStudioRoleInput) =>
+    request<StudioRole>('/roles', { method: 'POST', body: JSON.stringify(input) }),
+  updatePermissions: (roleId: RoleId, input: UpdateRolePermissionsInput) =>
+    updateStudioRolePermissions(roleId, input),
 };
 
 export const followsService = {

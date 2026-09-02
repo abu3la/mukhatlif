@@ -1,0 +1,4 @@
+interface:
+  display_name: "محرر مختلف"
+  short_description: "حوّل فكرة ومصادر إلى مسودة مقال لمختلف"
+  default_prompt: "استخدم $mukhtalif-article-writer لإعداد مقال لمختلف: اسألني أولًا عن الفكرة والجمهور والمصادر، ثم جهّز المسودة."

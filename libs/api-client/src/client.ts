@@ -38,7 +38,7 @@ export class ApiError extends Error {
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
-  headers.set('content-type', 'application/json');
+  if (init?.body && !headers.has('content-type')) headers.set('content-type', 'application/json');
   if (authToken) headers.set('authorization', `Bearer ${authToken}`);
   else if (devUserId) headers.set('x-dev-user', devUserId);
 
@@ -49,4 +49,36 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
+}
+
+/** Authenticated raw upload with byte progress for the reserved media PUT route. */
+export function uploadRequest<T>(
+  path: string,
+  file: Blob,
+  onProgress?: (uploadedBytes: number, totalBytes: number) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', `${baseUrl}${path}`);
+    xhr.setRequestHeader('content-type', file.type);
+    if (authToken) xhr.setRequestHeader('authorization', `Bearer ${authToken}`);
+    else if (devUserId) xhr.setRequestHeader('x-dev-user', devUserId);
+    xhr.upload.addEventListener('progress', (event) => {
+      onProgress?.(event.loaded, event.lengthComputable ? event.total : file.size);
+    });
+    xhr.addEventListener('load', () => {
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new ApiError(xhr.status, xhr.responseText || xhr.statusText));
+        return;
+      }
+      try {
+        resolve(JSON.parse(xhr.responseText) as T);
+      } catch {
+        reject(new ApiError(xhr.status, 'Invalid API response'));
+      }
+    });
+    xhr.addEventListener('error', () => reject(new ApiError(0, 'Upload failed')));
+    xhr.addEventListener('abort', () => reject(new ApiError(0, 'Upload cancelled')));
+    xhr.send(file);
+  });
 }

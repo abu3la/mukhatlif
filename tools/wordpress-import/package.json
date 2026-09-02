@@ -1,0 +1,5 @@
+{
+  "name": "@mukhtalif/wordpress-import-tool",
+  "private": true,
+  "type": "module"
+}

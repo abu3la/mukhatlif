@@ -3,20 +3,43 @@
   "private": true,
   "packageManager": "pnpm@10.34.5",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
-    "dev": "turbo dev",
     "build": "turbo build",
+    "dev": "turbo dev",
+    "env:sync": "node scripts/sync-local-env.mjs",
+    "format": "prettier --write .",
+    "migrate:audio:r2": "tsx tools/audio-r2/src/cli.ts",
+    "import:newsletter:elementor:apply": "tsx tools/elementor-newsletter-import/src/apply-cli.ts --apply",
+    "import:newsletter:elementor:dry-run": "tsx tools/elementor-newsletter-import/src/cli.ts",
+    "import:newsletter:elementor:preflight": "tsx tools/elementor-newsletter-import/src/apply-cli.ts",
+    "import:rss": "tsx tools/rss-import/src/cli.ts",
+    "import:guests:notion:dry-run": "tsx tools/notion-guest-import/src/cli.ts",
+    "import:guests:notion:apply": "tsx tools/notion-guest-import/src/cli.ts --apply",
+    "import:wordpress": "tsx tools/wordpress-import/src/apply-cli.ts",
+    "import:wordpress:dry-run": "tsx tools/wordpress-import/src/cli.ts",
     "lint": "turbo lint",
-    "type-check": "turbo type-check",
     "test": "turbo test",
-    "format": "prettier --write ."
+    "test:audio-r2": "vitest run tools/audio-r2/src",
+    "test:elementor-newsletter-import": "vitest run tools/elementor-newsletter-import/src",
+    "test:rss-import": "vitest run tools/rss-import/src",
+    "test:notion-guest-import": "vitest run tools/notion-guest-import/src",
+    "test:deployment-scripts": "node --test scripts/*.test.mjs",
+    "test:wordpress-import": "vitest run tools/wordpress-import/src",
+    "type-check:audio-r2": "tsc -p tools/audio-r2/tsconfig.json",
+    "type-check:elementor-newsletter-import": "tsc -p tools/elementor-newsletter-import/tsconfig.json",
+    "type-check:rss-import": "tsc -p tools/rss-import/tsconfig.json",
+    "type-check:notion-guest-import": "tsc -p tools/notion-guest-import/tsconfig.json",
+    "type-check:wordpress-import": "tsc -p tools/wordpress-import/tsconfig.json",
+    "type-check": "turbo type-check"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
     "eslint": "^9.34.0",
+    "parse5": "^8.0.1",
     "prettier": "^3.6.2",
+    "tsx": "^4.20.6",
     "turbo": "^2.5.8",
     "typescript-eslint": "^8.40.0"
   }

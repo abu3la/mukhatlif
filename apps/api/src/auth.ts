@@ -1,56 +1,133 @@
 import { createClient } from '@supabase/supabase-js';
 import type { MiddlewareHandler } from 'hono';
-import type { User } from '@mukhtalif/types';
-import type { Env } from './env';
+import type { ClientSurface, PermissionId, StudioMember, User } from '@mukhtalif/types';
+import { getSupabaseCredentials, isDevAuthEnabled, type Env } from './env';
 import { getRepository } from './repo';
 
 export type AppEnv = {
   Bindings: Env;
-  Variables: { user: User | null };
+  Variables: {
+    authUserId: string | null;
+    /** Declared client product, or null when the caller did not say. */
+    clientSurface: ClientSurface | null;
+    permissions: PermissionId[];
+    studioMember: StudioMember | null;
+    user: User | null;
+  };
 };
 
 /**
  * Resolves the requester once per request.
- * - With Supabase configured: verifies the `Authorization: Bearer <jwt>` via
- *   Supabase Auth, then loads the matching profile row.
- * - Without credentials (local dev): trusts an `x-dev-user` header naming a
- *   seeded user id, e.g. `usr-admin-1`. Never active once Supabase is configured.
+ * - With Supabase configured: verifies the bearer token and independently
+ *   resolves the app profile and Studio membership linked to that Auth UUID.
+ * - Without Supabase: x-dev-user is accepted only when both APP_ENV and the
+ *   explicit local development gate allow it.
  */
 export const resolveUser: MiddlewareHandler<AppEnv> = async (c, next) => {
+  c.set('authUserId', null);
+  c.set('permissions', []);
+  c.set('studioMember', null);
   c.set('user', null);
   const repo = getRepository(c.env);
-  const supabaseConfigured = Boolean(c.env.SUPABASE_URL && c.env.SUPABASE_SERVICE_ROLE_KEY);
+  const credentials = getSupabaseCredentials(c.env);
 
-  if (supabaseConfigured) {
-    const bearer = c.req.header('authorization');
-    if (bearer?.toLowerCase().startsWith('bearer ')) {
-      const supabase = createClient(c.env.SUPABASE_URL!, c.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  if (credentials) {
+    const authorization = c.req.header('authorization')?.trim();
+    const bearer = authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+    if (bearer) {
+      const supabase = createClient(credentials.url, credentials.serviceRoleKey, {
         auth: { persistSession: false },
       });
-      const { data } = await supabase.auth.getUser(bearer.slice(7));
+      const { data, error } = await supabase.auth.getUser(bearer);
+      if (error) {
+        await next();
+        return;
+      }
       if (data.user) {
-        const profile =
-          (data.user.email ? await repo.getUserByEmail(data.user.email) : null) ??
-          (await repo.getUser(data.user.id));
-        c.set('user', profile);
+        c.set('authUserId', data.user.id);
+        const [user, studioMember] = await Promise.all([
+          repo.getUserByAuthId(data.user.id),
+          repo.getStudioMemberByAuthId(data.user.id),
+        ]);
+        c.set('user', user);
+        // A verified Auth identity is not an operator until its invitation has
+        // been accepted. Keep authUserId above so invitation-only routes still
+        // work, but never attach a pending membership or resolve its role.
+        c.set('studioMember', studioMember?.status === 'active' ? studioMember : null);
       }
     }
-  } else {
+  } else if (isDevAuthEnabled(c.env)) {
     const devUserId = c.req.header('x-dev-user');
-    if (devUserId) c.set('user', await repo.getUser(devUserId));
+    if (devUserId) {
+      const [user, studioMember] = await Promise.all([
+        repo.getUser(devUserId),
+        repo.getStudioMember(devUserId),
+      ]);
+      c.set('user', user);
+      c.set('studioMember', studioMember?.status === 'active' ? studioMember : null);
+      if (user || studioMember) c.set('authUserId', `dev:${devUserId}`);
+    }
+  }
+
+  const studioMember = c.get('studioMember');
+  if (studioMember) {
+    c.set('permissions', await repo.resolveRolePermissions(studioMember.role));
   }
 
   await next();
 };
 
 export const requireAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
-  if (!c.get('user')) return c.json({ error: 'Authentication required' }, 401);
+  if (!c.get('user')) {
+    if (c.get('authUserId')) return c.json({ error: 'Profile access is not provisioned' }, 403);
+    return c.json({ error: 'Authentication required' }, 401);
+  }
   await next();
 };
 
+export const requireStudioAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
+  if (!c.get('studioMember')) {
+    if (c.get('authUserId')) {
+      return c.json({ error: 'Studio membership is not provisioned' }, 403);
+    }
+    return c.json({ error: 'Authentication required' }, 401);
+  }
+  await next();
+};
+
+export function hasPermission(
+  permissions: readonly PermissionId[],
+  permission: PermissionId,
+): boolean {
+  return permissions.includes(permission);
+}
+
+export function requirePermission(permission: PermissionId): MiddlewareHandler<AppEnv> {
+  return async (c, next) => {
+    const member = c.get('studioMember');
+    if (!member) {
+      if (c.get('authUserId')) {
+        return c.json({ error: 'Studio membership is not provisioned' }, 403);
+      }
+      return c.json({ error: 'Authentication required' }, 401);
+    }
+    if (!hasPermission(c.get('permissions'), permission)) {
+      return c.json({ error: `Permission required: ${permission}` }, 403);
+    }
+    await next();
+  };
+}
+
 export const requireAdmin: MiddlewareHandler<AppEnv> = async (c, next) => {
-  const user = c.get('user');
-  if (!user) return c.json({ error: 'Authentication required' }, 401);
-  if (user.role !== 'admin') return c.json({ error: 'Admin access required' }, 403);
+  const member = c.get('studioMember');
+  if (!member) {
+    if (c.get('authUserId')) {
+      return c.json({ error: 'Studio membership is not provisioned' }, 403);
+    }
+    return c.json({ error: 'Authentication required' }, 401);
+  }
+  if (member.role !== 'admin') {
+    return c.json({ error: 'Admin access required', code: 'ADMIN_REQUIRED' }, 403);
+  }
   await next();
 };

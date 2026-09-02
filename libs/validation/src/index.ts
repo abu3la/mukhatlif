@@ -10,12 +10,37 @@ export {
 export type { CreateEpisodeInput, UpdateEpisodeInput, UpdateEpisodeStatusInput } from './episode';
 
 export {
+  articleAdBlockAttributesSchema,
+  articleAdPlacementIdSchema,
+  articleImageGalleryAttributesSchema,
+  articleImageGalleryItemSchema,
+  articleImageLinkSchema,
+  articleAuthorDisplayNameSchema,
+  articleAuthorInputSchema,
+  articleAuthorPlacementSchema,
   articleStatusSchema,
   createArticleSchema,
+  richTextDocumentSchema,
+  richTextMarkSchema,
+  richTextNodeSchema,
+  hasMeaningfulArticleContent,
+  normalizeArticleAuthorDisplayName,
+  sendNewsletterSchema,
+  syncNewsletterCampaignSchema,
   updateArticleSchema,
   updateArticleStatusSchema,
 } from './article';
-export type { CreateArticleInput, UpdateArticleInput, UpdateArticleStatusInput } from './article';
+export type {
+  ArticleAuthorInput,
+  CreateArticleInput,
+  SendNewsletterInput,
+  SyncNewsletterCampaignInput,
+  UpdateArticleInput,
+  UpdateArticleStatusInput,
+} from './article';
+
+export { createMediaUploadSchema, mediaAssetIdSchema } from './media';
+export type { CreateMediaUploadInput } from './media';
 
 export {
   subscriptionStatusSchema,
@@ -26,3 +51,92 @@ export type { CreateSubscriptionInput, UpdateSubscriptionStatusInput } from './s
 
 export { followSchema, upsertProgressSchema } from './engagement';
 export type { FollowInput, UpsertProgressInput } from './engagement';
+
+export {
+  acceptStudioInvitationSchema,
+  inviteStudioMemberSchema,
+  studioInvitationPasswordSchema,
+  updateStudioMemberRoleSchema,
+} from './studio-member';
+export type {
+  AcceptStudioInvitationInput,
+  InviteStudioMemberInput,
+  UpdateStudioMemberRoleInput,
+} from './studio-member';
+
+export {
+  permissionIdSchema,
+  rolePermissionsSchema,
+  updateRolePermissionsSchema,
+} from './permission';
+export type { UpdateRolePermissionsInput } from './permission';
+
+export {
+  createStudioRoleSchema,
+  roleIdSchema,
+  studioRoleListSchema,
+  studioRoleParamsSchema,
+  studioRoleSchema,
+} from './role';
+export type { CreateStudioRoleInput, StudioRoleParams } from './role';
+
+export {
+  createGuestSchema,
+  createGuestSocialSchema,
+  guestAppearanceSchema,
+  socialPlatformSchema,
+  updateGuestSchema,
+  updateGuestSocialSchema,
+} from './guest';
+export type {
+  CreateGuestInput,
+  CreateGuestSocialInput,
+  GuestAppearanceInput,
+  UpdateGuestInput,
+  UpdateGuestSocialInput,
+} from './guest';
+
+export { isPaginatedRequest, listQuerySchema, resolveListQuery } from './pagination';
+export type { ListQueryInput } from './pagination';
+
+export {
+  careersFormPayloadSchema,
+  formNotificationStatusSchema,
+  formSubmissionAttachmentRefSchema,
+  formSubmissionListQuerySchema,
+  formSubmissionPayloadSchemas,
+  formSubmissionSourceMetadataSchema,
+  formSubmissionStatusSchema,
+  formSubmissionTypeSchema,
+  guestReviewFormPayloadSchema,
+  guestSuggestionFormPayloadSchema,
+  partnershipFormPayloadSchema,
+  productionServiceFormPayloadSchema,
+  publicFormSubmissionSchemas,
+  sponsorshipFormPayloadSchema,
+  updateFormSubmissionSchema,
+} from './form-submission';
+export type {
+  CareersFormSubmissionInput,
+  FormSubmissionListQueryInput,
+  GuestReviewFormSubmissionInput,
+  GuestSuggestionFormSubmissionInput,
+  PartnershipFormSubmissionInput,
+  ProductionServiceFormSubmissionInput,
+  SponsorshipFormSubmissionInput,
+  UpdateFormSubmissionInput,
+} from './form-submission';
+
+export {
+  newsletterSubscriberListQuerySchema,
+  newsletterSubscriptionRequestSchema,
+  newsletterSubscriptionSourceMetadataSchema,
+  newsletterSubscriptionSyncStatusSchema,
+} from './newsletter-subscription';
+export type {
+  NewsletterSubscriberListQueryInput,
+  NewsletterSubscriptionRequestInput,
+} from './newsletter-subscription';
+
+export { updateHomepageWeeklyEpisodesSettingsSchema } from './homepage';
+export type { UpdateHomepageWeeklyEpisodesSettingsInput } from './homepage';

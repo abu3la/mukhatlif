@@ -1,14 +1,182 @@
-export const USER_ROLES = ['listener', 'admin'] as const;
-export type UserRole = (typeof USER_ROLES)[number];
+import type { PermissionId } from './permission';
+import type { RoleId } from './role';
 
 export type UserLocale = 'ar' | 'en';
 
+/**
+ * A Mukhtalif application user. Application users may listen, follow shows,
+ * and hold subscriptions. They never carry Studio roles or permissions.
+ */
 export interface User {
   id: string;
   email: string;
   displayName: string;
-  role: UserRole;
   locale: UserLocale;
   /** ISO timestamp */
   createdAt: string;
 }
+
+/** Subscriber-directory projection. Auth linkage is deliberately server-only. */
+export type SubscriberUser = User;
+
+/** App profile returned by `/me`. Studio permissions are never added here. */
+export type AuthenticatedUser = User;
+
+/**
+ * Where a Studio account sits in the invitation lifecycle. A member row exists
+ * from the moment an invitation is sent, so this is what separates a pending
+ * invitee from an operator who has accepted and set a password.
+ */
+export const STUDIO_MEMBER_STATUSES = ['invited', 'active'] as const;
+export type StudioMemberStatus = (typeof STUDIO_MEMBER_STATUSES)[number];
+
+/**
+ * A member of the private Studio administration workspace. This is a distinct
+ * entity from an application User even when both rows link to the same Auth ID.
+ */
+export interface StudioMember {
+  id: string;
+  email: string;
+  displayName: string;
+  role: RoleId;
+  roleName: string;
+  locale: UserLocale;
+  status: StudioMemberStatus;
+  /** ISO timestamp */
+  createdAt: string;
+}
+
+/** Studio directory projection. The immutable Auth UUID stays server-only. */
+export interface StudioMemberAccess extends StudioMember {
+  authLinked: boolean;
+  /** ISO timestamp; absent while the invitation is still pending. */
+  acceptedAt?: string;
+}
+
+/**
+ * What `/studio/invitations/me` reports to the holder of a verified Auth token.
+ * It describes only the caller's own membership and never the Auth UUID.
+ */
+export interface StudioInvitationState {
+  status: StudioMemberStatus | 'none';
+  email?: string;
+  displayName?: string;
+  roleName?: string;
+}
+
+export const STUDIO_INVITATION_ERROR_CODES = [
+  'VALIDATION_ERROR',
+  'WEAK_PASSWORD',
+  'NO_INVITATION',
+  'ALREADY_ACCEPTED',
+  'AUTH_PROVISIONING_UNAVAILABLE',
+  'PASSWORD_UPDATE_FAILED',
+  'ACCEPTANCE_FAILED',
+] as const;
+
+export type StudioInvitationErrorCode = (typeof STUDIO_INVITATION_ERROR_CODES)[number];
+
+export interface StudioInvitationErrorResponse {
+  error: string;
+  code: StudioInvitationErrorCode;
+}
+
+export const STUDIO_MEMBER_ACCEPTANCE_AUDIT_ACTION = 'studio_member.accepted' as const;
+
+export interface StudioMemberAcceptanceAuditLog {
+  id: string;
+  action: typeof STUDIO_MEMBER_ACCEPTANCE_AUDIT_ACTION;
+  studioMemberId: string;
+  requestId: string;
+  /** ISO timestamp */
+  createdAt: string;
+}
+
+/** Authenticated Studio identity returned by `/studio/me`. */
+export interface AuthenticatedStudioMember extends StudioMember {
+  permissions: PermissionId[];
+}
+
+export const STUDIO_MEMBER_INVITATION_AUDIT_ACTION = 'studio_member.invited' as const;
+
+export interface StudioMemberInvitationAuditLog {
+  id: string;
+  actorStudioMemberId: string;
+  action: typeof STUDIO_MEMBER_INVITATION_AUDIT_ACTION;
+  targetStudioMemberId: string;
+  invitedEmail: string;
+  assignedRole: RoleId;
+  locale: UserLocale;
+  requestId: string;
+  /** ISO timestamp */
+  createdAt: string;
+}
+
+export const STUDIO_MEMBER_INVITATION_ERROR_CODES = [
+  'VALIDATION_ERROR',
+  'ADMIN_REQUIRED',
+  'ROLE_NOT_FOUND',
+  'PROTECTED_ROLE',
+  'EMAIL_ALREADY_EXISTS',
+  'AUTH_IDENTITY_ALREADY_EXISTS',
+  'AUTH_PROVISIONING_UNAVAILABLE',
+  'INVITE_DELIVERY_FAILED',
+  'STUDIO_MEMBER_PROVISIONING_FAILED',
+  'STUDIO_MEMBER_PROVISIONING_PARTIAL_FAILURE',
+] as const;
+
+export type StudioMemberInvitationErrorCode =
+  (typeof STUDIO_MEMBER_INVITATION_ERROR_CODES)[number];
+
+export interface StudioMemberInvitationErrorResponse {
+  error: string;
+  code: StudioMemberInvitationErrorCode;
+}
+
+export const STUDIO_MEMBER_ACCESS_AUDIT_ACTION = 'studio_member.role_changed' as const;
+
+export interface StudioMemberAccessAuditLog {
+  id: string;
+  actorStudioMemberId: string;
+  action: typeof STUDIO_MEMBER_ACCESS_AUDIT_ACTION;
+  targetStudioMemberId: string;
+  previousRole: RoleId;
+  newRole: RoleId;
+  requestId: string;
+  /** ISO timestamp */
+  createdAt: string;
+}
+
+export const ROLE_PERMISSION_AUDIT_ACTION = 'role.permissions_changed' as const;
+export const ROLE_CREATED_AUDIT_ACTION = 'role.created' as const;
+
+export interface RoleCreatedAuditLog {
+  id: string;
+  actorStudioMemberId: string;
+  action: typeof ROLE_CREATED_AUDIT_ACTION;
+  targetRole: RoleId;
+  roleName: string;
+  initialPermissions: PermissionId[];
+  requestId: string;
+  /** ISO timestamp */
+  createdAt: string;
+}
+
+export interface RolePermissionAuditLog {
+  id: string;
+  actorStudioMemberId: string;
+  action: typeof ROLE_PERMISSION_AUDIT_ACTION;
+  targetRole: RoleId;
+  previousPermissions: PermissionId[];
+  newPermissions: PermissionId[];
+  requestId: string;
+  /** ISO timestamp */
+  createdAt: string;
+}
+
+export type AccessAuditLog =
+  | StudioMemberAcceptanceAuditLog
+  | StudioMemberAccessAuditLog
+  | RoleCreatedAuditLog
+  | RolePermissionAuditLog
+  | StudioMemberInvitationAuditLog;

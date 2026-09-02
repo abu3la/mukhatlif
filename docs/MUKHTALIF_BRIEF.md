@@ -29,19 +29,22 @@ create accounts, subscribe, and listen.
   Next.js app serves both public and authenticated pages.
 - **apps/admin** — web admin (Vite + React SPA, React Router + TanStack Query):
   the Mukhtalif team's content studio — shows, episodes, hosts, articles,
-  publishing, subscribers.
+  publishing, subscribers, and Studio access management. Studio accounts are
+  not application users.
 - **apps/mobile** — ONE Expo listener app (expo-router). Only one mobile role
   exists (the listener), so the one-app-per-role rule yields a single app.
 
 ## Core domain objects
 
 1. **User** — listener account (auth via Supabase), profile, subscription state.
-2. **Show** — a program: name, host(s), artwork, description, category.
-3. **Episode** — belongs to a Show; audio asset, duration, show notes,
+2. **StudioMember** — private administration membership, dynamic Studio role,
+   and page permissions. It is stored separately from User.
+3. **Show** — a program: name, host(s), artwork, description, category.
+4. **Episode** — belongs to a Show; audio asset, duration, show notes,
    publish lifecycle.
-4. **Subscription** — a user's paid plan (prices in minor units + currency,
+5. **Subscription** — a user's paid plan (prices in minor units + currency,
    snapshotted at creation, per the Bubbly rule).
-5. **Article** — editorial written content (the site publishes articles today).
+6. **Article** — editorial written content (the site publishes articles today).
 
 Supporting: Host/Person, Category, PlaybackProgress (resume position),
 Follow (user ↔ show).
@@ -50,8 +53,9 @@ Follow (user ↔ show).
 
 Episode publishing lifecycle:
 `draft → scheduled → published → archived`
-(scheduled → draft allowed; published → archived allowed; nothing skips draft
-review; archived is terminal except restore → published.)
+(scheduled → draft allowed; published → archived allowed; direct draft →
+published is an explicit admin action; restore sends archived content back to
+draft for review.)
 
 Secondary: Subscription status `active → past_due → canceled` (+ `trialing`
 if trials are wanted — confirm during plan mode).
@@ -75,10 +79,15 @@ raised and postponed; re-ask when scoping features.
 
 ## Status
 
-- 2026-08-08: brief prepared. Nothing scaffolded yet — the folder holds only
-  ARCHITECTURE_GUIDE.md and this brief. Bubbly reference repo available at
-  github.com/ahashmi95/bubbly-carwash (docs/ARCHITECTURE_GUIDE.md is the
-  architecture source of truth).
-- Next step when the user says go: enter plan mode, ask remaining clarifying
-  questions (auth details, payment provider, audio hosting/streaming approach,
-  subscription tiers), then the visual plan artifact, then phased scaffold.
+- 2026-08-08: initial brief prepared.
+- 2026-08-16: Admin Studio stack accepted as Vite + React, backed by the Hono
+  API and Supabase. The first formal dashboard slice is in `apps/admin`; see
+  `docs/adr/0001-admin-studio-stack.md` for its boundaries and open production
+  dependencies.
+- 2026-08-17: Studio members and application users were separated as distinct
+  data and authorization domains; see
+  `docs/adr/0005-separate-studio-accounts-from-app-users.md`.
+- 2026-08-20: The API gaps recorded in ADR 0001 and ADR 0002 were closed —
+  guests, list paging and search, the overview summary, invitation acceptance,
+  and the episode-audio upload contract — and the public site was built in
+  `apps/web`. See `docs/adr/0007-public-web-app-and-api-completion.md`.
