@@ -12,9 +12,11 @@ const localEnv: Env = {
 
 const mailchimpEnv: Env = {
   ...localEnv,
+  MAILCHIMP_CAMPAIGNS_ENABLED: 'true',
   MAILCHIMP_API_KEY: 'secret-api-key-us1',
   MAILCHIMP_SERVER_PREFIX: 'us1',
   MAILCHIMP_AUDIENCE_ID: 'audience_1',
+  MAILCHIMP_RECIPIENT_SEGMENT_ID: '31415',
   MAILCHIMP_FROM_NAME: 'مختلف',
   MAILCHIMP_REPLY_TO: 'studio@mukhtalif.net',
   PUBLIC_WEB_URL: 'https://mukhtalif.net',
@@ -442,6 +444,15 @@ interface MailchimpMockState {
   checklistReady: boolean;
   completeOnSend?: boolean;
   audienceId?: string;
+  campaignRecipientSegmentId?: number;
+  resolvedRecipientSegmentId?: number;
+  recipientTag?: string;
+  recipientSegmentType?: string;
+  recipientCount?: number;
+  createdRecipientSegmentId?: number;
+  updatedAudienceId?: string;
+  updatedRecipientSegmentId?: number;
+  driftRecipientSegmentAfterChecklist?: number;
   audienceGate?: Promise<void>;
   onAudienceRequest?: () => void;
   remoteSubject?: string;
@@ -457,6 +468,14 @@ function installMailchimpMock(state: MailchimpMockState) {
   const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = init?.method ?? 'GET';
+    if (url.includes('/segments/')) {
+      return Response.json({
+        id: state.resolvedRecipientSegmentId ?? 31415,
+        name: state.recipientTag ?? 'nlpage',
+        member_count: state.recipientCount ?? 730,
+        type: state.recipientSegmentType ?? 'static',
+      });
+    }
     if (url.includes('/lists/')) {
       state.onAudienceRequest?.();
       await state.audienceGate;
@@ -466,12 +485,24 @@ function installMailchimpMock(state: MailchimpMockState) {
       state.createCount += 1;
       const body = JSON.parse(String(init?.body)) as {
         settings?: { subject_line?: string };
+        recipients?: { list_id?: string; segment_opts?: { saved_segment_id?: number } };
       };
       state.remoteSubject = body.settings?.subject_line;
+      state.createdRecipientSegmentId = body.recipients?.segment_opts?.saved_segment_id;
       await Promise.resolve();
-      return Response.json({ id: 'campaign-one', status: 'save' });
+      return Response.json({
+        id: 'campaign-one',
+        status: 'save',
+        recipients: {
+          list_id: body.recipients?.list_id,
+          segment_opts: { saved_segment_id: body.recipients?.segment_opts?.saved_segment_id },
+        },
+      });
     }
     if (url.endsWith('/send-checklist')) {
+      if (state.driftRecipientSegmentAfterChecklist !== undefined) {
+        state.campaignRecipientSegmentId = state.driftRecipientSegmentAfterChecklist;
+      }
       return Response.json({ is_ready: state.checklistReady });
     }
     if (url.endsWith('/actions/send')) {
@@ -494,19 +525,30 @@ function installMailchimpMock(state: MailchimpMockState) {
     if (url.includes('/campaigns/campaign-one') && method === 'PATCH') {
       const body = JSON.parse(String(init?.body)) as {
         settings?: { subject_line?: string };
+        recipients?: { list_id?: string; segment_opts?: { saved_segment_id?: number } };
       };
       state.remoteSubject = body.settings?.subject_line;
+      state.updatedAudienceId = body.recipients?.list_id;
+      state.updatedRecipientSegmentId = body.recipients?.segment_opts?.saved_segment_id;
+      state.audienceId = body.recipients?.list_id;
+      state.campaignRecipientSegmentId = body.recipients?.segment_opts?.saved_segment_id;
       return Response.json({
         id: 'campaign-one',
         status: state.status,
-        recipients: { list_id: state.audienceId ?? 'audience_1' },
+        recipients: {
+          list_id: state.audienceId ?? 'audience_1',
+          segment_opts: { saved_segment_id: state.campaignRecipientSegmentId ?? 31415 },
+        },
       });
     }
     if (url.includes('/campaigns/campaign-one')) {
       return Response.json({
         id: 'campaign-one',
         status: state.status,
-        recipients: { list_id: state.audienceId ?? 'audience_1' },
+        recipients: {
+          list_id: state.audienceId ?? 'audience_1',
+          segment_opts: { saved_segment_id: state.campaignRecipientSegmentId ?? 31415 },
+        },
         ...(state.status === 'sent' ? { send_time: '2026-08-17T12:00:00Z' } : {}),
       });
     }
@@ -517,6 +559,66 @@ function installMailchimpMock(state: MailchimpMockState) {
 }
 
 describe('Mailchimp publishing workflow', () => {
+  it('does not contact Mailchimp for capability, draft creation, reconciliation, or send while paused', async () => {
+    const state: MailchimpMockState = {
+      createCount: 0,
+      sendCount: 0,
+      status: 'save',
+      checklistReady: true,
+    };
+    const fetcher = installMailchimpMock(state);
+    const syncedDraft = await createArticle(
+      `paused-existing-${crypto.randomUUID().slice(0, 8)}`,
+      mailchimpEnv,
+    );
+    const syncSetup = await syncNewsletterCampaign(syncedDraft.id, syncedDraft.version);
+    expect(syncSetup.status).toBe(200);
+    const syncedArticle = ((await syncSetup.json()) as { article: Article }).article;
+    const audienceToken = await audienceConfirmationToken();
+    const unsyncedDraft = await createArticle(
+      `paused-new-${crypto.randomUUID().slice(0, 8)}`,
+      mailchimpEnv,
+    );
+    const pausedEnv: Env = { ...mailchimpEnv, MAILCHIMP_CAMPAIGNS_ENABLED: 'false' };
+    fetcher.mockClear();
+
+    const capability = await apiRequest('/studio/articles/mailchimp/capability', {}, pausedEnv);
+    const create = await apiRequest(
+      `/studio/articles/${unsyncedDraft.id}/newsletter/campaign`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ expectedVersion: unsyncedDraft.version }),
+      },
+      pausedEnv,
+    );
+    const reconcile = await apiRequest(
+      `/studio/articles/${syncedArticle.id}/newsletter/reconcile`,
+      { method: 'POST' },
+      pausedEnv,
+    );
+    const send = await apiRequest(
+      `/studio/articles/${syncedArticle.id}/newsletter/send`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          confirmation: 'SEND_NEWSLETTER',
+          audienceConfirmationToken: audienceToken,
+          expectedVersion: syncedArticle.version,
+          expectedCampaignId: syncedArticle.newsletter.campaignId,
+        }),
+      },
+      pausedEnv,
+    );
+
+    expect(capability.status).toBe(200);
+    expect(await capability.json()).toEqual({ mode: 'live', configured: false });
+    for (const response of [create, reconcile, send]) {
+      expect(response.status).toBe(503);
+      expect(await response.json()).toMatchObject({ code: 'MAILCHIMP_NOT_CONFIGURED' });
+    }
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it('verifies a safe audience summary and reports verification failure without secrets', async () => {
     const state = { createCount: 0, sendCount: 0, status: 'save', checklistReady: true };
     installMailchimpMock(state);
@@ -528,6 +630,8 @@ describe('Mailchimp publishing workflow', () => {
       replyTo: 'studio@mukhtalif.net',
       audienceName: 'مشتركو النشرة الأسبوعية',
       audienceCount: 1280,
+      recipientTag: 'nlpage',
+      recipientCount: 730,
       audienceConfirmationToken: expect.any(String),
     });
 
@@ -540,6 +644,64 @@ describe('Mailchimp publishing workflow', () => {
     expect(unavailable.status).toBe(200);
     expect(body).not.toContain('secret-api-key');
     expect(body).not.toContain('audienceName');
+  });
+
+  it('does not create a campaign when the configured segment is not the nlpage tag', async () => {
+    const state: MailchimpMockState = {
+      createCount: 0,
+      sendCount: 0,
+      status: 'save',
+      checklistReady: true,
+      recipientTag: 'other',
+    };
+    installMailchimpMock(state);
+    const article = await createArticle(
+      `wrong-tag-${crypto.randomUUID().slice(0, 8)}`,
+      mailchimpEnv,
+    );
+
+    const sync = await syncNewsletterCampaign(article.id);
+
+    expect(sync.status).toBe(502);
+    expect(await sync.json()).toMatchObject({ code: 'MAILCHIMP_UNAVAILABLE' });
+    expect(state.createCount).toBe(0);
+    const stored = await apiRequest(`/studio/articles/${article.id}`, {}, mailchimpEnv);
+    const storedArticle = (await stored.json()) as Article;
+    expect(storedArticle.newsletter.status).toBe('draft');
+    expect(storedArticle.newsletter).not.toHaveProperty('campaignId');
+  });
+
+  it('blocks campaign and reconciliation when the remote recipient segment drifts', async () => {
+    const state: MailchimpMockState = {
+      createCount: 0,
+      sendCount: 0,
+      status: 'save',
+      checklistReady: true,
+    };
+    installMailchimpMock(state);
+    const article = await createArticle(
+      `segment-drift-${crypto.randomUUID().slice(0, 8)}`,
+      mailchimpEnv,
+    );
+    expect((await syncNewsletterCampaign(article.id)).status).toBe(200);
+    state.campaignRecipientSegmentId = 27182;
+
+    const resync = await syncNewsletterCampaign(article.id);
+    expect(resync.status).toBe(409);
+    expect(await resync.json()).toMatchObject({
+      code: 'MAILCHIMP_RECIPIENT_SEGMENT_MISMATCH',
+    });
+
+    const reconcile = await apiRequest(
+      `/studio/articles/${article.id}/newsletter/reconcile`,
+      { method: 'POST' },
+      mailchimpEnv,
+    );
+    expect(reconcile.status).toBe(409);
+    expect(await reconcile.json()).toMatchObject({
+      code: 'MAILCHIMP_RECIPIENT_SEGMENT_MISMATCH',
+    });
+    expect(state.sendCount).toBe(0);
   });
 
   it('rejects a stale campaign-sync revision before contacting Mailchimp', async () => {
@@ -644,7 +806,12 @@ describe('Mailchimp publishing workflow', () => {
   });
 
   it('creates one remote draft under concurrent calls, reuses it, blocks stale send, and sends once', async () => {
-    const state = { createCount: 0, sendCount: 0, status: 'save', checklistReady: true };
+    const state: MailchimpMockState = {
+      createCount: 0,
+      sendCount: 0,
+      status: 'save',
+      checklistReady: true,
+    };
     installMailchimpMock(state);
     const article = await createArticle(`mail-${crypto.randomUUID().slice(0, 8)}`, mailchimpEnv);
 
@@ -654,6 +821,7 @@ describe('Mailchimp publishing workflow', () => {
     ]);
     expect([one.status, two.status].sort()).toEqual([200, 409]);
     expect(state.createCount).toBe(1);
+    expect(state.createdRecipientSegmentId).toBe(31415);
     const syncedResponse = one.status === 200 ? one : two;
     const syncedPayload = (await syncedResponse.json()) as { article: Article };
     expect(JSON.stringify(syncedPayload)).not.toContain('syncToken');
@@ -818,6 +986,74 @@ describe('Mailchimp publishing workflow', () => {
     expect(send.status).toBe(409);
     expect(await send.json()).toMatchObject({ code: 'MAILCHIMP_AUDIENCE_MISMATCH' });
     expect(state.sendCount).toBe(0);
+  });
+
+  it('refuses to send when the persisted campaign targets another segment', async () => {
+    const state: MailchimpMockState = {
+      createCount: 0,
+      sendCount: 0,
+      status: 'save',
+      checklistReady: true,
+    };
+    installMailchimpMock(state);
+    const article = await createArticle(
+      `segment-mismatch-${crypto.randomUUID().slice(0, 8)}`,
+      mailchimpEnv,
+    );
+    expect((await syncNewsletterCampaign(article.id)).status).toBe(200);
+    state.campaignRecipientSegmentId = 27182;
+
+    const send = await apiRequest(
+      `/studio/articles/${article.id}/newsletter/send`,
+      {
+        method: 'POST',
+        body: JSON.stringify(await newsletterSendInput(article.id)),
+      },
+      mailchimpEnv,
+    );
+
+    expect(send.status).toBe(409);
+    expect(await send.json()).toMatchObject({
+      code: 'MAILCHIMP_RECIPIENT_SEGMENT_MISMATCH',
+    });
+    expect(state.sendCount).toBe(0);
+  });
+
+  it('pins recipients on update and refuses segment drift introduced after the checklist', async () => {
+    const state: MailchimpMockState = {
+      createCount: 0,
+      sendCount: 0,
+      status: 'save',
+      checklistReady: true,
+      driftRecipientSegmentAfterChecklist: 27182,
+    };
+    installMailchimpMock(state);
+    const article = await createArticle(
+      `late-segment-drift-${crypto.randomUUID().slice(0, 8)}`,
+      mailchimpEnv,
+    );
+    expect((await syncNewsletterCampaign(article.id)).status).toBe(200);
+
+    const send = await apiRequest(
+      `/studio/articles/${article.id}/newsletter/send`,
+      {
+        method: 'POST',
+        body: JSON.stringify(await newsletterSendInput(article.id)),
+      },
+      mailchimpEnv,
+    );
+
+    expect(state.updatedAudienceId).toBe('audience_1');
+    expect(state.updatedRecipientSegmentId).toBe(31415);
+    expect(send.status).toBe(409);
+    expect(await send.json()).toMatchObject({
+      code: 'MAILCHIMP_RECIPIENT_SEGMENT_MISMATCH',
+    });
+    expect(state.sendCount).toBe(0);
+    const stored = await apiRequest(`/studio/articles/${article.id}`, {}, mailchimpEnv);
+    expect(await stored.json()).toMatchObject({
+      newsletter: { status: 'campaign_created' },
+    });
   });
 
   it('overwrites direct Mailchimp draft drift with the confirmed canonical snapshot', async () => {
@@ -1168,6 +1404,9 @@ describe('Mailchimp publishing workflow', () => {
           createCount += 1;
           throw new Error('connection lost');
         }
+        if (url.includes('/segments/')) {
+          return Response.json({ id: 31415, name: 'nlpage', member_count: 2, type: 'static' });
+        }
         if (url.includes('/lists/')) {
           return Response.json({ name: 'القائمة', stats: { member_count: 2 } });
         }
@@ -1192,12 +1431,22 @@ describe('Mailchimp publishing workflow', () => {
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
         const method = init?.method ?? 'GET';
+        if (url.includes('/segments/')) {
+          return Response.json({ id: 31415, name: 'nlpage', member_count: 2, type: 'static' });
+        }
         if (url.includes('/lists/')) {
           return Response.json({ name: 'القائمة', stats: { member_count: 2 } });
         }
         if (url.endsWith('/campaigns') && method === 'POST') {
           createCount += 1;
-          return Response.json({ id: 'campaign-retry', status: 'save' });
+          return Response.json({
+            id: 'campaign-retry',
+            status: 'save',
+            recipients: {
+              list_id: 'audience_1',
+              segment_opts: { saved_segment_id: 31415 },
+            },
+          });
         }
         if (url.endsWith('/content')) {
           contentAttempts += 1;
@@ -1209,14 +1458,20 @@ describe('Mailchimp publishing workflow', () => {
           return Response.json({
             id: 'campaign-retry',
             status: 'save',
-            recipients: { list_id: 'audience_1' },
+            recipients: {
+              list_id: 'audience_1',
+              segment_opts: { saved_segment_id: 31415 },
+            },
           });
         }
         if (url.includes('/campaigns/campaign-retry')) {
           return Response.json({
             id: 'campaign-retry',
             status: 'save',
-            recipients: { list_id: 'audience_1' },
+            recipients: {
+              list_id: 'audience_1',
+              segment_opts: { saved_segment_id: 31415 },
+            },
           });
         }
         throw new Error(`unexpected ${method} ${url}`);

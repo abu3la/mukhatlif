@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { toPaginatedList } from '@mukhtalif/types';
+import { toPaginatedList, type Guest, type PublicGuest } from '@mukhtalif/types';
 import {
   createGuestSchema,
   createGuestSocialSchema,
@@ -12,7 +12,50 @@ import {
   updateGuestSocialSchema,
 } from '@mukhtalif/validation';
 import { requirePermission, type AppEnv } from '../auth';
+import { toPublicEpisode } from '../public-episode';
 import { getRepository, type Repository } from '../repo';
+
+function toPublicGuest(guest: Guest, episodeCount: number): PublicGuest {
+  return {
+    id: guest.id,
+    slug: guest.slug,
+    name: guest.name,
+    role: guest.role,
+    city: guest.city,
+    bio: guest.bio,
+    photoUrl: guest.photoUrl,
+    episodeCount,
+  };
+}
+
+/**
+ * Anonymous guest library. Only guests attached to a published episode enter
+ * this surface, and the explicit projection prevents editorial email and
+ * timestamps from crossing the public boundary.
+ */
+export const publicGuestsRoute = new Hono<AppEnv>()
+  .get('/', zValidator('query', listQuerySchema), async (c) => {
+    const query = resolveListQuery(c.req.valid('query'));
+    const page = await getRepository(c.env).listPublishedGuestsPage(query);
+    return c.json(
+      toPaginatedList(
+        {
+          ...page,
+          items: page.items.map(({ guest, episodeCount }) => toPublicGuest(guest, episodeCount)),
+        },
+        query,
+      ),
+    );
+  })
+  .get('/:idOrSlug', async (c) => {
+    const profile = await getRepository(c.env).getPublishedGuestProfile(c.req.param('idOrSlug'));
+    if (!profile) return c.json({ error: 'Guest not found' }, 404);
+    return c.json({
+      guest: toPublicGuest(profile.guest, profile.episodes.length),
+      socials: profile.socials.map(({ platform, handle }) => ({ platform, handle })),
+      episodes: profile.episodes.map(toPublicEpisode),
+    });
+  });
 
 /**
  * Derives a stable URL slug. A guest may be created blank, so an unnamed guest
@@ -47,21 +90,16 @@ async function uniqueSlug(repo: Repository, name: string | undefined): Promise<s
  * requires `guests.manage`; there is no public guest surface in this slice.
  */
 export const studioGuestsRoute = new Hono<AppEnv>()
-  .get(
-    '/',
-    requirePermission('guests.view'),
-    zValidator('query', listQuerySchema),
-    async (c) => {
-      const input = c.req.valid('query');
-      const repo = getRepository(c.env);
-      if (!isPaginatedRequest(input)) {
-        // Legacy shape: the whole directory in one read, as the Studio expects.
-        return c.json(await repo.readGuestDirectory());
-      }
-      const query = resolveListQuery(input);
-      return c.json(toPaginatedList(await repo.listGuestsPage(query), query));
-    },
-  )
+  .get('/', requirePermission('guests.view'), zValidator('query', listQuerySchema), async (c) => {
+    const input = c.req.valid('query');
+    const repo = getRepository(c.env);
+    if (!isPaginatedRequest(input)) {
+      // Legacy shape: the whole directory in one read, as the Studio expects.
+      return c.json(await repo.readGuestDirectory());
+    }
+    const query = resolveListQuery(input);
+    return c.json(toPaginatedList(await repo.listGuestsPage(query), query));
+  })
   .post(
     '/',
     requirePermission('guests.manage'),

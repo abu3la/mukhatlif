@@ -45,6 +45,13 @@ function createDemoArticle(
 
 const seed: AdminStudioData = {
   asOf: DEMO_AS_OF,
+  homepageWeeklyEpisodesSettings: {
+    enabled: true,
+    title: 'حلقات آخر أسبوع من مختلف',
+    windowDays: 7,
+    version: 1,
+    updatedAt: DEMO_AS_OF,
+  },
   viewer: {
     id: 'studio_member_admin_badr',
     name: 'بدر القحطاني',
@@ -552,6 +559,7 @@ export const demoData: Readonly<AdminStudioData> = seed;
 export function createDemoData(): AdminStudioData {
   return {
     ...seed,
+    homepageWeeklyEpisodesSettings: { ...seed.homepageWeeklyEpisodesSettings },
     viewer: { ...seed.viewer, permissions: [...seed.viewer.permissions] },
     plusPlan: { ...seed.plusPlan },
     shows: seed.shows.map((show) => ({ ...show })),

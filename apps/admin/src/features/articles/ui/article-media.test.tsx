@@ -72,6 +72,73 @@ describe('ArticleContentPreview image design', () => {
       'article-content-media--radius-soft',
     );
   });
+
+  it('previews a safe linked image with protected external navigation', () => {
+    const asset: ArticleMediaAsset = {
+      id: 'med-00000000000000000000000000000002',
+      kind: 'image',
+      mimeType: 'image/png',
+      fileName: 'sponsor.png',
+      byteSize: 4000,
+      width: 1200,
+      height: 400,
+      defaultAlt: 'إعلان الراعي',
+      status: 'ready',
+      publicUrl: 'data:image/png;base64,AAAA',
+      createdAt: '2026-08-17T12:00:00.000Z',
+    };
+
+    render(
+      <ArticleContentPreview
+        document={{
+          type: 'doc',
+          content: [
+            {
+              type: 'imageBlock',
+              attrs: {
+                mediaId: asset.id,
+                alt: 'إعلان الراعي',
+                presentation: 'wide',
+                linkUrl: 'https://sponsor.example/campaign',
+              },
+            },
+          ],
+        }}
+        assets={[asset]}
+        channel="web"
+      />,
+    );
+
+    const link = screen.getByRole('link');
+    expect(link).toHaveAttribute('href', 'https://sponsor.example/campaign');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(link).toContainElement(screen.getByAltText('إعلان الراعي'));
+  });
+});
+
+describe('ArticleContentPreview ad placements', () => {
+  const document = {
+    type: 'doc',
+    content: [
+      {
+        type: 'adBlock',
+        attrs: { placementId: 'article-middle-1', format: 'inline', label: 'منتصف المقال' },
+      },
+    ],
+  };
+
+  it('shows the placement on web and omits it from the email preview', () => {
+    const web = render(<ArticleContentPreview document={document} assets={[]} channel="web" />);
+    expect(screen.getByRole('complementary', { name: 'مساحة إعلانية' })).toHaveAttribute(
+      'data-ad-placement',
+      'article-middle-1',
+    );
+    web.unmount();
+
+    const email = render(<ArticleContentPreview document={document} assets={[]} channel="email" />);
+    expect(email.container).toBeEmptyDOMElement();
+  });
 });
 
 describe('ArticleContentPreview text sections', () => {

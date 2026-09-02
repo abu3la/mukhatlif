@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { PublishedArticle } from '@mukhtalif/types';
 import { dateTimeAttribute, formatDate } from '@/components/formatting';
@@ -55,18 +56,24 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 function Byline({ article }: { article: PublishedArticle }) {
+  const initial = Array.from(article.author.displayName.trim())[0] ?? 'م';
+
   return (
-    <p className="article__byline">
-      {article.author.displayName}
-      {article.publishedAt ? (
-        <>
-          {' · '}
-          <time dateTime={dateTimeAttribute(article.publishedAt)}>
-            {formatDate(article.publishedAt)}
-          </time>
-        </>
-      ) : null}
-    </p>
+    <div className="article-author">
+      <span className="article-author__avatar" aria-hidden="true">
+        {initial}
+      </span>
+      <div className="article-author__details">
+        <p className="article-author__name">{article.author.displayName}</p>
+        {article.publishedAt ? (
+          <p className="article-author__meta">
+            <time dateTime={dateTimeAttribute(article.publishedAt)}>
+              {formatDate(article.publishedAt)}
+            </time>
+          </p>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -75,22 +82,23 @@ export default async function ArticlePage({ params }: Params) {
   const article = await loadArticle(slug);
 
   return (
-    <article className="shell article">
-      <header className="article__header">
-        <h1 className="article__title">{article.titleAr}</h1>
-        {article.authorPlacement === 'after_title' ? <Byline article={article} /> : null}
+    <article className="shell article-detail">
+      <header className="article-detail__header">
+        <nav className="article-detail__breadcrumb" aria-label="مسار التنقل">
+          <Link href="/articles">المقالات</Link>
+        </nav>
+        <h1 className="article-detail__title">{article.titleAr}</h1>
         {article.excerptAr ? (
-          <p className="hero__lede" style={{ marginBlockStart: 'var(--space-md)' }}>
-            {article.excerptAr}
-          </p>
+          <p className="article-detail__standfirst">{article.excerptAr}</p>
         ) : null}
+        {article.authorPlacement === 'after_title' ? <Byline article={article} /> : null}
       </header>
 
       {article.coverUrl ? (
         /* A plain img for the same reason as the listing cards: cover hosts are
            not known ahead of time and must not be allowlisted with a wildcard. */
         <img
-          className="article__cover"
+          className="article-detail__cover"
           src={article.coverUrl}
           alt={article.coverAlt ?? ''}
           decoding="async"
@@ -103,10 +111,13 @@ export default async function ArticlePage({ params }: Params) {
         content, so this is server-generated trusted output — the site never
         renders markup that came from a browser.
       */}
-      <div className="prose" dangerouslySetInnerHTML={{ __html: article.contentHtml }} />
+      <div
+        className="article-detail__body prose"
+        dangerouslySetInnerHTML={{ __html: article.contentHtml }}
+      />
 
       {article.authorPlacement === 'end' ? (
-        <footer style={{ marginBlockStart: 'var(--space-xl)' }}>
+        <footer className="article-detail__author-footer">
           <Byline article={article} />
         </footer>
       ) : null}

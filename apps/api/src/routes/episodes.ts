@@ -19,6 +19,7 @@ import {
   updateEpisodeStatusSchema,
 } from '@mukhtalif/validation';
 import { requireAuth, requirePermission, type AppEnv } from '../auth';
+import { toPublicEpisode } from '../public-episode';
 import { getRepository } from '../repo';
 
 const audioError = (code: string, error: string) => ({ code, error });
@@ -113,16 +114,22 @@ export const publicEpisodesRoute = new Hono<AppEnv>()
     const input = c.req.valid('query');
     const filter = { showId: input.showId, status: 'published' as const };
     const repo = getRepository(c.env);
-    if (!isPaginatedRequest(input)) return c.json(await repo.listEpisodes(filter));
+    if (!isPaginatedRequest(input)) {
+      const episodes = await repo.listEpisodes(filter);
+      return c.json(episodes.map(toPublicEpisode));
+    }
     const query = resolveListQuery(input);
-    return c.json(toPaginatedList(await repo.listEpisodesPage(filter, query), query));
+    const page = await repo.listEpisodesPage(filter, query);
+    return c.json(
+      toPaginatedList({ ...page, items: page.items.map(toPublicEpisode) }, query),
+    );
   })
   .get('/:id', async (c) => {
     const episode = await getRepository(c.env).getEpisode(c.req.param('id'));
     if (!episode || episode.status !== 'published') {
       return c.json({ error: 'Episode not found' }, 404);
     }
-    return c.json(episode);
+    return c.json(toPublicEpisode(episode));
   })
   .get('/:id/audio', audioHandler(false));
 

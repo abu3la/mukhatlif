@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { HomeSummary, PaginatedList, PublishedArticle } from '@mukhtalif/types';
 import type { Env } from './env';
 import app from './index';
+import { createMemoryRepository } from './repo/memory';
 
 const localEnv: Env = {
   APP_ENV: 'development',
@@ -25,14 +26,16 @@ describe('public home summary', () => {
     expect(summary.latestArticles.length).toBeGreaterThan(0);
   });
 
-  it('publishes only published episodes and never the private audio key', async () => {
+  it('publishes only published episodes and never a playback source', async () => {
     const summary = (await (await anonymous('/home')).json()) as HomeSummary;
     for (const episode of summary.latestEpisodes) {
       expect(episode).not.toHaveProperty('audioKey');
+      expect(episode).not.toHaveProperty('audioUrl');
       expect(episode).not.toHaveProperty('status');
     }
     const raw = JSON.stringify(summary);
     expect(raw).not.toContain('audioKey');
+    expect(raw).not.toContain('audioUrl');
   });
 
   it('omits article bodies from the home listing', async () => {
@@ -93,5 +96,22 @@ describe('public catalogue reads', () => {
 
   it('returns 404 for an unknown show', async () => {
     expect((await anonymous('/shows/no-such-show')).status).toBe(404);
+  });
+
+  it('never exposes an audio source from episode list or detail reads', async () => {
+    await createMemoryRepository().setEpisodeAudioKey(
+      'ep-1001',
+      'episodes/private-storage-key.mp3',
+    );
+
+    for (const path of ['/episodes', '/episodes?page=1&perPage=2', '/episodes/ep-1001']) {
+      const response = await anonymous(path);
+      expect(response.status, path).toBe(200);
+      const body = await response.text();
+      expect(body, path).not.toContain('audioKey');
+      expect(body, path).not.toContain('audioUrl');
+      expect(body, path).not.toContain('private-storage-key');
+      expect(body, path).not.toContain('SoundHelix-Song-1.mp3');
+    }
   });
 });

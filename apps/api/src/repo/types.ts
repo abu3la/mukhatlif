@@ -5,11 +5,25 @@ import type {
   Episode,
   EpisodeStatus,
   Follow,
+  FormNotificationStatus,
+  FormSubmission,
+  FormSubmissionPayloadByType,
+  FormSubmissionSourceMetadata,
+  FormSubmissionStatus,
+  FormSubmissionType,
   Guest,
   GuestAppearance,
   GuestDirectory,
   GuestSocial,
+  HomepageWeeklyEpisodesSettings,
   ListQuery,
+  NewsletterConsentEvent,
+  NewsletterConsentEventKind,
+  NewsletterSubscriberListItem,
+  NewsletterSubscription,
+  NewsletterSubscriptionRequestRecord,
+  NewsletterSubscriptionSourceMetadata,
+  NewsletterSubscriptionSyncStatus,
   PageResult,
   Plan,
   MediaAsset,
@@ -44,6 +58,8 @@ import type {
   UpdateEpisodeInput,
   UpdateGuestInput,
   UpdateGuestSocialInput,
+  UpdateFormSubmissionInput,
+  UpdateHomepageWeeklyEpisodesSettingsInput,
   UpdateShowInput,
 } from '@mukhtalif/validation';
 import type {
@@ -54,11 +70,92 @@ import type {
 export interface EpisodeFilter {
   showId?: string;
   status?: EpisodeStatus;
+  /** Inclusive ISO lower bound for publishAt. */
+  publishedFrom?: string;
+  /** Inclusive ISO upper bound for publishAt. */
+  publishedTo?: string;
 }
+
+export type UpdateHomepageWeeklyEpisodesSettingsResult =
+  | { status: 'updated'; settings: HomepageWeeklyEpisodesSettings }
+  | { status: 'conflict'; settings: HomepageWeeklyEpisodesSettings };
 
 export interface ArticleFilter {
   status?: ArticleStatus;
 }
+
+/** Storage-facing record used to build a privacy-safe public guest card. */
+export interface PublishedGuestSummaryRecord {
+  guest: Guest;
+  episodeCount: number;
+}
+
+/**
+ * Storage-facing public profile source. Repositories guarantee every episode
+ * is published; the route still owns the final field allowlist.
+ */
+export interface PublishedGuestProfileRecord {
+  guest: Guest;
+  socials: GuestSocial[];
+  episodes: Episode[];
+}
+
+export interface FormSubmissionFilter {
+  type?: FormSubmissionType;
+  status?: FormSubmissionStatus;
+  assigneeId?: string;
+}
+
+export interface NewsletterSubscriberFilter {
+  localStatus?: NewsletterConsentEventKind;
+  mailchimpStatus?: NewsletterSubscriptionSyncStatus;
+}
+
+export type LegacyRedirectStatusCode = 301 | 302 | 307 | 308;
+
+/**
+ * The only redirect fields allowed to cross the public API boundary.
+ * Import provenance, source labels, row IDs, and timestamps stay private.
+ */
+export interface LegacyRedirectResolution {
+  destination: string;
+  statusCode: LegacyRedirectStatusCode;
+}
+
+export type CreateFormSubmissionRecordInput = {
+  [Type in FormSubmissionType]: {
+    type: Type;
+    payload: FormSubmissionPayloadByType[Type];
+    sourceMetadata: FormSubmissionSourceMetadata;
+  };
+}[FormSubmissionType];
+
+export interface CreateNewsletterSubscriptionRequestRecordInput {
+  email: string;
+  firstName?: string;
+  consentAcceptedAt: string;
+  sourceMetadata: NewsletterSubscriptionSourceMetadata;
+}
+
+export type CompletedNewsletterSubscriptionSyncStatus = Extract<
+  NewsletterSubscriptionSyncStatus,
+  'synced' | 'failed' | 'unconfigured'
+>;
+
+export interface FormNotificationClaim {
+  submission: FormSubmission;
+  claimToken: string;
+}
+
+export interface FormSubmissionRateLimitResult {
+  allowed: boolean;
+  retryAfterSeconds: number;
+}
+
+export type CompletedFormNotificationStatus = Exclude<
+  FormNotificationStatus,
+  'pending' | 'sending'
+>;
 
 export interface StoredMediaAsset extends Omit<MediaAsset, 'status' | 'publicUrl'> {
   /** Private R2 key. Routes must strip this field before serializing. */
@@ -145,12 +242,10 @@ export type InviteStudioMemberResult =
     };
 
 export type CreateGuestSocialResult =
-  | { status: 'created'; social: GuestSocial }
-  | { status: 'guest_not_found' | 'duplicate_platform' };
+  { status: 'created'; social: GuestSocial } | { status: 'guest_not_found' | 'duplicate_platform' };
 
 export type UpdateGuestSocialResult =
-  | { status: 'updated'; social: GuestSocial }
-  | { status: 'not_found' | 'duplicate_platform' };
+  { status: 'updated'; social: GuestSocial } | { status: 'not_found' | 'duplicate_platform' };
 
 export type LinkGuestAppearanceResult =
   | { status: 'linked' | 'already_linked'; appearance: GuestAppearance }
@@ -161,6 +256,9 @@ export type AcceptStudioInvitationResult =
   | { status: 'not_found' | 'already_active' | 'failed' };
 
 export interface Repository {
+  /** Exact, active-only lookup for a canonical legacy request path. */
+  resolveLegacyRedirect(sourcePath: string): Promise<LegacyRedirectResolution | null>;
+
   /** Application-user identity and subscriber data. */
   getUser(id: string): Promise<User | null>;
   getUserByAuthId(authUserId: string): Promise<User | null>;
@@ -227,6 +325,11 @@ export interface Repository {
   createShow(input: CreateShowInput): Promise<Show>;
   updateShow(id: string, input: UpdateShowInput): Promise<Show | null>;
 
+  getHomepageWeeklyEpisodesSettings(): Promise<HomepageWeeklyEpisodesSettings>;
+  updateHomepageWeeklyEpisodesSettings(
+    input: UpdateHomepageWeeklyEpisodesSettingsInput,
+  ): Promise<UpdateHomepageWeeklyEpisodesSettingsResult>;
+
   listEpisodes(filter: EpisodeFilter): Promise<Episode[]>;
   listEpisodesPage(filter: EpisodeFilter, query: ListQuery): Promise<PageResult<Episode>>;
   getEpisode(id: string): Promise<Episode | null>;
@@ -257,6 +360,8 @@ export interface Repository {
    */
   readGuestDirectory(): Promise<GuestDirectory>;
   listGuestsPage(query: ListQuery): Promise<PageResult<Guest>>;
+  listPublishedGuestsPage(query: ListQuery): Promise<PageResult<PublishedGuestSummaryRecord>>;
+  getPublishedGuestProfile(idOrSlug: string): Promise<PublishedGuestProfileRecord | null>;
   getGuest(id: string): Promise<Guest | null>;
   getGuestBySlug(slug: string): Promise<Guest | null>;
   createGuest(slug: string, input: CreateGuestInput): Promise<Guest>;
@@ -273,6 +378,52 @@ export interface Repository {
   listEpisodeGuests(episodeId: string): Promise<Guest[]>;
   linkGuestAppearance(guestId: string, episodeId: string): Promise<LinkGuestAppearanceResult>;
   unlinkGuestAppearance(guestId: string, episodeId: string): Promise<boolean>;
+
+  /** Public intake plus the private Studio inbox. */
+  listFormSubmissions(filter: FormSubmissionFilter): Promise<FormSubmission[]>;
+  listFormSubmissionsPage(
+    filter: FormSubmissionFilter,
+    query: ListQuery,
+  ): Promise<PageResult<FormSubmission>>;
+  getFormSubmission(id: string): Promise<FormSubmission | null>;
+  createFormSubmission(input: CreateFormSubmissionRecordInput): Promise<FormSubmission>;
+  updateFormSubmission(
+    id: string,
+    input: UpdateFormSubmissionInput,
+  ): Promise<FormSubmission | null>;
+  claimFormSubmissionRateLimit(
+    keyHash: string,
+    limit: number,
+    windowSeconds: number,
+  ): Promise<FormSubmissionRateLimitResult>;
+  claimFormSubmissionNotification(
+    id: string,
+    staleBefore: string,
+  ): Promise<FormNotificationClaim | null>;
+  completeFormSubmissionNotification(
+    id: string,
+    claimToken: string,
+    status: CompletedFormNotificationStatus,
+    errorCode?: string,
+    providerMessageId?: string,
+  ): Promise<FormSubmission | null>;
+
+  /** Public newsletter consent intake and provider-sync state. */
+  recordNewsletterSubscriptionRequest(
+    input: CreateNewsletterSubscriptionRequestRecordInput,
+  ): Promise<NewsletterSubscriptionRequestRecord>;
+  getNewsletterSubscriptionByEmail(email: string): Promise<NewsletterSubscription | null>;
+  listNewsletterSubscribersPage(
+    filter: NewsletterSubscriberFilter,
+    query: ListQuery,
+  ): Promise<PageResult<NewsletterSubscriberListItem>>;
+  listNewsletterConsentEvents(subscriptionId: string): Promise<NewsletterConsentEvent[]>;
+  completeNewsletterSubscriptionSync(
+    subscriptionId: string,
+    consentEventId: string,
+    status: CompletedNewsletterSubscriptionSyncStatus,
+    errorCode?: string,
+  ): Promise<NewsletterSubscription | null>;
 
   /** Aggregate counts for the Studio overview, computed without loading rows. */
   getContentSummary(): Promise<StudioContentSummary>;

@@ -1,0 +1,174 @@
+# Verification only. This workflow must never deploy to Cloudflare or Hostinger.
+name: Verify shared source (no deployment)
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+  push:
+    branches:
+      - dev
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  NEXT_TELEMETRY_DISABLED: '1'
+  TURBO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  quality:
+    name: Lint, types, and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint workspaces
+        run: pnpm lint
+
+      - name: Type-check workspaces
+        run: pnpm type-check
+
+      - name: Test workspaces
+        run: pnpm test
+
+      - name: Verify RSS import tooling
+        run: |
+          pnpm type-check:rss-import
+          pnpm test:rss-import
+
+      - name: Verify WordPress import tooling
+        run: |
+          pnpm type-check:wordpress-import
+          pnpm test:wordpress-import
+
+      - name: Verify WordPress media tooling
+        run: |
+          pnpm exec tsc -p tools/wordpress-media-r2/tsconfig.json
+          pnpm exec vitest run tools/wordpress-media-r2/src
+
+      - name: Verify audio R2 migration tooling
+        run: |
+          pnpm type-check:audio-r2
+          pnpm test:audio-r2
+
+      - name: Verify Elementor newsletter import tooling
+        run: |
+          pnpm type-check:elementor-newsletter-import
+          pnpm test:elementor-newsletter-import
+
+      - name: Verify Notion guest import tooling
+        run: |
+          pnpm type-check:notion-guest-import
+          pnpm test:notion-guest-import
+
+  cloudflare-build:
+    name: Build Cloudflare development targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # These are inert, public build fixtures. The resulting CI bundle is never
+      # uploaded; real development values remain in Cloudflare's environment.
+      VITE_ADMIN_DATA_SOURCE: hono
+      VITE_API_URL: https://mukhtalif-api.mukhtalif-development.workers.dev
+      VITE_SUPABASE_URL: https://ci-development.supabase.co
+      VITE_SUPABASE_ANON_KEY: ci-public-anon-key-not-used-at-runtime
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check the Cloudflare development policy
+        run: node scripts/assert-cloudflare-development.mjs
+
+      - name: Bundle the API Worker without uploading
+        run: >-
+          pnpm --filter @mukhtalif/api exec wrangler deploy
+          --dry-run --outdir "$RUNNER_TEMP/mukhtalif-api-worker"
+
+      - name: Build Studio for the development Worker
+        run: pnpm --filter @mukhtalif/admin build
+
+      - name: Validate the Studio Worker without uploading
+        run: >-
+          pnpm --filter @mukhtalif/admin exec wrangler deploy
+          --dry-run --outdir "$RUNNER_TEMP/mukhtalif-studio-worker"
+
+      - name: Build Web for the development Worker
+        run: pnpm --filter @mukhtalif/web build:worker
+
+      - name: Validate the Web Worker without uploading
+        run: >-
+          pnpm --filter @mukhtalif/web exec wrangler deploy
+          --dry-run --outdir "$RUNNER_TEMP/mukhtalif-web-worker"
+
+  hostinger-build:
+    name: Build Hostinger production targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      MUKHTALIF_API_URL: https://api.mukhtalif.net
+      PUBLIC_WEB_URL: https://staging.mukhtalif.net
+      VITE_ADMIN_DATA_SOURCE: hono
+      VITE_API_URL: https://api.mukhtalif.net
+      # The anonymous browser key is public, but CI still uses an inert value so
+      # no live environment value is needed merely to prove a production build.
+      VITE_SUPABASE_URL: https://ci-production.supabase.co
+      VITE_SUPABASE_ANON_KEY: ci-public-anon-key-not-used-at-runtime
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bundle the shared Hono API for Node.js
+        run: pnpm --filter @mukhtalif/api build:node
+
+      - name: Build Studio for Hostinger
+        run: pnpm --filter @mukhtalif/admin build:hostinger
+
+      - name: Build Web for Hostinger
+        run: pnpm --filter @mukhtalif/web build:hostinger

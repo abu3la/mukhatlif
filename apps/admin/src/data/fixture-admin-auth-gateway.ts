@@ -154,13 +154,6 @@ export class FixtureAdminAuthGateway implements AdminAuthGateway {
     );
   }
 
-  async sendSignInEmail(): Promise<void> {
-    throw new AdminAuthError(
-      'UNSUPPORTED',
-      'The local fixture cannot deliver an invitation link. Use a demo account.',
-    );
-  }
-
   async signOut(): Promise<void> {
     this.session = null;
     this.removeStoredSession();

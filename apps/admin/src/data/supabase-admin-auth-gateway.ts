@@ -3,7 +3,6 @@ import {
   AdminAuthError,
   type AdminAuthGateway,
   type AdminAuthSession,
-  type EmailLinkPurpose,
 } from './admin-auth-gateway';
 
 export interface SupabaseAdminAuthGatewayConfig {
@@ -17,7 +16,7 @@ function hasSupabaseInvitationSessionInUrl(): boolean {
   const fragment = new URLSearchParams(window.location.hash.slice(1));
   const type = fragment.get('type');
   return (
-    (type === 'invite' || type === 'magiclink' || type === 'email') &&
+    type === 'invite' &&
     Boolean(
       fragment.get('access_token') &&
         fragment.get('refresh_token') &&
@@ -139,15 +138,12 @@ export class SupabaseAdminAuthGateway implements AdminAuthGateway {
     return session;
   }
 
-  async verifyEmailLink(
-    tokenHash: string,
-    purpose: EmailLinkPurpose,
-  ): Promise<AdminAuthSession> {
+  async verifyEmailLink(tokenHash: string): Promise<AdminAuthSession> {
     // A link carries token_hash rather than the six-digit token, and it
     // identifies the address itself, so no email is supplied here.
     const { data, error } = await this.client.auth.verifyOtp({
       token_hash: tokenHash,
-      type: purpose === 'invite' ? 'invite' : 'email',
+      type: 'invite',
     });
     if (error) throw mapAuthError(error);
     const session = mapSession(data.session);
@@ -156,19 +152,6 @@ export class SupabaseAdminAuthGateway implements AdminAuthGateway {
     }
     this.session = session;
     return session;
-  }
-
-  async sendSignInEmail(email: string): Promise<void> {
-    // shouldCreateUser is false so this can never mint an account: it only ever
-    // re-reaches somebody an administrator already invited.
-    const { error } = await this.client.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/invite`,
-      },
-    });
-    if (error) throw mapAuthError(error);
   }
 
   async signOut(): Promise<void> {

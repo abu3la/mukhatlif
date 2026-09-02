@@ -9,9 +9,31 @@ import { formatNumber } from './formatting';
  * crawlable, and works before hydration. In RTL, "previous" sits on the right,
  * which the flex order handles without any manual side flipping.
  */
-export function Pager({ pageInfo, basePath }: { pageInfo: PageInfo; basePath: string }) {
+export function pageHref(
+  basePath: string,
+  page: number,
+  query: Readonly<Record<string, string | undefined>> = {},
+): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value) params.set(key, value);
+  }
+  if (page > 1) params.set('page', String(page));
+  const serialized = params.toString();
+  return serialized ? `${basePath}?${serialized}` : basePath;
+}
+
+export function Pager({
+  pageInfo,
+  basePath,
+  query,
+}: {
+  pageInfo: PageInfo;
+  basePath: string;
+  query?: Readonly<Record<string, string | undefined>>;
+}) {
   if (pageInfo.totalPages <= 1) return null;
-  const href = (page: number) => (page === 1 ? basePath : `${basePath}?page=${page}`);
+  const href = (page: number) => pageHref(basePath, page, query);
 
   return (
     <nav className="pager" aria-label="تنقل بين الصفحات">

@@ -26,17 +26,18 @@ export default async function ArticlesPage({
   } catch (error) {
     if (!(error instanceof ApiUnavailableError)) throw error;
     return (
-      <div className="shell">
+      <div className="shell articles-index">
         <ErrorState />
       </div>
     );
   }
 
   return (
-    <div className="shell section">
-      <div className="section__head">
-        <h1 className="section__title">المقالات</h1>
-      </div>
+    <div className="shell articles-index">
+      <header className="articles-index__header">
+        <h1 className="articles-index__title">المقالات</h1>
+        <p className="articles-index__intro">قراءات قصيرة من فريق مختلف عن العمل والمهنة</p>
+      </header>
       {articles.items.length === 0 ? (
         <EmptyState
           title={page > 1 ? 'لا مزيد من المقالات' : 'لا توجد مقالات منشورة بعد'}
@@ -44,9 +45,9 @@ export default async function ArticlesPage({
         />
       ) : (
         <>
-          <div className="grid grid--articles">
+          <div className="articles-grid">
             {articles.items.map((article) => (
-              <ArticleCard key={article.id} article={article} />
+              <ArticleCard key={article.id} article={article} headingLevel={2} />
             ))}
           </div>
           <Pager pageInfo={articles.pageInfo} basePath="/articles" />

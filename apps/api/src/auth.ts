@@ -50,7 +50,10 @@ export const resolveUser: MiddlewareHandler<AppEnv> = async (c, next) => {
           repo.getStudioMemberByAuthId(data.user.id),
         ]);
         c.set('user', user);
-        c.set('studioMember', studioMember);
+        // A verified Auth identity is not an operator until its invitation has
+        // been accepted. Keep authUserId above so invitation-only routes still
+        // work, but never attach a pending membership or resolve its role.
+        c.set('studioMember', studioMember?.status === 'active' ? studioMember : null);
       }
     }
   } else if (isDevAuthEnabled(c.env)) {
@@ -61,7 +64,7 @@ export const resolveUser: MiddlewareHandler<AppEnv> = async (c, next) => {
         repo.getStudioMember(devUserId),
       ]);
       c.set('user', user);
-      c.set('studioMember', studioMember);
+      c.set('studioMember', studioMember?.status === 'active' ? studioMember : null);
       if (user || studioMember) c.set('authUserId', `dev:${devUserId}`);
     }
   }

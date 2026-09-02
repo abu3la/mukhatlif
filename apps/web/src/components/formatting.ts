@@ -1,11 +1,10 @@
 /**
  * Arabic-locale formatting.
  *
- * `ar` with the `latn` numbering system is deliberate: the Studio settled on
- * Latin display digits (migration 0006) and the public site must not disagree
- * with what an editor sees.
+ * The listener handoff uses Arabic-Indic digits throughout public editorial
+ * dates, episode numbers, and durations.
  */
-const LOCALE = 'ar-u-nu-latn';
+const LOCALE = 'ar-u-nu-arab';
 
 const DATE_FORMAT = new Intl.DateTimeFormat(LOCALE, {
   year: 'numeric',
@@ -37,13 +36,9 @@ export function formatNumber(value: number): string {
   return NUMBER_FORMAT.format(value);
 }
 
-/** Duration as a readable Arabic phrase, e.g. "٥٢ دقيقة" in Latin digits. */
+/** Compact episode duration from the listener handoff, e.g. "٥٢ د". */
 export function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '';
   const totalMinutes = Math.round(seconds / 60);
-  if (totalMinutes < 60) return `${formatNumber(totalMinutes)} دقيقة`;
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  const hourPart = hours === 1 ? 'ساعة' : `${formatNumber(hours)} ساعات`;
-  return minutes === 0 ? hourPart : `${hourPart} و${formatNumber(minutes)} دقيقة`;
+  return `${formatNumber(totalMinutes)} د`;
 }

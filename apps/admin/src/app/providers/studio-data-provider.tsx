@@ -31,6 +31,13 @@ const EMPTY_CONTENT_DATA: AdminStudioContentData = {
   shows: [],
   episodes: [],
   articles: [],
+  homepageWeeklyEpisodesSettings: {
+    enabled: true,
+    title: 'حلقات آخر أسبوع من مختلف',
+    windowDays: 7,
+    version: 1,
+    updatedAt: '1970-01-01T00:00:00.000Z',
+  },
   guestDirectory: null,
 };
 
@@ -164,6 +171,14 @@ export function StudioDataProvider({
       createShow: (command) => {
         requireManage('shows', 'createShow');
         return runOperation('core', async () => (await repository.createShow(command)).id);
+      },
+      updateHomepageWeeklyEpisodesSettings: (command) => {
+        requireManage('shows', 'updateHomepageWeeklyEpisodesSettings');
+        return runOperation(
+          'core',
+          () => repository.updateHomepageWeeklyEpisodesSettings(command),
+          { refreshOnError: true },
+        );
       },
       createArticle: (command) => {
         requireManage('articles', 'createArticle');

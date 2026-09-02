@@ -43,6 +43,20 @@ export type ArticleImageAlignment = (typeof ARTICLE_IMAGE_ALIGNMENTS)[number];
 export const ARTICLE_IMAGE_RADII = ['none', 'soft', 'round'] as const;
 export type ArticleImageRadius = (typeof ARTICLE_IMAGE_RADII)[number];
 
+/**
+ * Internal ad-slot formats. The document stores a placement reference only;
+ * executable markup, third-party URLs, and campaign payloads never enter the article body.
+ */
+export const ARTICLE_AD_FORMATS = ['inline', 'banner'] as const;
+export type ArticleAdFormat = (typeof ARTICLE_AD_FORMATS)[number];
+
+export interface ArticleAdBlockAttributes {
+  placementId: string;
+  format: ArticleAdFormat;
+  /** Studio-facing name that helps editors distinguish placements. */
+  label?: string;
+}
+
 export interface ArticleImageGalleryItem {
   mediaId: string;
   alt: string;
@@ -79,6 +93,7 @@ export const RICH_TEXT_NODE_TYPES = [
   'imageBlock',
   'imageGallery',
   'videoEmbed',
+  'adBlock',
 ] as const;
 export type RichTextNodeType = (typeof RICH_TEXT_NODE_TYPES)[number];
 
@@ -110,6 +125,7 @@ export interface RichTextNode {
     items?: ArticleImageGalleryItem[];
     alt?: string;
     caption?: string;
+    linkUrl?: string;
     presentation?: ArticleImagePresentation;
     alignment?: ArticleTextAlignment;
     radius?: ArticleImageRadius;
@@ -119,6 +135,9 @@ export interface RichTextNode {
     provider?: 'youtube' | 'vimeo';
     videoId?: string;
     title?: string;
+    placementId?: string;
+    format?: ArticleAdFormat;
+    label?: string;
   };
   marks?: RichTextMark[];
   text?: string;
@@ -133,6 +152,15 @@ export interface RichTextDocument extends RichTextNode {
 export interface RichTextImageGalleryNode {
   type: 'imageGallery';
   attrs: ArticleImageGalleryAttributes;
+  marks?: never;
+  text?: never;
+  content?: never;
+}
+
+/** Strict top-level atom contract for an internal, non-executable ad placement. */
+export interface RichTextAdBlockNode {
+  type: 'adBlock';
+  attrs: ArticleAdBlockAttributes;
   marks?: never;
   text?: never;
   content?: never;
@@ -232,9 +260,14 @@ export interface MailchimpCapability {
   configured: boolean;
   fromName?: string;
   replyTo?: string;
+  /** Full Mailchimp audience metadata, shown separately from the send target. */
   audienceName?: string;
   audienceCount?: number;
-  /** Opaque server-signed binding to the currently verified audience. */
+  /** Verified static Mailchimp tag that is the only permitted send target. */
+  recipientTag?: string;
+  /** Active subscribers currently included in the verified send target. */
+  recipientCount?: number;
+  /** Opaque server-signed binding to the currently verified audience and target. */
   audienceConfirmationToken?: string;
 }
 

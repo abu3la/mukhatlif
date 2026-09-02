@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
+  HOMEPAGE_WEEKLY_EPISODES_WINDOW_DAYS,
+  NEWSLETTER_CONSENT_EVENT_KINDS,
   PERMISSION_IDS,
   ROLE_CREATED_AUDIT_ACTION,
   ROLE_PERMISSION_AUDIT_ACTION,
@@ -16,10 +18,20 @@ import {
   type Episode,
   type EpisodeStatus,
   type Follow,
+  type FormNotificationStatus,
+  type FormSubmission,
+  type FormSubmissionAttachmentRef,
+  type FormSubmissionStatus,
+  type FormSubmissionType,
   type Guest,
   type GuestAppearance,
   type GuestSocial,
+  type HomepageWeeklyEpisodesSettings,
   type ListQuery,
+  type NewsletterConsentEvent,
+  type NewsletterSubscriberListItem,
+  type NewsletterSubscription,
+  type NewsletterSubscriptionRequestRecord,
   type PageResult,
   type Plan,
   type SocialPlatform,
@@ -49,7 +61,15 @@ import {
   refreshNeedsSync,
 } from '../publishing/article-record';
 import {
+  formNotificationStatusSchema,
+  formSubmissionAttachmentRefSchema,
+  formSubmissionPayloadSchemas,
+  formSubmissionSourceMetadataSchema,
+  formSubmissionStatusSchema,
+  formSubmissionTypeSchema,
   normalizeArticleAuthorDisplayName,
+  newsletterSubscriptionSourceMetadataSchema,
+  newsletterSubscriptionSyncStatusSchema,
   type CreateStudioRoleInput,
   type InviteStudioMemberInput,
 } from '@mukhtalif/validation';
@@ -61,7 +81,11 @@ import type {
   CreateGuestSocialResult,
   CreateRoleResult,
   InviteStudioMemberResult,
+  LegacyRedirectResolution,
+  LegacyRedirectStatusCode,
   LinkGuestAppearanceResult,
+  PublishedGuestProfileRecord,
+  PublishedGuestSummaryRecord,
   Repository,
   StoredMediaAsset,
   UpdateGuestSocialResult,
@@ -89,12 +113,12 @@ interface StudioMemberProfileRow {
   role_name?: string;
   role_record?: { name: string } | Array<{ name: string }> | null;
   locale: User['locale'];
+  status: StudioMemberStatus;
   created_at: string;
 }
 
 interface StudioMemberRow extends StudioMemberProfileRow {
   auth_user_id: string | null;
-  status?: StudioMemberStatus;
   accepted_at?: string | null;
 }
 
@@ -168,6 +192,14 @@ interface ShowRow {
   created_at: string;
 }
 
+interface HomepageWeeklyEpisodesSettingsRow {
+  enabled: boolean;
+  title: string;
+  window_days: number;
+  version: number;
+  updated_at: string;
+}
+
 interface GuestRow {
   id: string;
   slug: string;
@@ -190,6 +222,80 @@ interface GuestSocialRow {
 interface GuestAppearanceRow {
   guest_id: string;
   episode_id: string;
+}
+
+interface PublishedGuestAppearanceRow extends GuestAppearanceRow {
+  episodes: EpisodeRow | EpisodeRow[] | null;
+}
+
+interface PublishedGuestSummaryRow extends GuestRow {
+  guest_appearances: Array<{
+    episode_id: string;
+    episodes: { id: string } | Array<{ id: string }> | null;
+  }>;
+}
+
+interface LegacyRedirectRow {
+  destination: string;
+  status_code: number;
+}
+
+interface FormSubmissionRow {
+  id: string;
+  type: FormSubmissionType;
+  payload: unknown;
+  status: FormSubmissionStatus;
+  assignee_id: string | null;
+  internal_notes: string;
+  attachment_refs: unknown;
+  source_metadata: unknown;
+  notification_status: FormNotificationStatus;
+  notification_attempt_count: number;
+  notification_attempted_at: string | null;
+  notification_error: string | null;
+  notification_provider_message_id: string | null;
+  status_updated_at: string;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface NewsletterSubscriptionRow {
+  id: string;
+  email: string;
+  first_name: string | null;
+  sync_status: string;
+  sync_attempt_count: number;
+  sync_attempted_at: string | null;
+  sync_error: string | null;
+  latest_consent_event_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface NewsletterSubscriberLatestEventRow {
+  event_kind: string;
+  created_at: string;
+}
+
+interface NewsletterSubscriberListRow {
+  email: string;
+  first_name: string | null;
+  sync_status: string;
+  updated_at: string;
+  latest_event: NewsletterSubscriberLatestEventRow | NewsletterSubscriberLatestEventRow[] | null;
+}
+
+interface NewsletterConsentEventRow {
+  id: string;
+  subscription_id: string;
+  event_kind: string;
+  email: string;
+  first_name: string | null;
+  consent_version: number | null;
+  consent_accepted_at: string | null;
+  source_metadata: unknown;
+  created_at: string;
 }
 
 interface EpisodeRow {
@@ -324,6 +430,7 @@ function toStudioMember(row: StudioMemberProfileRow): StudioMember {
     role: row.role_id,
     roleName: row.role_name ?? relatedRole?.name ?? row.role_id,
     locale: row.locale,
+    status: row.status,
     createdAt: row.created_at,
   };
 }
@@ -350,9 +457,6 @@ function toStudioMemberAccess(row: StudioMemberRow): StudioMemberAccess {
   return {
     ...toStudioMember(row),
     authLinked: row.auth_user_id !== null,
-    // Rows written before migration 0015 carry no status and are established
-    // operators, so an absent value reads as active rather than pending.
-    status: row.status ?? 'active',
     ...(row.accepted_at ? { acceptedAt: row.accepted_at } : {}),
   };
 }
@@ -470,6 +574,7 @@ function isStudioMemberRow(value: unknown): value is StudioMemberRow {
     row.role_id.length > 0 &&
     (typeof row.role_name === 'string' || hasRoleNameRelation(row.role_record)) &&
     (row.locale === 'ar' || row.locale === 'en') &&
+    (row.status === 'invited' || row.status === 'active') &&
     (row.auth_user_id === null || typeof row.auth_user_id === 'string') &&
     typeof row.created_at === 'string'
   );
@@ -610,6 +715,21 @@ function toShow(row: ShowRow): Show {
   };
 }
 
+function toHomepageWeeklyEpisodesSettings(
+  row: HomepageWeeklyEpisodesSettingsRow,
+): HomepageWeeklyEpisodesSettings {
+  if (row.window_days !== HOMEPAGE_WEEKLY_EPISODES_WINDOW_DAYS) {
+    throw new Error('supabase: invalid homepage weekly episode window');
+  }
+  return {
+    enabled: row.enabled,
+    title: row.title,
+    windowDays: HOMEPAGE_WEEKLY_EPISODES_WINDOW_DAYS,
+    version: row.version,
+    updatedAt: row.updated_at,
+  };
+}
+
 function toGuest(row: GuestRow): Guest {
   return {
     id: row.id,
@@ -635,6 +755,150 @@ function toGuestSocial(row: GuestSocialRow): GuestSocial {
 
 function toGuestAppearance(row: GuestAppearanceRow): GuestAppearance {
   return { guestId: row.guest_id, episodeId: row.episode_id };
+}
+
+function relatedOne<T>(value: T | T[] | null): T | null {
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+
+function toFormSubmission(row: FormSubmissionRow): FormSubmission {
+  const type = formSubmissionTypeSchema.parse(row.type);
+  const payload = formSubmissionPayloadSchemas[type].parse(row.payload);
+  const attachmentRefs = formSubmissionAttachmentRefSchema
+    .array()
+    .parse(row.attachment_refs) as FormSubmissionAttachmentRef[];
+  return {
+    id: row.id,
+    type,
+    payload,
+    status: formSubmissionStatusSchema.parse(row.status),
+    ...(row.assignee_id ? { assigneeId: row.assignee_id } : {}),
+    internalNotes: row.internal_notes,
+    attachmentRefs,
+    sourceMetadata: formSubmissionSourceMetadataSchema.parse(row.source_metadata),
+    notificationStatus: formNotificationStatusSchema.parse(row.notification_status),
+    notificationAttemptCount: row.notification_attempt_count,
+    ...(row.notification_attempted_at
+      ? { notificationAttemptedAt: row.notification_attempted_at }
+      : {}),
+    ...(row.notification_error ? { notificationError: row.notification_error } : {}),
+    ...(row.notification_provider_message_id
+      ? { notificationProviderMessageId: row.notification_provider_message_id }
+      : {}),
+    statusUpdatedAt: row.status_updated_at,
+    ...(row.resolved_at ? { resolvedAt: row.resolved_at } : {}),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  } as FormSubmission;
+}
+
+function toFormNotificationClaim(value: unknown) {
+  if (!value || typeof value !== 'object') {
+    throw new Error('supabase: invalid form notification claim');
+  }
+  const result = value as Record<string, unknown>;
+  if (result.status === 'unavailable') return null;
+  if (
+    result.status !== 'claimed' ||
+    typeof result.claimToken !== 'string' ||
+    !result.submission ||
+    typeof result.submission !== 'object'
+  ) {
+    throw new Error('supabase: invalid form notification claim');
+  }
+  return {
+    claimToken: result.claimToken,
+    submission: toFormSubmission(result.submission as unknown as FormSubmissionRow),
+  };
+}
+
+function toNewsletterSubscription(row: NewsletterSubscriptionRow): NewsletterSubscription {
+  return {
+    id: row.id,
+    email: row.email,
+    ...(row.first_name ? { firstName: row.first_name } : {}),
+    syncStatus: newsletterSubscriptionSyncStatusSchema.parse(row.sync_status),
+    syncAttemptCount: row.sync_attempt_count,
+    ...(row.sync_attempted_at ? { syncAttemptedAt: row.sync_attempted_at } : {}),
+    ...(row.sync_error ? { syncError: row.sync_error } : {}),
+    ...(row.latest_consent_event_id ? { latestConsentEventId: row.latest_consent_event_id } : {}),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function toNewsletterSubscriberListItem(
+  row: NewsletterSubscriberListRow,
+): NewsletterSubscriberListItem {
+  const event = Array.isArray(row.latest_event) ? row.latest_event[0] : row.latest_event;
+  if (
+    !event ||
+    !NEWSLETTER_CONSENT_EVENT_KINDS.includes(
+      event.event_kind as (typeof NEWSLETTER_CONSENT_EVENT_KINDS)[number],
+    ) ||
+    !event.created_at
+  ) {
+    throw new Error('supabase: newsletter subscriber is missing its latest request event');
+  }
+  return {
+    email: row.email,
+    ...(row.first_name ? { firstName: row.first_name } : {}),
+    localStatus: event.event_kind as NewsletterSubscriberListItem['localStatus'],
+    mailchimpSyncStatus: newsletterSubscriptionSyncStatusSchema.parse(row.sync_status),
+    requestedAt: event.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function toNewsletterConsentEvent(row: NewsletterConsentEventRow): NewsletterConsentEvent {
+  const base = {
+    id: row.id,
+    subscriptionId: row.subscription_id,
+    email: row.email,
+    ...(row.first_name ? { firstName: row.first_name } : {}),
+    sourceMetadata: newsletterSubscriptionSourceMetadataSchema.parse(row.source_metadata),
+    createdAt: row.created_at,
+  };
+  if (
+    row.event_kind === 'explicit_consent' &&
+    row.consent_version === 1 &&
+    row.consent_accepted_at
+  ) {
+    return {
+      ...base,
+      eventKind: 'explicit_consent',
+      consentVersion: 1,
+      consentAcceptedAt: row.consent_accepted_at,
+    };
+  }
+  if (
+    row.event_kind === 'legacy_request' &&
+    row.consent_version === null &&
+    row.consent_accepted_at === null
+  ) {
+    return { ...base, eventKind: 'legacy_request' };
+  }
+  throw new Error('supabase: invalid newsletter consent event');
+}
+
+function toNewsletterSubscriptionRequestRecord(
+  value: unknown,
+): NewsletterSubscriptionRequestRecord {
+  if (!value || typeof value !== 'object') {
+    throw new Error('supabase: invalid newsletter subscription request result');
+  }
+  const result = value as Record<string, unknown>;
+  if (!result.subscription || !result.consentEvent) {
+    throw new Error('supabase: incomplete newsletter subscription request result');
+  }
+  return {
+    subscription: toNewsletterSubscription(
+      result.subscription as unknown as NewsletterSubscriptionRow,
+    ),
+    consentEvent: toNewsletterConsentEvent(
+      result.consentEvent as unknown as NewsletterConsentEventRow,
+    ),
+  };
 }
 
 function guestPatch(input: Record<string, unknown>): Record<string, unknown> {
@@ -1032,6 +1296,24 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
   }
 
   return {
+    async resolveLegacyRedirect(sourcePath): Promise<LegacyRedirectResolution | null> {
+      const { data, error } = await db
+        .from('url_redirects')
+        .select('destination, status_code')
+        .eq('source_path', sourcePath)
+        .eq('is_active', true)
+        .maybeSingle();
+      throwOn(error);
+      if (!data) return null;
+      const row = data as LegacyRedirectRow;
+      if (![301, 302, 307, 308].includes(row.status_code)) {
+        throw new Error('Stored redirect has an unsupported status code');
+      }
+      return {
+        destination: row.destination,
+        statusCode: row.status_code as LegacyRedirectStatusCode,
+      };
+    },
     async getUser(id) {
       return single<UserRow, User>(
         db.from('users').select(USER_SELECT).eq('id', id).maybeSingle(),
@@ -1064,6 +1346,7 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
           .from('studio_members')
           .select(STUDIO_MEMBER_WITH_ROLE_SELECT)
           .eq('auth_user_id', authUserId)
+          .eq('status', 'active')
           .maybeSingle(),
         toStudioMember,
       );
@@ -1078,10 +1361,7 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
         toStudioMemberAccess,
       );
     },
-    async acceptStudioInvitation(
-      authUserId,
-      requestId,
-    ): Promise<AcceptStudioInvitationResult> {
+    async acceptStudioInvitation(authUserId, requestId): Promise<AcceptStudioInvitationResult> {
       // studio_members is SELECT-only for service_role, so the state change runs
       // inside the security-definer RPC under the access-control advisory lock.
       try {
@@ -1401,14 +1681,51 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       );
     },
 
+    async getHomepageWeeklyEpisodesSettings() {
+      const { data, error } = await db
+        .from('homepage_weekly_episode_settings')
+        .select('*')
+        .eq('id', 1)
+        .single();
+      throwOn(error);
+      return toHomepageWeeklyEpisodesSettings(data as HomepageWeeklyEpisodesSettingsRow);
+    },
+    async updateHomepageWeeklyEpisodesSettings(input) {
+      const { data, error } = await db
+        .from('homepage_weekly_episode_settings')
+        .update({
+          enabled: input.enabled,
+          title: input.title.trim(),
+          version: input.expectedVersion + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', 1)
+        .eq('version', input.expectedVersion)
+        .select('*')
+        .maybeSingle();
+      throwOn(error);
+      if (data) {
+        return {
+          status: 'updated' as const,
+          settings: toHomepageWeeklyEpisodesSettings(data as HomepageWeeklyEpisodesSettingsRow),
+        };
+      }
+      return {
+        status: 'conflict' as const,
+        settings: await this.getHomepageWeeklyEpisodesSettings(),
+      };
+    },
+
     async listEpisodes(filter) {
       let query = db.from('episodes').select('*');
       if (filter.showId) query = query.eq('show_id', filter.showId);
       if (filter.status) query = query.eq('status', filter.status);
-      const { data, error } = await query.order('publish_at', {
-        ascending: false,
-        nullsFirst: false,
-      });
+      if (filter.publishedFrom) query = query.gte('publish_at', filter.publishedFrom);
+      if (filter.publishedTo) query = query.lte('publish_at', filter.publishedTo);
+      const { data, error } = await query
+        .order('publish_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: true });
       throwOn(error);
       return ((data ?? []) as EpisodeRow[]).map(toEpisode);
     },
@@ -1416,6 +1733,8 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       let request = db.from('episodes').select('*', { count: 'exact' });
       if (filter.showId) request = request.eq('show_id', filter.showId);
       if (filter.status) request = request.eq('status', filter.status);
+      if (filter.publishedFrom) request = request.gte('publish_at', filter.publishedFrom);
+      if (filter.publishedTo) request = request.lte('publish_at', filter.publishedTo);
       if (query.search) {
         const pattern = escapeSearchPattern(query.search);
         request = request.or(`title_ar.ilike.%${pattern}%,title_en.ilike.%${pattern}%`);
@@ -1424,6 +1743,7 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       const { data, error, count } = await request
         .order('publish_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
+        .order('id', { ascending: true })
         .range(from, to);
       throwOn(error);
       return { items: ((data ?? []) as EpisodeRow[]).map(toEpisode), total: count ?? 0 };
@@ -1605,9 +1925,7 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       return {
         guests: ((guestResult.data ?? []) as GuestRow[]).map(toGuest),
         socials: ((socialResult.data ?? []) as GuestSocialRow[]).map(toGuestSocial),
-        appearances: ((appearanceResult.data ?? []) as GuestAppearanceRow[]).map(
-          toGuestAppearance,
-        ),
+        appearances: ((appearanceResult.data ?? []) as GuestAppearanceRow[]).map(toGuestAppearance),
       };
     },
     async listGuestsPage(query: ListQuery): Promise<PageResult<Guest>> {
@@ -1624,6 +1942,93 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
         .range(from, to);
       throwOn(error);
       return { items: ((data ?? []) as GuestRow[]).map(toGuest), total: count ?? 0 };
+    },
+    async listPublishedGuestsPage(
+      query: ListQuery,
+    ): Promise<PageResult<PublishedGuestSummaryRecord>> {
+      // PostgREST has no portable `trim(name) <> ''` filter. Read the bounded
+      // guest result in batches, reject whitespace-only names in-process, then
+      // paginate the filtered set so `total` and pages remain consistent.
+      const rows: PublishedGuestSummaryRow[] = [];
+      const batchSize = 1_000;
+      for (let offset = 0; ; offset += batchSize) {
+        let request = db
+          .from('guests')
+          .select('*, guest_appearances!inner(episode_id, episodes!inner(id))')
+          .neq('name', '')
+          .eq('guest_appearances.episodes.status', 'published');
+        if (query.search) {
+          const pattern = escapeSearchPattern(query.search);
+          request = request.or(
+            `name.ilike.%${pattern}%,role.ilike.%${pattern}%,city.ilike.%${pattern}%,bio.ilike.%${pattern}%,slug.ilike.%${pattern}%`,
+          );
+        }
+        const { data, error } = await request
+          .order('name')
+          .order('id')
+          .range(offset, offset + batchSize - 1);
+        throwOn(error);
+        const batch = (data ?? []) as PublishedGuestSummaryRow[];
+        rows.push(...batch);
+        if (batch.length < batchSize) break;
+      }
+
+      const matched = rows
+        .filter((row) => row.name.trim().length > 0)
+        .sort(
+          (left, right) =>
+            left.name.localeCompare(right.name, 'ar') || left.id.localeCompare(right.id),
+        );
+      const { from, to } = pageRange(query);
+      const items = matched.slice(from, to + 1).map((row) => ({
+        guest: toGuest(row),
+        episodeCount: row.guest_appearances.filter(
+          (appearance) => relatedOne(appearance.episodes) !== null,
+        ).length,
+      }));
+      return { items, total: matched.length };
+    },
+    async getPublishedGuestProfile(idOrSlug: string): Promise<PublishedGuestProfileRecord | null> {
+      const guest =
+        (await single<GuestRow, Guest>(
+          db.from('guests').select('*').eq('id', idOrSlug).maybeSingle(),
+          toGuest,
+        )) ??
+        (await single<GuestRow, Guest>(
+          db.from('guests').select('*').eq('slug', idOrSlug).maybeSingle(),
+          toGuest,
+        ));
+      if (!guest?.name.trim()) return null;
+      const [socialResult, appearanceResult] = await Promise.all([
+        db
+          .from('guest_socials')
+          .select('*')
+          .eq('guest_id', guest.id)
+          .order('created_at')
+          .order('id'),
+        db
+          .from('guest_appearances')
+          .select('guest_id, episode_id, episodes!inner(*)')
+          .eq('guest_id', guest.id)
+          .eq('episodes.status', 'published'),
+      ]);
+      throwOn(socialResult.error);
+      throwOn(appearanceResult.error);
+      const episodes = ((appearanceResult.data ?? []) as PublishedGuestAppearanceRow[])
+        .map((appearance) => relatedOne(appearance.episodes))
+        .filter((episode): episode is EpisodeRow => episode !== null)
+        .map(toEpisode)
+        .sort(
+          (left, right) =>
+            (right.publishAt ?? right.createdAt).localeCompare(left.publishAt ?? left.createdAt) ||
+            left.id.localeCompare(right.id),
+        );
+      if (episodes.length === 0) return null;
+      return {
+        guest,
+        socials: ((socialResult.data ?? []) as GuestSocialRow[]).map(toGuestSocial),
+        episodes,
+      };
     },
     async getGuest(id) {
       return single<GuestRow, Guest>(
@@ -1745,11 +2150,7 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       throwOn(links.error);
       const guestIds = ((links.data ?? []) as { guest_id: string }[]).map((row) => row.guest_id);
       if (guestIds.length === 0) return [];
-      const { data, error } = await db
-        .from('guests')
-        .select('*')
-        .in('id', guestIds)
-        .order('name');
+      const { data, error } = await db.from('guests').select('*').in('id', guestIds).order('name');
       throwOn(error);
       return ((data ?? []) as GuestRow[]).map(toGuest);
     },
@@ -1784,12 +2185,192 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       return Boolean(data);
     },
 
+    async listFormSubmissions(filter) {
+      let request = db.from('form_submissions').select('*');
+      if (filter.type) request = request.eq('type', filter.type);
+      if (filter.status) request = request.eq('status', filter.status);
+      if (filter.assigneeId) request = request.eq('assignee_id', filter.assigneeId);
+      const { data, error } = await request.order('created_at', { ascending: false });
+      throwOn(error);
+      return ((data ?? []) as FormSubmissionRow[]).map(toFormSubmission);
+    },
+    async listFormSubmissionsPage(filter, query) {
+      let request = db.from('form_submissions').select('*', { count: 'exact' });
+      if (filter.type) request = request.eq('type', filter.type);
+      if (filter.status) request = request.eq('status', filter.status);
+      if (filter.assigneeId) request = request.eq('assignee_id', filter.assigneeId);
+      const { from, to } = pageRange(query);
+      const { data, error, count } = await request
+        .order('created_at', { ascending: false })
+        .range(from, to);
+      throwOn(error);
+      return {
+        items: ((data ?? []) as FormSubmissionRow[]).map(toFormSubmission),
+        total: count ?? 0,
+      };
+    },
+    async getFormSubmission(id) {
+      return single<FormSubmissionRow, FormSubmission>(
+        db.from('form_submissions').select('*').eq('id', id).maybeSingle(),
+        toFormSubmission,
+      );
+    },
+    async createFormSubmission(input) {
+      const { data, error } = await db
+        .from('form_submissions')
+        .insert({
+          type: input.type,
+          payload: input.payload,
+          source_metadata: input.sourceMetadata,
+        })
+        .select()
+        .single();
+      throwOn(error);
+      return toFormSubmission(data as FormSubmissionRow);
+    },
+    async updateFormSubmission(id, input) {
+      const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      if (input.status !== undefined) {
+        const statusChangedAt = new Date().toISOString();
+        patch.status = input.status;
+        patch.status_updated_at = statusChangedAt;
+        patch.resolved_at = input.status === 'resolved' ? statusChangedAt : null;
+      }
+      if (input.assigneeId !== undefined) patch.assignee_id = input.assigneeId;
+      if (input.internalNotes !== undefined) patch.internal_notes = input.internalNotes;
+      return single<FormSubmissionRow, FormSubmission>(
+        db.from('form_submissions').update(patch).eq('id', id).select().maybeSingle(),
+        toFormSubmission,
+      );
+    },
+    async claimFormSubmissionRateLimit(keyHash, limit, windowSeconds) {
+      const { data, error } = await db.rpc('claim_form_submission_rate_limit', {
+        p_key_hash: keyHash,
+        p_limit: limit,
+        p_window_seconds: windowSeconds,
+      });
+      throwOn(error);
+      if (!data || typeof data !== 'object') {
+        throw new Error('supabase: invalid form rate-limit result');
+      }
+      const result = data as Record<string, unknown>;
+      if (
+        typeof result.allowed !== 'boolean' ||
+        typeof result.retryAfterSeconds !== 'number' ||
+        !Number.isInteger(result.retryAfterSeconds)
+      ) {
+        throw new Error('supabase: invalid form rate-limit result');
+      }
+      return {
+        allowed: result.allowed,
+        retryAfterSeconds: result.retryAfterSeconds,
+      };
+    },
+    async claimFormSubmissionNotification(id, staleBefore) {
+      const { data, error } = await db.rpc('claim_form_submission_notification', {
+        p_submission_id: id,
+        p_stale_before: staleBefore,
+      });
+      throwOn(error);
+      return toFormNotificationClaim(data);
+    },
+    async completeFormSubmissionNotification(id, claimToken, status, errorCode, providerMessageId) {
+      return single<FormSubmissionRow, FormSubmission>(
+        db
+          .from('form_submissions')
+          .update({
+            notification_status: status,
+            notification_error: errorCode ?? null,
+            notification_provider_message_id: providerMessageId ?? null,
+            notification_claim_token: null,
+            notification_started_at: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', id)
+          .eq('notification_status', 'sending')
+          .eq('notification_claim_token', claimToken)
+          .select()
+          .maybeSingle(),
+        toFormSubmission,
+      );
+    },
+
+    async recordNewsletterSubscriptionRequest(input) {
+      const { data, error } = await db.rpc('record_newsletter_subscription_request', {
+        p_email: input.email,
+        p_first_name: input.firstName ?? null,
+        p_consent_accepted_at: input.consentAcceptedAt,
+        p_source_metadata: input.sourceMetadata,
+      });
+      throwOn(error);
+      return toNewsletterSubscriptionRequestRecord(data);
+    },
+    async getNewsletterSubscriptionByEmail(email) {
+      return single<NewsletterSubscriptionRow, NewsletterSubscription>(
+        db
+          .from('newsletter_subscriptions')
+          .select('*')
+          .eq('email', email.trim().toLowerCase())
+          .maybeSingle(),
+        toNewsletterSubscription,
+      );
+    },
+    async listNewsletterSubscribersPage(filter, query) {
+      const requireLatestEvent = Boolean(filter.localStatus);
+      const relation = requireLatestEvent
+        ? 'latest_event:newsletter_consent_events!newsletter_subscriptions_latest_event_fk!inner(event_kind,created_at)'
+        : 'latest_event:newsletter_consent_events!newsletter_subscriptions_latest_event_fk(event_kind,created_at)';
+      let request = db
+        .from('newsletter_subscriptions')
+        .select(`email,first_name,sync_status,updated_at,${relation}`, {
+          count: 'exact',
+        });
+      if (query.search) {
+        const pattern = escapeSearchPattern(query.search);
+        request = request.or(`email.ilike.%${pattern}%,first_name.ilike.%${pattern}%`);
+      }
+      if (filter.mailchimpStatus) {
+        request = request.eq('sync_status', filter.mailchimpStatus);
+      }
+      if (filter.localStatus) {
+        request = request.eq('latest_event.event_kind', filter.localStatus);
+      }
+      const { from, to } = pageRange(query);
+      const { data, error, count } = await request
+        .order('updated_at', { ascending: false })
+        .order('email', { ascending: true })
+        .range(from, to);
+      throwOn(error);
+      return {
+        items: ((data ?? []) as unknown as NewsletterSubscriberListRow[]).map(
+          toNewsletterSubscriberListItem,
+        ),
+        total: count ?? 0,
+      };
+    },
+    async listNewsletterConsentEvents(subscriptionId) {
+      const { data, error } = await db
+        .from('newsletter_consent_events')
+        .select('*')
+        .eq('subscription_id', subscriptionId)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true });
+      throwOn(error);
+      return ((data ?? []) as NewsletterConsentEventRow[]).map(toNewsletterConsentEvent);
+    },
+    async completeNewsletterSubscriptionSync(subscriptionId, consentEventId, status, errorCode) {
+      const { data, error } = await db.rpc('complete_newsletter_subscription_sync', {
+        p_subscription_id: subscriptionId,
+        p_consent_event_id: consentEventId,
+        p_status: status,
+        p_error_code: errorCode ?? null,
+      });
+      throwOn(error);
+      return data ? toNewsletterSubscription(data as NewsletterSubscriptionRow) : null;
+    },
+
     async getContentSummary(): Promise<StudioContentSummary> {
-      const countOf = async (
-        table: string,
-        column?: string,
-        value?: string,
-      ): Promise<number> => {
+      const countOf = async (table: string, column?: string, value?: string): Promise<number> => {
         let request = db.from(table).select('*', { count: 'exact', head: true });
         if (column && value) request = request.eq(column, value);
         const { error, count } = await request;
@@ -1867,8 +2448,7 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
         users: users.count ?? 0,
         subscriptions: { ...counts, total: rows.length },
         monthlyRecurringRevenueMinor,
-        currency:
-          ((planRows.data ?? []) as { currency?: string }[])[0]?.currency ?? 'SAR',
+        currency: ((planRows.data ?? []) as { currency?: string }[])[0]?.currency ?? 'SAR',
       };
     },
 

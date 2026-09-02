@@ -1,17 +1,21 @@
-import type { MailchimpConfig } from '../env';
+import { MAILCHIMP_NEWSLETTER_RECIPIENT_TAG, type MailchimpConfig } from '../env';
 
 export interface MailchimpCampaign {
   id: string;
   status: string;
   sendTime?: string;
   audienceId?: string;
+  recipientSegmentId?: number;
 }
 
 interface MailchimpCampaignResponse {
   id?: unknown;
   status?: unknown;
   send_time?: unknown;
-  recipients?: { list_id?: unknown };
+  recipients?: {
+    list_id?: unknown;
+    segment_opts?: { saved_segment_id?: unknown };
+  };
 }
 
 interface MailchimpChecklistResponse {
@@ -23,7 +27,20 @@ interface MailchimpAudienceResponse {
   stats?: { member_count?: unknown };
 }
 
+interface MailchimpRecipientSegmentResponse {
+  id?: unknown;
+  name?: unknown;
+  member_count?: unknown;
+  type?: unknown;
+}
+
 export interface MailchimpAudienceSummary {
+  name: string;
+  count: number;
+}
+
+export interface MailchimpRecipientSegmentSummary {
+  id: number;
   name: string;
   count: number;
 }
@@ -42,12 +59,19 @@ function campaignFrom(value: MailchimpCampaignResponse): MailchimpCampaign {
   if (typeof value.id !== 'string' || typeof value.status !== 'string') {
     throw new MailchimpApiError(502, 'invalid_response');
   }
+  const savedSegmentId = value.recipients?.segment_opts?.saved_segment_id;
   return {
     id: value.id,
     status: value.status,
     sendTime: typeof value.send_time === 'string' ? value.send_time : undefined,
     audienceId:
       typeof value.recipients?.list_id === 'string' ? value.recipients.list_id : undefined,
+    recipientSegmentId:
+      typeof savedSegmentId === 'number' &&
+      Number.isSafeInteger(savedSegmentId) &&
+      savedSegmentId > 0
+        ? savedSegmentId
+        : undefined,
   };
 }
 
@@ -117,15 +141,30 @@ export class MailchimpClient {
     preheader: string | undefined,
     internalTitle: string,
   ): Promise<MailchimpCampaign> {
+    // Resolving the configured id before creation prevents a stale or mistyped
+    // value from creating a campaign for an unintended audience segment.
+    await this.getRecipientSegmentSummary();
     const value = await this.request<MailchimpCampaignResponse>('/campaigns', 'create_campaign', {
       method: 'POST',
       body: JSON.stringify({
         type: 'regular',
-        recipients: { list_id: this.config.audienceId },
+        recipients: {
+          list_id: this.config.audienceId,
+          segment_opts: { saved_segment_id: this.config.recipientSegmentId },
+        },
         settings: this.settings(subject, preheader, internalTitle),
       }),
     });
-    return campaignFrom(value);
+    const campaign = campaignFrom(value);
+    if (
+      campaign.audienceId !== this.config.audienceId ||
+      campaign.recipientSegmentId !== this.config.recipientSegmentId
+    ) {
+      // Mailchimp may have created the draft even when its response is unsafe.
+      // The route treats this server error as an ambiguous create and fences it.
+      throw new MailchimpApiError(502, 'create_campaign_recipient_mismatch');
+    }
+    return campaign;
   }
 
   async getAudienceSummary(): Promise<MailchimpAudienceSummary> {
@@ -143,6 +182,28 @@ export class MailchimpClient {
       throw new MailchimpApiError(502, 'get_audience_invalid_response');
     }
     return { name: value.name, count: value.stats.member_count };
+  }
+
+  /**
+   * Resolves the configured Mailchimp static segment and proves it is the
+   * `nlpage` signup tag before any campaign may use it.
+   */
+  async getRecipientSegmentSummary(): Promise<MailchimpRecipientSegmentSummary> {
+    const value = await this.request<MailchimpRecipientSegmentResponse>(
+      `/lists/${encodeURIComponent(this.config.audienceId)}/segments/${this.config.recipientSegmentId}?fields=id%2Cname%2Cmember_count%2Ctype`,
+      'get_recipient_segment',
+    );
+    if (
+      value.id !== this.config.recipientSegmentId ||
+      value.name !== MAILCHIMP_NEWSLETTER_RECIPIENT_TAG ||
+      value.type !== 'static' ||
+      typeof value.member_count !== 'number' ||
+      !Number.isSafeInteger(value.member_count) ||
+      value.member_count < 0
+    ) {
+      throw new MailchimpApiError(502, 'get_recipient_segment_invalid_response');
+    }
+    return { id: value.id, name: value.name, count: value.member_count };
   }
 
   async getCampaign(campaignId: string): Promise<MailchimpCampaign> {
@@ -164,10 +225,24 @@ export class MailchimpClient {
       'update_campaign',
       {
         method: 'PATCH',
-        body: JSON.stringify({ settings: this.settings(subject, preheader, internalTitle) }),
+        body: JSON.stringify({
+          recipients: {
+            list_id: this.config.audienceId,
+            segment_opts: { saved_segment_id: this.config.recipientSegmentId },
+          },
+          settings: this.settings(subject, preheader, internalTitle),
+        }),
       },
     );
-    return campaignFrom(value);
+    const campaign = campaignFrom(value);
+    if (
+      campaign.id !== campaignId ||
+      campaign.audienceId !== this.config.audienceId ||
+      campaign.recipientSegmentId !== this.config.recipientSegmentId
+    ) {
+      throw new MailchimpApiError(502, 'update_campaign_recipient_mismatch');
+    }
+    return campaign;
   }
 
   async setCampaignContent(campaignId: string, html: string, plainText: string): Promise<void> {

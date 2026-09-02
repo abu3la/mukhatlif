@@ -1,17 +1,19 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import {
-  adminPaths,
-  canViewPage,
-  STUDIO_PAGE_LABELS,
-  useAdminAuth,
-} from '@/application';
+import { adminPaths, canViewPage, STUDIO_PAGE_LABELS, useAdminAuth } from '@/application';
 import type { AdminRepositoryCapabilities } from '@/data';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { Button } from '@/shared/ui/primitives';
 import type { AdminViewer, StudioPageId } from '@/lib';
 
-const NAV_ITEMS = [
+interface StudioNavItem {
+  readonly href: string;
+  readonly page: StudioPageId;
+  readonly label: string;
+  readonly match: (path: string) => boolean;
+}
+
+const NAV_ITEMS: readonly StudioNavItem[] = [
   {
     href: adminPaths.overview,
     page: 'overview',
@@ -49,6 +51,18 @@ const NAV_ITEMS = [
     match: (path: string) => path.startsWith(adminPaths.subscribers),
   },
   {
+    href: adminPaths.newsletter,
+    page: 'subscribers',
+    label: 'النشرة البريدية',
+    match: (path: string) => path.startsWith(adminPaths.newsletter),
+  },
+  {
+    href: adminPaths.formSubmissions,
+    page: 'forms',
+    label: STUDIO_PAGE_LABELS.forms,
+    match: (path: string) => path.startsWith(adminPaths.formSubmissions),
+  },
+  {
     href: adminPaths.roles,
     page: 'access',
     label: 'الأدوار والصلاحيات',
@@ -62,10 +76,9 @@ const NAV_ITEMS = [
     page: 'access',
     label: 'حسابات الاستوديو',
     match: (path: string) =>
-      path === adminPaths.studioMembers ||
-      path.startsWith(`${adminPaths.studioMembers}/`),
+      path === adminPaths.studioMembers || path.startsWith(`${adminPaths.studioMembers}/`),
   },
-] as const;
+];
 
 export function isStudioPageAvailable(
   page: StudioPageId,

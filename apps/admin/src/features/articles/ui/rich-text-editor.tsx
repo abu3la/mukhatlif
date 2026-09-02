@@ -1,5 +1,19 @@
-import { EditorContent, type JSONContent, useEditor } from '@tiptap/react';
+import { Node as TiptapNode } from '@tiptap/core';
+import {
+  EditorContent,
+  NodeViewWrapper,
+  ReactNodeViewRenderer,
+  type JSONContent,
+  type ReactNodeViewProps,
+  useEditor,
+} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import {
+  ARTICLE_AD_FORMATS,
+  type ArticleAdBlockAttributes,
+  type ArticleAdFormat,
+} from '@mukhtalif/types';
+import { articleAdBlockAttributesSchema, articleAdPlacementIdSchema } from '@mukhtalif/validation';
 import {
   AlignCenter,
   AlignJustify,
@@ -15,6 +29,7 @@ import {
   Link,
   List,
   ListOrdered,
+  Megaphone,
   Pilcrow,
   PilcrowLeft,
   PilcrowRight,
@@ -27,11 +42,15 @@ import {
 } from 'lucide-react';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from 'react';
 import type { ArticleMediaAsset, UploadArticleImageCommand } from '@/data';
 import {
@@ -44,6 +63,7 @@ import {
   type ImageGalleryAttributes,
   normalizeArticleImageAlignment,
   normalizeArticleImageGalleryAttributes,
+  normalizeArticleImageLink,
   normalizeArticleImagePresentation,
   normalizeArticleImageRadius,
   type VideoEmbedAttributes,
@@ -79,6 +99,131 @@ interface ToolbarIconMenuOption<Value extends string> {
   readonly label: string;
   readonly Icon: LucideIcon;
 }
+
+const MAX_ARTICLE_AD_BLOCKS = 12;
+
+export function normalizeArticleAdBlockAttributes(value: unknown): ArticleAdBlockAttributes {
+  const record = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  const placement = articleAdPlacementIdSchema.safeParse(record.placementId);
+  const format: ArticleAdFormat = record.format === 'banner' ? 'banner' : 'inline';
+  const base: ArticleAdBlockAttributes = {
+    placementId: placement.success ? placement.data : '',
+    format,
+  };
+  if (typeof record.label !== 'string' || !record.label.trim()) return base;
+  const parsed = articleAdBlockAttributesSchema.safeParse({
+    ...base,
+    label: record.label,
+  });
+  return parsed.success ? parsed.data : base;
+}
+
+interface AdBlockEditorContextValue {
+  readonly disabled: boolean;
+  edit(attributes: ArticleAdBlockAttributes): void;
+}
+
+const AdBlockEditorContext = createContext<AdBlockEditorContextValue | null>(null);
+
+function AdBlockEditorProvider({
+  disabled,
+  edit,
+  children,
+}: {
+  readonly disabled: boolean;
+  readonly edit: (attributes: ArticleAdBlockAttributes) => void;
+  readonly children: ReactNode;
+}) {
+  const value = useMemo<AdBlockEditorContextValue>(() => ({ disabled, edit }), [disabled, edit]);
+  return <AdBlockEditorContext.Provider value={value}>{children}</AdBlockEditorContext.Provider>;
+}
+
+function AdBlockNodeView({ node, editor, selected, deleteNode, getPos }: ReactNodeViewProps) {
+  const context = useContext(AdBlockEditorContext);
+  const attributes = normalizeArticleAdBlockAttributes(node.attrs);
+  const formatLabel = attributes.format === 'banner' ? 'شريط إعلاني' : 'إعلان داخل المحتوى';
+  const displayName = attributes.label || attributes.placementId || 'مساحة غير مكتملة';
+  return (
+    <NodeViewWrapper
+      as="aside"
+      className={`article-ad-node${selected ? ' article-ad-node--selected' : ''}`}
+      data-article-ad-block=""
+      data-ad-format={attributes.format}
+      data-drag-handle=""
+      aria-label={`مساحة إعلانية: ${displayName}`}
+    >
+      <div className="article-ad-node__summary" contentEditable={false}>
+        <span className="article-ad-node__type">مساحة إعلانية</span>
+        <strong>{displayName}</strong>
+        <span>{formatLabel}</span>
+        {attributes.placementId ? <code dir="ltr">{attributes.placementId}</code> : null}
+      </div>
+      {editor.isEditable && !context?.disabled ? (
+        <div className="article-ad-node__actions" contentEditable={false}>
+          <button
+            type="button"
+            onClick={() => {
+              const position = getPos();
+              if (typeof position === 'number') editor.commands.setNodeSelection(position);
+              context?.edit(attributes);
+            }}
+          >
+            تعديل المساحة
+          </button>
+          <button type="button" onClick={deleteNode}>
+            إزالة المساحة
+          </button>
+        </div>
+      ) : null}
+    </NodeViewWrapper>
+  );
+}
+
+const ArticleAdBlock = TiptapNode.create({
+  name: 'adBlock',
+  group: 'block',
+  atom: true,
+  selectable: true,
+  draggable: true,
+  addAttributes() {
+    return {
+      placementId: {
+        default: '',
+        parseHTML: (element) => element.getAttribute('data-ad-placement') ?? '',
+        renderHTML: () => ({}),
+      },
+      format: {
+        default: 'inline',
+        parseHTML: (element) =>
+          element.getAttribute('data-ad-format') === 'banner' ? 'banner' : 'inline',
+        renderHTML: () => ({}),
+      },
+      label: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-ad-label'),
+        renderHTML: () => ({}),
+      },
+    };
+  },
+  parseHTML() {
+    return [{ tag: 'aside[data-article-ad-block]' }];
+  },
+  renderHTML({ node }) {
+    const attributes = normalizeArticleAdBlockAttributes(node.attrs);
+    return [
+      'aside',
+      {
+        'data-article-ad-block': '',
+        'data-ad-placement': attributes.placementId,
+        'data-ad-format': attributes.format,
+      },
+      ['span', {}, 'مساحة إعلانية'],
+    ];
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(AdBlockNodeView);
+  },
+});
 
 function ToolbarIconMenu<Value extends string>({
   label,
@@ -258,12 +403,14 @@ export function normalizeArticleDocument(document: JSONContent): JSONContent {
       if (Object.keys(attrs).length) normalized.attrs = attrs;
     }
     if (document.type === 'imageBlock') {
+      const linkUrl = normalizeArticleImageLink(document.attrs.linkUrl);
       normalized.attrs = {
         mediaId: String(document.attrs.mediaId ?? ''),
         alt: String(document.attrs.alt ?? ''),
         ...(typeof document.attrs.caption === 'string' && document.attrs.caption.trim()
           ? { caption: document.attrs.caption.trim() }
           : {}),
+        ...(linkUrl ? { linkUrl } : {}),
         presentation: normalizeArticleImagePresentation(document.attrs.presentation),
         alignment: normalizeArticleImageAlignment(document.attrs.alignment),
         radius: normalizeArticleImageRadius(document.attrs.radius),
@@ -285,6 +432,9 @@ export function normalizeArticleDocument(document: JSONContent): JSONContent {
     }
     if (document.type === 'textSection') {
       normalized.attrs = normalizeArticleTextSectionAttributes(document.attrs);
+    }
+    if (document.type === 'adBlock') {
+      normalized.attrs = normalizeArticleAdBlockAttributes(document.attrs);
     }
   }
   if (document.content) {
@@ -336,6 +486,7 @@ const editorExtensions = [
   ArticleImageGallery,
   ArticleVideoEmbed,
   ArticleTextSection,
+  ArticleAdBlock,
 ];
 
 export function RichTextEditor({
@@ -350,6 +501,10 @@ export function RichTextEditor({
   uploadImage,
 }: RichTextEditorProps) {
   const linkInputId = useId();
+  const adPlacementInputId = useId();
+  const adLabelInputId = useId();
+  const adFormatInputId = useId();
+  const adErrorId = useId();
   const [isLinkEditorOpen, setIsLinkEditorOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkError, setLinkError] = useState('');
@@ -367,7 +522,9 @@ export function RichTextEditor({
   const imageTriggerRef = useRef<HTMLButtonElement>(null);
   const galleryTriggerRef = useRef<HTMLButtonElement>(null);
   const videoTriggerRef = useRef<HTMLButtonElement>(null);
+  const adTriggerRef = useRef<HTMLButtonElement>(null);
   const mediaOpenerRef = useRef<HTMLElement | null>(null);
+  const adOpenerRef = useRef<HTMLElement | null>(null);
   const [mediaDialog, setMediaDialog] = useState<
     | { readonly kind: 'image'; readonly attributes?: ImageBlockAttributes }
     | { readonly kind: 'gallery'; readonly attributes?: ImageGalleryAttributes }
@@ -375,6 +532,13 @@ export function RichTextEditor({
     | null
   >(null);
   const [mediaError, setMediaError] = useState('');
+  const [adEditor, setAdEditor] = useState<{
+    readonly editing: boolean;
+    readonly placementId: string;
+    readonly label: string;
+    readonly format: ArticleAdFormat;
+  } | null>(null);
+  const [adError, setAdError] = useState('');
   const editor = useEditor({
     extensions: editorExtensions,
     content: initialDocument,
@@ -414,7 +578,10 @@ export function RichTextEditor({
     editor?.view.dom.setAttribute('aria-invalid', String(invalid));
     if (describedBy) editor?.view.dom.setAttribute('aria-describedby', describedBy);
     else editor?.view.dom.removeAttribute('aria-describedby');
-    if (disabled) setIsLinkEditorOpen(false);
+    if (disabled) {
+      setIsLinkEditorOpen(false);
+      setAdEditor(null);
+    }
   }, [describedBy, disabled, editor, invalid, required]);
 
   function openLinkEditor() {
@@ -475,6 +642,25 @@ export function RichTextEditor({
     [disabled, editor, refreshMedia, uploadImage],
   );
 
+  const openAdEditor = useCallback(
+    (attributes?: ArticleAdBlockAttributes) => {
+      if (!editor || disabled) return;
+      adOpenerRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const current = normalizeArticleAdBlockAttributes(
+        attributes ?? (editor.isActive('adBlock') ? editor.getAttributes('adBlock') : undefined),
+      );
+      setAdError('');
+      setAdEditor({
+        editing: Boolean(attributes || editor.isActive('adBlock')),
+        placementId: current.placementId,
+        label: current.label ?? '',
+        format: current.format,
+      });
+    },
+    [disabled, editor],
+  );
+
   if (!editor) {
     return (
       <div className="article-rich-editor article-rich-editor--loading">جارٍ تجهيز المحرر…</div>
@@ -497,7 +683,51 @@ export function RichTextEditor({
     });
   }
 
-  function countNodes(type: 'imageBlock' | 'videoEmbed'): number {
+  function closeAdEditor() {
+    const opener = adOpenerRef.current;
+    setAdEditor(null);
+    setAdError('');
+    requestAnimationFrame(() => {
+      if (opener?.isConnected) opener.focus();
+      else adTriggerRef.current?.focus();
+      adOpenerRef.current = null;
+    });
+  }
+
+  function saveAdBlock() {
+    if (!editor || !adEditor) return;
+    const candidate = {
+      placementId: adEditor.placementId,
+      format: adEditor.format,
+      ...(adEditor.label.trim() ? { label: adEditor.label } : {}),
+    };
+    if (!articleAdPlacementIdSchema.safeParse(candidate.placementId).success) {
+      setAdError('استخدم أحرفًا إنجليزية صغيرة وأرقامًا وشرطات، مثل article-middle-1.');
+      return;
+    }
+    const parsed = articleAdBlockAttributesSchema.safeParse(candidate);
+    if (!parsed.success) {
+      setAdError('اسم المساحة يجب أن يكون سطرًا واحدًا وبحد أقصى 80 حرفًا.');
+      return;
+    }
+    if (!adEditor.editing && countNodes('adBlock') >= MAX_ARTICLE_AD_BLOCKS) {
+      setAdError(`وصل المقال إلى الحد الأقصى: ${MAX_ARTICLE_AD_BLOCKS} مساحة إعلانية.`);
+      return;
+    }
+    const chain = editor.chain().focus();
+    if (adEditor.editing) {
+      chain.updateAttributes('adBlock', { ...parsed.data, label: parsed.data.label ?? null }).run();
+    } else chain.insertContent({ type: 'adBlock', attrs: parsed.data }).run();
+    closeAdEditor();
+  }
+
+  function removeAdBlock() {
+    if (!editor || !adEditor?.editing) return;
+    if (editor.isActive('adBlock')) editor.chain().focus().deleteSelection().run();
+    closeAdEditor();
+  }
+
+  function countNodes(type: 'imageBlock' | 'videoEmbed' | 'adBlock'): number {
     if (!editor) return 0;
     let count = 0;
     editor.state.doc.descendants((node) => {
@@ -588,7 +818,8 @@ export function RichTextEditor({
     if (
       node.type.name === 'imageBlock' ||
       node.type.name === 'imageGallery' ||
-      node.type.name === 'videoEmbed'
+      node.type.name === 'videoEmbed' ||
+      node.type.name === 'adBlock'
     ) {
       selectionContainsMedia = true;
       return false;
@@ -599,7 +830,8 @@ export function RichTextEditor({
     selectionContainsMedia ||
     editor.isActive('imageBlock') ||
     editor.isActive('imageGallery') ||
-    editor.isActive('videoEmbed');
+    editor.isActive('videoEmbed') ||
+    editor.isActive('adBlock');
   const textSectionIsActive = editor.isActive('textSection');
   const textSectionAttributes = normalizeArticleTextSectionAttributes(
     textSectionIsActive ? editor.getAttributes('textSection') : undefined,
@@ -607,12 +839,23 @@ export function RichTextEditor({
   const selectionIsAtDocumentLevel =
     editor.state.selection.$from.depth === 1 && editor.state.selection.$to.depth === 1;
   const galleryIsActive = editor.isActive('imageGallery');
+  const adBlockIsActive = editor.isActive('adBlock');
   const canOpenGallery = galleryIsActive || (!mediaIsSelected && selectionIsAtDocumentLevel);
   const galleryToolbarLabel = galleryIsActive
     ? 'تعديل معرض الصور'
     : canOpenGallery
       ? 'معرض صور'
       : 'أضف المعرض بين فقرات المقال';
+  const reachedAdLimit = countNodes('adBlock') >= MAX_ARTICLE_AD_BLOCKS;
+  const canOpenAdBlock =
+    adBlockIsActive || (!mediaIsSelected && selectionIsAtDocumentLevel && !reachedAdLimit);
+  const adToolbarLabel = adBlockIsActive
+    ? 'تعديل المساحة الإعلانية'
+    : reachedAdLimit
+      ? `وصل المقال إلى ${MAX_ARTICLE_AD_BLOCKS} مساحة إعلانية`
+      : canOpenAdBlock
+        ? 'مساحة إعلانية'
+        : 'أضف الإعلان بين فقرات المقال';
   const canCreateTextSection =
     !mediaIsSelected &&
     (textSectionIsActive ||
@@ -824,6 +1067,18 @@ export function RichTextEditor({
         >
           <Video aria-hidden="true" focusable="false" size={19} strokeWidth={1.9} />
         </button>
+        <button
+          ref={adTriggerRef}
+          type="button"
+          className="article-rich-editor__tool"
+          aria-label={adToolbarLabel}
+          title={adToolbarLabel}
+          aria-pressed={adBlockIsActive || Boolean(adEditor)}
+          disabled={disabled || !canOpenAdBlock}
+          onClick={() => openAdEditor()}
+        >
+          <Megaphone aria-hidden="true" focusable="false" size={19} strokeWidth={1.9} />
+        </button>
         {tool('تراجع', Undo2, undefined, !editor.can().undo(), () =>
           editor.chain().focus().undo().run(),
         )}
@@ -881,17 +1136,119 @@ export function RichTextEditor({
         </div>
       ) : null}
 
+      {adEditor ? (
+        <div
+          className="article-rich-editor__ad-form"
+          role="group"
+          aria-label={adEditor.editing ? 'تعديل مساحة إعلانية' : 'إضافة مساحة إعلانية'}
+        >
+          <label htmlFor={adPlacementInputId}>
+            <span>معرّف المساحة</span>
+            <input
+              id={adPlacementInputId}
+              className="control"
+              dir="ltr"
+              value={adEditor.placementId}
+              disabled={disabled}
+              autoCapitalize="none"
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={64}
+              placeholder="article-middle-1"
+              aria-invalid={Boolean(adError)}
+              aria-describedby={adError ? adErrorId : undefined}
+              onChange={(event) => {
+                setAdError('');
+                setAdEditor((current) =>
+                  current ? { ...current, placementId: event.target.value } : current,
+                );
+              }}
+            />
+          </label>
+          <label htmlFor={adLabelInputId}>
+            <span>اسم المساحة (اختياري)</span>
+            <input
+              id={adLabelInputId}
+              className="control"
+              value={adEditor.label}
+              disabled={disabled}
+              maxLength={80}
+              placeholder="منتصف المقال"
+              onChange={(event) => {
+                setAdError('');
+                setAdEditor((current) =>
+                  current ? { ...current, label: event.target.value } : current,
+                );
+              }}
+            />
+          </label>
+          <label htmlFor={adFormatInputId}>
+            <span>شكل المساحة</span>
+            <select
+              id={adFormatInputId}
+              className="control"
+              value={adEditor.format}
+              disabled={disabled}
+              onChange={(event) => {
+                const format = ARTICLE_AD_FORMATS.includes(event.target.value as ArticleAdFormat)
+                  ? (event.target.value as ArticleAdFormat)
+                  : 'inline';
+                setAdEditor((current) => (current ? { ...current, format } : current));
+              }}
+            >
+              <option value="inline">داخل المحتوى</option>
+              <option value="banner">شريط إعلاني</option>
+            </select>
+          </label>
+          <div className="article-rich-editor__ad-form-actions">
+            <button
+              type="button"
+              className="button button--primary"
+              disabled={disabled}
+              onClick={saveAdBlock}
+            >
+              {adEditor.editing ? 'حفظ المساحة' : 'إضافة المساحة'}
+            </button>
+            <button
+              type="button"
+              className="button button--quiet"
+              disabled={disabled}
+              onClick={closeAdEditor}
+            >
+              إلغاء
+            </button>
+            {adEditor.editing ? (
+              <button
+                type="button"
+                className="button button--danger"
+                disabled={disabled}
+                onClick={removeAdBlock}
+              >
+                إزالة المساحة
+              </button>
+            ) : null}
+          </div>
+          {adError ? (
+            <p id={adErrorId} className="article-rich-editor__ad-error" role="alert">
+              {adError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {mediaError ? (
         <p className="article-rich-editor__media-error" role="alert">
           {mediaError}
         </p>
       ) : null}
-      <ArticleMediaEditorProvider assets={mediaAssets} disabled={disabled} edit={openMediaEditor}>
-        <EditorContent editor={editor} className="article-rich-editor__content" />
-      </ArticleMediaEditorProvider>
+      <AdBlockEditorProvider disabled={disabled} edit={openAdEditor}>
+        <ArticleMediaEditorProvider assets={mediaAssets} disabled={disabled} edit={openMediaEditor}>
+          <EditorContent editor={editor} className="article-rich-editor__content" />
+        </ArticleMediaEditorProvider>
+      </AdBlockEditorProvider>
       <p className="article-rich-editor__note">
         عنوان المقال هو العنوان الرئيسي. استخدم عنوان 2 وعنوان 3 داخل المحتوى، وأضف الصور
-        والفيديوهات في مواضعها.
+        والفيديوهات والمساحات الإعلانية في مواضعها.
       </p>
       {mediaDialog && mediaDialog.kind !== 'gallery' && refreshMedia && uploadImage ? (
         <ArticleMediaDialog

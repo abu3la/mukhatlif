@@ -84,6 +84,23 @@ function safeHref(value: string | undefined, relativeLinkBaseUrl?: string): stri
   }
 }
 
+function safeImageHref(value: string | undefined, relativeLinkBaseUrl?: string): string | null {
+  if (!value || value.startsWith('//')) return null;
+  const href = value.trim();
+  if (!href || /[\p{Cc}\p{Zl}\p{Zp}\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u.test(href)) {
+    return null;
+  }
+  if (href.startsWith('/') && !href.startsWith('//')) {
+    return relativeLinkBaseUrl ? new URL(href, `${relativeLinkBaseUrl}/`).toString() : href;
+  }
+  try {
+    const url = new URL(href);
+    return url.protocol === 'https:' && !url.username && !url.password ? href : null;
+  } catch {
+    return null;
+  }
+}
+
 function renderMark(value: string, mark: RichTextMark, relativeLinkBaseUrl?: string): string {
   if (mark.type === 'bold') return `<strong>${value}</strong>`;
   if (mark.type === 'italic') return `<em>${value}</em>`;
@@ -175,6 +192,14 @@ function textSectionHeight(value: unknown): ArticleTextSectionHeight {
   return value === 'short' || value === 'medium' || value === 'tall' ? value : 'auto';
 }
 
+function safeAdPlacementId(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const placementId = value.trim();
+  return placementId.length <= 64 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(placementId)
+    ? placementId
+    : null;
+}
+
 function emailTextAlignment(
   alignment: ArticleTextAlignment,
   direction: ArticleTextDirection,
@@ -236,16 +261,25 @@ function renderNode(node: RichTextNode, options: RichTextRenderOptions): string 
       if (!src) return '';
       const alt = escapeHtml(node.attrs?.alt ?? '');
       const caption = escapeHtml(node.attrs?.caption ?? '');
+      const linkUrl = safeImageHref(node.attrs?.linkUrl, relativeLinkBaseUrl);
+      const externalLinkAttributes =
+        linkUrl && !linkUrl.startsWith('/') ? ' target="_blank" rel="noopener noreferrer"' : '';
       const alignment = imageAlignment(node.attrs?.alignment);
       const radius = imageRadius(node.attrs?.radius);
       if (mode === 'email') {
         const emailAlignment = EMAIL_IMAGE_ALIGNMENT[alignment];
-        const image = `<img src="${escapeHtml(src)}" alt="${alt}" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:${IMAGE_RADIUS[radius]};margin:${emailAlignment.imageMargin}">`;
+        const rawImage = `<img src="${escapeHtml(src)}" alt="${alt}" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:${IMAGE_RADIUS[radius]};margin:${emailAlignment.imageMargin}">`;
+        const image = linkUrl
+          ? `<a href="${escapeHtml(linkUrl)}"${externalLinkAttributes}>${rawImage}</a>`
+          : rawImage;
         return `<div align="${emailAlignment.html}" style="margin:24px 0;text-align:${emailAlignment.html}">${image}${caption ? `<p style="margin:8px 0 0;color:#4A4E7C;font-size:14px;text-align:${emailAlignment.html}">${caption}</p>` : ''}</div>`;
       }
       const presentation = node.attrs?.presentation === 'wide' ? 'wide' : 'content';
       const figureStyle = `${WEB_IMAGE_PRESENTATION[presentation]};margin-block:24px;${WEB_IMAGE_ALIGNMENT[alignment]}`;
-      const image = `<img src="${escapeHtml(src)}" alt="${alt}" style="display:block;width:100%;height:auto;border:0;border-radius:${IMAGE_RADIUS[radius]}" loading="lazy" decoding="async">`;
+      const rawImage = `<img src="${escapeHtml(src)}" alt="${alt}" style="display:block;width:100%;height:auto;border:0;border-radius:${IMAGE_RADIUS[radius]}" loading="lazy" decoding="async">`;
+      const image = linkUrl
+        ? `<a href="${escapeHtml(linkUrl)}"${externalLinkAttributes}>${rawImage}</a>`
+        : rawImage;
       return `<figure data-media-kind="image" data-presentation="${presentation}" data-alignment="${alignment}" data-radius="${radius}" style="${figureStyle}">${image}${caption ? `<figcaption>${caption}</figcaption>` : ''}</figure>`;
     }
     case 'imageGallery': {
@@ -282,6 +316,13 @@ function renderNode(node: RichTextNode, options: RichTextRenderOptions): string 
         return `<div style="margin:24px 0"><a href="${escapeHtml(urls.watch)}" style="color:#171A56;text-decoration:none"><img src="${escapeHtml(poster)}" alt="${title}" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:8px"><span style="display:block;margin-top:8px;font-weight:700">شاهد الفيديو: ${title}</span></a>${caption ? `<p style="margin:8px 0 0;color:#4A4E7C;font-size:14px">${caption}</p>` : ''}</div>`;
       }
       return `<figure data-media-kind="video"><iframe src="${escapeHtml(urls.embed)}" title="${title}" style="display:block;border:0;border-radius:8px" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe>${caption ? `<figcaption>${caption}</figcaption>` : ''}</figure>`;
+    }
+    case 'adBlock': {
+      if (mode === 'email') return '';
+      const placementId = safeAdPlacementId(node.attrs?.placementId);
+      if (!placementId) return '';
+      const format = node.attrs?.format === 'banner' ? 'banner' : 'inline';
+      return `<aside class="article-ad-slot" data-article-ad="" data-ad-placement="${escapeHtml(placementId)}" data-ad-format="${format}" aria-label="مساحة إعلانية"><span class="article-ad-slot__fallback">مساحة إعلانية</span></aside>`;
     }
   }
 }
@@ -332,8 +373,11 @@ function richTextNodeToPlainText(node: RichTextNode, relativeLinkBaseUrl?: strin
     }
     case 'listItem':
       return children();
-    case 'imageBlock':
-      return `${node.attrs?.caption ?? node.attrs?.alt ?? ''}\n\n`;
+    case 'imageBlock': {
+      const description = node.attrs?.caption ?? node.attrs?.alt ?? '';
+      const linkUrl = safeImageHref(node.attrs?.linkUrl, relativeLinkBaseUrl);
+      return `${[description, linkUrl].filter(Boolean).join('\n')}\n\n`;
+    }
     case 'imageGallery': {
       const descriptions = (node.attrs?.items ?? []).map((item) => item.alt);
       if (node.attrs?.caption) descriptions.push(node.attrs.caption);
@@ -343,6 +387,8 @@ function richTextNodeToPlainText(node: RichTextNode, relativeLinkBaseUrl?: strin
       const urls = videoUrls(node.attrs?.provider, node.attrs?.videoId);
       return `${node.attrs?.title ?? ''}${node.attrs?.caption ? `\n${node.attrs.caption}` : ''}${urls ? `\n${urls.watch}` : ''}\n\n`;
     }
+    case 'adBlock':
+      return '';
   }
 }
 

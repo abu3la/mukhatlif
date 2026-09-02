@@ -23,6 +23,14 @@ export type SubscriberUser = User;
 export type AuthenticatedUser = User;
 
 /**
+ * Where a Studio account sits in the invitation lifecycle. A member row exists
+ * from the moment an invitation is sent, so this is what separates a pending
+ * invitee from an operator who has accepted and set a password.
+ */
+export const STUDIO_MEMBER_STATUSES = ['invited', 'active'] as const;
+export type StudioMemberStatus = (typeof STUDIO_MEMBER_STATUSES)[number];
+
+/**
  * A member of the private Studio administration workspace. This is a distinct
  * entity from an application User even when both rows link to the same Auth ID.
  */
@@ -33,22 +41,14 @@ export interface StudioMember {
   role: RoleId;
   roleName: string;
   locale: UserLocale;
+  status: StudioMemberStatus;
   /** ISO timestamp */
   createdAt: string;
 }
 
-/**
- * Where a Studio account sits in the invitation lifecycle. A member row exists
- * from the moment an invitation is sent, so this is what separates a pending
- * invitee from an operator who has accepted and set a password.
- */
-export const STUDIO_MEMBER_STATUSES = ['invited', 'active'] as const;
-export type StudioMemberStatus = (typeof STUDIO_MEMBER_STATUSES)[number];
-
 /** Studio directory projection. The immutable Auth UUID stays server-only. */
 export interface StudioMemberAccess extends StudioMember {
   authLinked: boolean;
-  status: StudioMemberStatus;
   /** ISO timestamp; absent while the invitation is still pending. */
   acceptedAt?: string;
 }

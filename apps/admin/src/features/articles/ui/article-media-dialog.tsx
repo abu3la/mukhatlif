@@ -1,4 +1,5 @@
 import { type ChangeEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { articleImageLinkSchema } from '@mukhtalif/validation';
 import type { ArticleMediaAsset, UploadArticleImageCommand } from '@/data';
 import { formatArabicInteger } from '@/lib';
 import { Button, Field, Input, Textarea } from '@/shared/ui/primitives';
@@ -59,6 +60,9 @@ export function ArticleMediaDialog({
   );
   const [alt, setAlt] = useState(value.kind === 'image' ? (value.attributes?.alt ?? '') : '');
   const [caption, setCaption] = useState(value.attributes?.caption ?? '');
+  const [linkUrl, setLinkUrl] = useState(
+    value.kind === 'image' ? (value.attributes?.linkUrl ?? '') : '',
+  );
   const [presentation, setPresentation] = useState<ArticleImagePresentation>(
     value.kind === 'image' ? (value.attributes?.presentation ?? 'content') : 'content',
   );
@@ -105,13 +109,15 @@ export function ArticleMediaDialog({
   }, [assets, query]);
 
   const parsedVideo = value.kind === 'video' ? parseArticleVideoUrl(videoUrl) : null;
+  const parsedImageLink = linkUrl.trim() ? articleImageLinkSchema.safeParse(linkUrl) : null;
+  const imageLinkIsValid = !parsedImageLink || parsedImageLink.success;
   const uploadAlt = value.kind === 'image' ? alt.trim() : videoTitle.trim();
   const canCommit =
     !disabled &&
     uploadProgress === null &&
     selectedMediaId.length > 0 &&
     (value.kind === 'image'
-      ? alt.trim().length > 0
+      ? alt.trim().length > 0 && imageLinkIsValid
       : Boolean(parsedVideo && videoTitle.trim().length > 0));
 
   async function selectFile(event: ChangeEvent<HTMLInputElement>) {
@@ -135,9 +141,7 @@ export function ArticleMediaDialog({
             ? 'أضف وصفًا بديلًا، ثم ارفع الصورة.'
             : 'أضف عنوان الفيديو، ثم ارفع صورة الملصق.';
         setError(missingCopy);
-        document
-          .getElementById(value.kind === 'image' ? altInputId : videoTitleInputId)
-          ?.focus();
+        document.getElementById(value.kind === 'image' ? altInputId : videoTitleInputId)?.focus();
       }
       return;
     }
@@ -176,10 +180,12 @@ export function ArticleMediaDialog({
   function commit() {
     if (!canCommit) return;
     if (value.kind === 'image') {
+      const safeLinkUrl = parsedImageLink?.success ? parsedImageLink.data : undefined;
       onCommit('image', {
         mediaId: selectedMediaId,
         alt: alt.trim(),
         caption: caption.trim() || undefined,
+        linkUrl: safeLinkUrl,
         presentation,
         alignment,
         radius,
@@ -412,6 +418,29 @@ export function ArticleMediaDialog({
                 onChange={(event) => setCaption(event.target.value)}
               />
             </Field>
+            {value.kind === 'image' ? (
+              <>
+                <Field
+                  label="رابط الصورة (اختياري)"
+                  hint="استخدم رابطًا آمنًا يبدأ بـ https:// أو رابطًا داخليًا يبدأ بـ /."
+                >
+                  <Input
+                    dir="ltr"
+                    value={linkUrl}
+                    disabled={disabled}
+                    maxLength={2048}
+                    placeholder="https://example.com أو /sponsor"
+                    aria-invalid={!imageLinkIsValid}
+                    onChange={(event) => setLinkUrl(event.target.value)}
+                  />
+                </Field>
+                {!imageLinkIsValid ? (
+                  <p className="article-media-dialog__field-error" role="alert">
+                    استخدم رابطًا يبدأ بـ https:// أو /، من دون بيانات دخول.
+                  </p>
+                ) : null}
+              </>
+            ) : null}
           </section>
 
           {value.kind === 'image' ? (

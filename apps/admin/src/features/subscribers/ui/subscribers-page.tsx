@@ -37,7 +37,10 @@ export function SubscribersView() {
 
   return (
     <>
-      <PageHeader title="المشتركون" />
+      <PageHeader
+        title="المشتركون"
+        detail="حسابات التطبيق واشتراكات مختلف بلس. مشتركو البريد في صفحة «النشرة البريدية»."
+      />
 
       {operationError ? (
         <p className="notice notice--error" role="alert">
@@ -108,12 +111,7 @@ export function SubscribersView() {
             <h2 id="users-title">مستخدمو التطبيق</h2>
             <p>عدد مستخدمي التطبيق: {formatArabicInteger(appUsers.length)}</p>
           </div>
-          <div
-            className="user-list"
-            role="region"
-            aria-label="قائمة مستخدمي التطبيق"
-            tabIndex={0}
-          >
+          <div className="user-list" role="region" aria-label="قائمة مستخدمي التطبيق" tabIndex={0}>
             <div className="user-table-header" aria-hidden="true">
               <span>المستخدم</span>
               <span>البريد الإلكتروني</span>

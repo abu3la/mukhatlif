@@ -233,4 +233,51 @@ describe('ArticleMediaDialog', () => {
     expect(alignment).toBeDisabled();
     expect(screen.getByText('لا تتغير محاذاة الصورة عند اختيار العرض الواسع.')).toBeVisible();
   });
+
+  it('accepts a safe optional image link and blocks executable URLs', async () => {
+    const user = userEvent.setup();
+    const commit = vi.fn();
+    const asset: ArticleMediaAsset = {
+      id: 'med-00000000000000000000000000000003',
+      kind: 'image',
+      mimeType: 'image/png',
+      fileName: 'sponsor.png',
+      byteSize: 5,
+      width: 1200,
+      height: 400,
+      defaultAlt: 'إعلان الراعي',
+      status: 'ready',
+      publicUrl: 'data:image/png;base64,AAAA',
+      createdAt: '2026-08-18T12:00:00.000Z',
+    };
+    render(
+      <ArticleMediaDialog
+        value={{ kind: 'image' }}
+        assets={[asset]}
+        disabled={false}
+        onClose={vi.fn()}
+        onRefresh={vi.fn(async () => undefined)}
+        onUpload={vi.fn()}
+        onCommit={commit}
+      />,
+    );
+
+    await user.click(screen.getByRole('option', { name: /sponsor\.png/ }));
+    const link = screen.getByRole('textbox', { name: /^رابط الصورة \(اختياري\)/ });
+    await user.type(link, 'javascript:alert(1)');
+    expect(screen.getByRole('alert')).toHaveTextContent('استخدم رابطًا يبدأ بـ https:// أو /');
+    expect(screen.getByRole('button', { name: 'إدراج الصورة' })).toBeDisabled();
+
+    await user.clear(link);
+    await user.type(link, '/sponsor');
+    await user.click(screen.getByRole('button', { name: 'إدراج الصورة' }));
+    expect(commit).toHaveBeenCalledWith(
+      'image',
+      expect.objectContaining({
+        mediaId: asset.id,
+        alt: 'إعلان الراعي',
+        linkUrl: '/sponsor',
+      }),
+    );
+  });
 });

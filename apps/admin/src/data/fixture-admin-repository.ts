@@ -4,6 +4,7 @@ import {
   canTransitionSubscription as canTransitionApiSubscription,
   createDefaultRolePermissionMatrix,
   isPermissionId,
+  toPageInfo,
   type ArticleImageAlignment,
   type ArticleImagePresentation,
   type ArticleImageRadius,
@@ -11,6 +12,9 @@ import {
   type ArticleTextDirection,
   type ArticleTextSectionHeight,
   type ArticleTextVerticalAlignment,
+  type FormSubmission,
+  type NewsletterSubscriberListItem,
+  type PaginatedList,
 } from '@mukhtalif/types';
 import { createStudioRoleSchema } from '@mukhtalif/validation';
 import {
@@ -46,6 +50,8 @@ import {
 } from '@/lib';
 import type {
   AdminAnalyticsSnapshot,
+  AdminFormSubmissionListQuery,
+  AdminNewsletterSubscriberListQuery,
   AdminGuestDirectory,
   ArticleMediaAsset,
   AdminNewsletterCampaignResult,
@@ -63,8 +69,10 @@ import type {
   EpisodeStatusCommand,
   UpdateArticleCommand,
   UpdateEpisodeCommand,
+  UpdateFormSubmissionCommand,
   UpdateGuestCommand,
   UpdateGuestSocialCommand,
+  UpdateHomepageWeeklyEpisodesSettingsCommand,
   UpdateShowCommand,
   UploadArticleImageCommand,
 } from './admin-repository';
@@ -85,23 +93,51 @@ const FIXTURE_CAPABILITIES = {
 
 export interface FixtureAdminRepositoryOptions {
   readonly initialData?: AdminStudioData;
+  readonly initialFormSubmissions?: readonly FormSubmission[];
+  readonly initialNewsletterSubscribers?: readonly NewsletterSubscriberListItem[];
   readonly initialRolePermissions?: RolePermissionMatrix;
   readonly now?: () => Date;
-  readonly getAuthenticatedSubject?: () =>
-    | { readonly id: string; readonly email: string }
-    | null;
-  readonly registerAuthAccount?: (
-    account: Omit<DemoAdminAccount, 'password'>,
-  ) => void;
-  readonly updateAuthAccountRole?: (
-    id: string,
-    role: DemoAdminAccount['role'],
-  ) => void;
+  readonly getAuthenticatedSubject?: () => { readonly id: string; readonly email: string } | null;
+  readonly registerAuthAccount?: (account: Omit<DemoAdminAccount, 'password'>) => void;
+  readonly updateAuthAccountRole?: (id: string, role: DemoAdminAccount['role']) => void;
+}
+
+function cloneFormSubmission(submission: FormSubmission): FormSubmission {
+  return structuredClone(submission);
+}
+
+function fixtureNewsletterSubscribers(): NewsletterSubscriberListItem[] {
+  return [
+    {
+      email: 'noura@example.com',
+      firstName: 'نورة',
+      localStatus: 'explicit_consent',
+      mailchimpSyncStatus: 'unconfigured',
+      requestedAt: '2026-08-31T09:12:00.000Z',
+      updatedAt: '2026-08-31T09:12:01.000Z',
+    },
+    {
+      email: 'legacy@example.com',
+      localStatus: 'legacy_request',
+      mailchimpSyncStatus: 'legacy_unverified',
+      requestedAt: '2024-11-16T15:45:00.000Z',
+      updatedAt: '2024-11-16T15:45:00.000Z',
+    },
+    {
+      email: 'retry@example.com',
+      firstName: 'سارة',
+      localStatus: 'explicit_consent',
+      mailchimpSyncStatus: 'failed',
+      requestedAt: '2026-08-28T18:30:00.000Z',
+      updatedAt: '2026-08-28T18:30:02.000Z',
+    },
+  ];
 }
 
 function cloneData(data: AdminStudioData): AdminStudioData {
   return {
     ...data,
+    homepageWeeklyEpisodesSettings: { ...data.homepageWeeklyEpisodesSettings },
     viewer: { ...data.viewer, permissions: [...data.viewer.permissions] },
     plusPlan: { ...data.plusPlan },
     shows: data.shows.map((show) => ({ ...show })),
@@ -171,9 +207,7 @@ function isSafeArticleLink(value: string): boolean {
   try {
     const url = new URL(href);
     return (
-      (url.protocol === 'https:' || url.protocol === 'mailto:') &&
-      !url.username &&
-      !url.password
+      (url.protocol === 'https:' || url.protocol === 'mailto:') && !url.username && !url.password
     );
   } catch {
     return false;
@@ -219,11 +253,12 @@ const TEXT_SECTION_JUSTIFY_CONTENT: Record<ArticleTextVerticalAlignment, string>
   bottom: 'flex-end',
 };
 
-const EMAIL_VERTICAL_ALIGNMENT: Record<ArticleTextVerticalAlignment, 'top' | 'middle' | 'bottom'> = {
-  top: 'top',
-  middle: 'middle',
-  bottom: 'bottom',
-};
+const EMAIL_VERTICAL_ALIGNMENT: Record<ArticleTextVerticalAlignment, 'top' | 'middle' | 'bottom'> =
+  {
+    top: 'top',
+    middle: 'middle',
+    bottom: 'bottom',
+  };
 
 function imageAlignment(value: unknown): ArticleImageAlignment {
   return value === 'start' || value === 'end' ? value : 'center';
@@ -383,15 +418,17 @@ function renderArticleNode(
       const posterId = typeof attrs?.posterMediaId === 'string' ? attrs.posterMediaId : '';
       const poster = mediaAssets.find((candidate) => candidate.id === posterId);
       const caption = typeof attrs?.caption === 'string' ? attrs.caption : '';
-      const watchUrl = provider === 'youtube'
-        ? `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`
-        : `https://vimeo.com/${encodeURIComponent(videoId)}`;
+      const watchUrl =
+        provider === 'youtube'
+          ? `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`
+          : `https://vimeo.com/${encodeURIComponent(videoId)}`;
       if (channel === 'email') {
         return `<figure><a href="${watchUrl}">${poster?.publicUrl ? `<img src="${escapeHtml(poster.publicUrl)}" alt="" style="display:block;width:100%;height:auto;border-radius:8px">` : ''}<strong>مشاهدة الفيديو: ${escapeHtml(title)}</strong></a>${caption ? `<figcaption>${escapeHtml(caption)}</figcaption>` : ''}</figure>`;
       }
-      const embedUrl = provider === 'youtube'
-        ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`
-        : `https://player.vimeo.com/video/${encodeURIComponent(videoId)}`;
+      const embedUrl =
+        provider === 'youtube'
+          ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`
+          : `https://player.vimeo.com/video/${encodeURIComponent(videoId)}`;
       return `<figure><iframe src="${embedUrl}" title="${escapeHtml(title)}" style="display:block;border:0;border-radius:8px" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen></iframe>${caption ? `<figcaption>${escapeHtml(caption)}</figcaption>` : ''}</figure>`;
     }
     default:
@@ -473,11 +510,17 @@ export class FixtureAdminRepository implements AdminRepository {
   private rolePermissions: Record<RoleId, PermissionId[]>;
   private roles: StudioRole[];
   private mediaAssets: ArticleMediaAsset[] = [];
+  private formSubmissions: FormSubmission[];
+  private newsletterSubscribers: NewsletterSubscriberListItem[];
   private data: AdminStudioData;
   private sequence = 0;
 
   constructor(options: FixtureAdminRepositoryOptions = {}) {
     this.data = cloneData(options.initialData ?? createDemoData());
+    this.formSubmissions = (options.initialFormSubmissions ?? []).map(cloneFormSubmission);
+    this.newsletterSubscribers = (
+      options.initialNewsletterSubscribers ?? fixtureNewsletterSubscribers()
+    ).map((subscriber) => ({ ...subscriber }));
     const initialPermissions = clonePermissionMatrix(
       options.initialRolePermissions ?? createDefaultRolePermissionMatrix(),
     );
@@ -512,8 +555,7 @@ export class FixtureAdminRepository implements AdminRepository {
       roleName: this.roles.find((role) => role.id === member.role)?.name ?? member.role,
     }));
     this.data.viewer.roleName =
-      this.roles.find((role) => role.id === this.data.viewer.role)?.name ??
-      this.data.viewer.role;
+      this.roles.find((role) => role.id === this.data.viewer.role)?.name ?? this.data.viewer.role;
     this.now = options.now ?? (() => new Date());
     this.getAuthenticatedSubject = options.getAuthenticatedSubject;
     this.registerAuthAccount = options.registerAuthAccount;
@@ -551,6 +593,7 @@ export class FixtureAdminRepository implements AdminRepository {
       articles: this.hasPermission(member, 'articles.view')
         ? snapshot.articles
         : snapshot.articles.filter((article) => article.status === 'published'),
+      homepageWeeklyEpisodesSettings: snapshot.homepageWeeklyEpisodesSettings,
     };
   }
 
@@ -561,6 +604,35 @@ export class FixtureAdminRepository implements AdminRepository {
       plusPlan: snapshot.plusPlan,
       users: snapshot.users,
       subscriptions: snapshot.subscriptions,
+    };
+  }
+
+  async listNewsletterSubscribers(
+    query: AdminNewsletterSubscriberListQuery,
+  ): Promise<PaginatedList<NewsletterSubscriberListItem>> {
+    this.requirePermission('listNewsletterSubscribers', 'subscribers.view');
+    const normalizedSearch = query.search?.trim().toLocaleLowerCase('ar');
+    const filtered = this.newsletterSubscribers
+      .filter(
+        (subscriber) =>
+          (!normalizedSearch ||
+            subscriber.email.toLowerCase().includes(normalizedSearch) ||
+            subscriber.firstName?.toLocaleLowerCase('ar').includes(normalizedSearch)) &&
+          (!query.localStatus || subscriber.localStatus === query.localStatus) &&
+          (!query.mailchimpStatus || subscriber.mailchimpSyncStatus === query.mailchimpStatus),
+      )
+      .sort(
+        (left, right) =>
+          right.updatedAt.localeCompare(left.updatedAt) || left.email.localeCompare(right.email),
+      );
+    const from = (query.page - 1) * query.perPage;
+    const items = filtered.slice(from, from + query.perPage);
+    return {
+      items: structuredClone(items),
+      pageInfo: toPageInfo(
+        { page: query.page, perPage: query.perPage, search: query.search },
+        filtered.length,
+      ),
     };
   }
 
@@ -623,6 +695,113 @@ export class FixtureAdminRepository implements AdminRepository {
     return cloneData(this.data);
   }
 
+  async listFormSubmissions(
+    query: AdminFormSubmissionListQuery,
+  ): Promise<PaginatedList<FormSubmission>> {
+    const operation = 'listFormSubmissions';
+    this.requirePermission(operation, 'forms.view');
+    if (
+      !Number.isInteger(query.page) ||
+      query.page < 1 ||
+      !Number.isInteger(query.perPage) ||
+      query.perPage < 1 ||
+      query.perPage > 100
+    ) {
+      throw repositoryError('VALIDATION', operation, 'Paging values are invalid.');
+    }
+    const matches = this.formSubmissions
+      .filter((submission) => !query.type || submission.type === query.type)
+      .filter((submission) => !query.status || submission.status === query.status)
+      .filter((submission) => !query.assigneeId || submission.assigneeId === query.assigneeId)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+    const start = (query.page - 1) * query.perPage;
+    return {
+      items: matches.slice(start, start + query.perPage).map(cloneFormSubmission),
+      pageInfo: toPageInfo(query, matches.length),
+    };
+  }
+
+  async getFormSubmission(id: string): Promise<FormSubmission> {
+    const operation = 'getFormSubmission';
+    this.requirePermission(operation, 'forms.view');
+    const submission = this.formSubmissions.find((candidate) => candidate.id === id);
+    if (!submission) {
+      throw repositoryError('NOT_FOUND', operation, 'Form submission not found.', { id });
+    }
+    return cloneFormSubmission(submission);
+  }
+
+  async updateFormSubmission(
+    id: string,
+    command: UpdateFormSubmissionCommand,
+  ): Promise<FormSubmission> {
+    const operation = 'updateFormSubmission';
+    this.requirePermission(operation, 'forms.manage');
+    const index = this.formSubmissions.findIndex((candidate) => candidate.id === id);
+    const current = this.formSubmissions[index];
+    if (!current) {
+      throw repositoryError('NOT_FOUND', operation, 'Form submission not found.', { id });
+    }
+    if (command.assigneeId) {
+      const assignee = this.data.studioMembers.find((member) => member.id === command.assigneeId);
+      if (!assignee) {
+        throw repositoryError('VALIDATION', operation, 'Studio assignee not found.', {
+          assigneeId: command.assigneeId,
+        });
+      }
+    }
+    const timestamp = this.now().toISOString();
+    const status = command.status ?? current.status;
+    const updated = {
+      ...current,
+      ...(command.status === undefined ? {} : { status: command.status }),
+      ...(command.assigneeId === undefined
+        ? {}
+        : command.assigneeId === null
+          ? { assigneeId: undefined }
+          : { assigneeId: command.assigneeId }),
+      ...(command.internalNotes === undefined ? {} : { internalNotes: command.internalNotes }),
+      statusUpdatedAt:
+        command.status !== undefined && command.status !== current.status
+          ? timestamp
+          : current.statusUpdatedAt,
+      resolvedAt:
+        status === 'resolved'
+          ? (current.resolvedAt ?? timestamp)
+          : command.status !== undefined
+            ? undefined
+            : current.resolvedAt,
+      updatedAt: timestamp,
+    } as FormSubmission;
+    this.formSubmissions[index] = updated;
+    return cloneFormSubmission(updated);
+  }
+
+  async retryFormSubmissionNotification(id: string): Promise<FormSubmission> {
+    const operation = 'retryFormSubmissionNotification';
+    this.requirePermission(operation, 'forms.manage');
+    const index = this.formSubmissions.findIndex((candidate) => candidate.id === id);
+    const current = this.formSubmissions[index];
+    if (!current) {
+      throw repositoryError('NOT_FOUND', operation, 'Form submission not found.', { id });
+    }
+    if (current.notificationStatus === 'sent') {
+      throw repositoryError('CONFLICT', operation, 'Notification was already sent.', { id });
+    }
+    const timestamp = this.now().toISOString();
+    const updated = {
+      ...current,
+      notificationStatus: 'sent',
+      notificationAttemptCount: current.notificationAttemptCount + 1,
+      notificationAttemptedAt: timestamp,
+      notificationError: undefined,
+      notificationProviderMessageId: `fixture-${current.id}-${current.notificationAttemptCount + 1}`,
+      updatedAt: timestamp,
+    } as FormSubmission;
+    this.formSubmissions[index] = updated;
+    return cloneFormSubmission(updated);
+  }
+
   async createShow(command: CreateShowCommand): Promise<Show> {
     const operation = 'createShow';
     this.requirePermission(operation, 'shows.manage');
@@ -669,9 +848,12 @@ export class FixtureAdminRepository implements AdminRepository {
     const current = this.data.shows[index];
     const updated: Show = {
       ...current,
-      slug: command.slug === undefined ? current.slug : requireText(command.slug, 'slug', operation),
-      name: command.name === undefined ? current.name : requireText(command.name, 'name', operation),
-      host: command.host === undefined ? current.host : requireText(command.host, 'host', operation),
+      slug:
+        command.slug === undefined ? current.slug : requireText(command.slug, 'slug', operation),
+      name:
+        command.name === undefined ? current.name : requireText(command.name, 'name', operation),
+      host:
+        command.host === undefined ? current.host : requireText(command.host, 'host', operation),
       category:
         command.category === undefined
           ? current.category
@@ -680,6 +862,31 @@ export class FixtureAdminRepository implements AdminRepository {
       artworkUrl: command.artworkUrl ?? current.artworkUrl,
     };
     this.data.shows[index] = updated;
+    return { ...updated };
+  }
+
+  async updateHomepageWeeklyEpisodesSettings(command: UpdateHomepageWeeklyEpisodesSettingsCommand) {
+    const operation = 'updateHomepageWeeklyEpisodesSettings';
+    this.requirePermission(operation, 'shows.manage');
+    const current = this.data.homepageWeeklyEpisodesSettings;
+    if (command.expectedVersion !== current.version) {
+      throw repositoryError('CONFLICT', operation, 'Homepage settings changed.', {
+        expectedVersion: command.expectedVersion,
+        currentVersion: current.version,
+      });
+    }
+    const title = requireText(command.title, 'title', operation);
+    if (title.length > 80) {
+      throw repositoryError('VALIDATION', operation, 'title is too long.', { field: 'title' });
+    }
+    const updated = {
+      ...current,
+      enabled: command.enabled,
+      title,
+      version: current.version + 1,
+      updatedAt: this.now().toISOString(),
+    };
+    this.data.homepageWeeklyEpisodesSettings = updated;
     return { ...updated };
   }
 
@@ -730,7 +937,9 @@ export class FixtureAdminRepository implements AdminRepository {
     const updated: Episode = {
       ...current,
       title:
-        command.title === undefined ? current.title : requireText(command.title, 'title', operation),
+        command.title === undefined
+          ? current.title
+          : requireText(command.title, 'title', operation),
       notes: command.notes ?? current.notes,
       episodeNumber,
       durationMinutes,
@@ -775,7 +984,11 @@ export class FixtureAdminRepository implements AdminRepository {
       updatedAt: now,
       scheduledAt: command.status === 'scheduled' ? command.scheduledAt : undefined,
       publishedAt:
-        command.status === 'published' ? now : command.status === 'archived' ? current.publishedAt : undefined,
+        command.status === 'published'
+          ? now
+          : command.status === 'archived'
+            ? current.publishedAt
+            : undefined,
       archivedAt: command.status === 'archived' ? now : undefined,
     };
     this.data.episodes[index] = updated;
@@ -925,16 +1138,12 @@ export class FixtureAdminRepository implements AdminRepository {
       });
     }
     if (current.newsletter.status === 'sent' && command.newsletter !== undefined) {
-      throw repositoryError(
-        'VALIDATION',
-        operation,
-        'Sent newsletter fields are immutable.',
-        { id },
-      );
+      throw repositoryError('VALIDATION', operation, 'Sent newsletter fields are immutable.', {
+        id,
+      });
     }
     if (
-      (current.newsletter.status === 'syncing' ||
-        current.newsletter.status === 'sync_unknown') &&
+      (current.newsletter.status === 'syncing' || current.newsletter.status === 'sync_unknown') &&
       command.newsletter !== undefined
     ) {
       throw repositoryError(
@@ -986,9 +1195,12 @@ export class FixtureAdminRepository implements AdminRepository {
             };
     const updated: Article = {
       ...current,
-      slug: command.slug === undefined ? current.slug : requireText(command.slug, 'slug', operation),
+      slug:
+        command.slug === undefined ? current.slug : requireText(command.slug, 'slug', operation),
       title:
-        command.title === undefined ? current.title : requireText(command.title, 'title', operation),
+        command.title === undefined
+          ? current.title
+          : requireText(command.title, 'title', operation),
       author:
         command.author === undefined
           ? current.author
@@ -997,13 +1209,11 @@ export class FixtureAdminRepository implements AdminRepository {
       summary:
         command.excerpt === undefined
           ? current.summary
-          : optionalText(command.excerpt) ?? this.summarize(body),
+          : (optionalText(command.excerpt) ?? this.summarize(body)),
       excerpt:
         command.excerpt === undefined ? current.excerpt : (optionalText(command.excerpt) ?? ''),
-      coverUrl:
-        command.coverUrl === undefined ? current.coverUrl : optionalText(command.coverUrl),
-      coverAlt:
-        command.coverAlt === undefined ? current.coverAlt : optionalText(command.coverAlt),
+      coverUrl: command.coverUrl === undefined ? current.coverUrl : optionalText(command.coverUrl),
+      coverAlt: command.coverAlt === undefined ? current.coverAlt : optionalText(command.coverAlt),
       content,
       contentHtml: renderArticleNode(content, this.mediaAssets),
       body,
@@ -1073,6 +1283,8 @@ export class FixtureAdminRepository implements AdminRepository {
       replyTo: 'hello@mukhtalif.local',
       audienceName: 'جمهور العرض المحلي',
       audienceCount: 24,
+      recipientTag: 'nlpage',
+      recipientCount: 24,
       audienceConfirmationToken: 'fixture-audience-confirmation-v1',
     };
   }
@@ -1124,10 +1336,7 @@ export class FixtureAdminRepository implements AdminRepository {
     if (current.newsletter.status === 'sent') {
       throw repositoryError('VALIDATION', operation, 'Sent newsletters cannot be changed.', { id });
     }
-    if (
-      current.newsletter.status === 'syncing' ||
-      current.newsletter.status === 'sync_unknown'
-    ) {
+    if (current.newsletter.status === 'syncing' || current.newsletter.status === 'sync_unknown') {
       throw repositoryError('CONFLICT', operation, 'Newsletter sync state is unresolved.', {
         id,
         reason:
@@ -1337,7 +1546,7 @@ export class FixtureAdminRepository implements AdminRepository {
         operation,
         'A Studio member with this email already exists.',
         {
-        email: normalized.email,
+          email: normalized.email,
         },
       );
     }
@@ -1372,10 +1581,7 @@ export class FixtureAdminRepository implements AdminRepository {
     return { ...created };
   }
 
-  async updateStudioMemberRole(
-    id: StudioMemberId,
-    role: RoleId,
-  ): Promise<StudioMember> {
+  async updateStudioMemberRole(id: StudioMemberId, role: RoleId): Promise<StudioMember> {
     const operation = 'updateStudioMemberRole';
     const actor = this.requirePermission(operation, 'access.manage');
     if (actor.id === id) {
@@ -1411,12 +1617,9 @@ export class FixtureAdminRepository implements AdminRepository {
       role !== 'admin' &&
       this.data.studioMembers.filter((member) => member.role === 'admin').length <= 1
     ) {
-      throw repositoryError(
-        'CONFLICT',
-        operation,
-        'The final administrator cannot be demoted.',
-        { id },
-      );
+      throw repositoryError('CONFLICT', operation, 'The final administrator cannot be demoted.', {
+        id,
+      });
     }
     if (this.updateAuthAccountRole) {
       try {
@@ -1485,12 +1688,9 @@ export class FixtureAdminRepository implements AdminRepository {
       throw repositoryError('NOT_FOUND', operation, 'Role not found.', { role });
     }
     if (this.roles[roleIndex].isProtected) {
-      throw repositoryError(
-        'FORBIDDEN',
-        operation,
-        'Protected role permissions are immutable.',
-        { role },
-      );
+      throw repositoryError('FORBIDDEN', operation, 'Protected role permissions are immutable.', {
+        role,
+      });
     }
     const normalized = this.normalizePermissions(permissions, operation);
     this.rolePermissions[role] = normalized;
@@ -1651,11 +1851,7 @@ export class FixtureAdminRepository implements AdminRepository {
 
     const subject = this.getAuthenticatedSubject();
     if (!subject) {
-      throw repositoryError(
-        'UNAUTHENTICATED',
-        operation,
-        'A fixture login session is required.',
-      );
+      throw repositoryError('UNAUTHENTICATED', operation, 'A fixture login session is required.');
     }
     const normalizedEmail = subject.email.trim().toLowerCase();
     const member = this.data.studioMembers.find(
@@ -1764,12 +1960,9 @@ export class FixtureAdminRepository implements AdminRepository {
     operation: string,
   ): void {
     if (!Number.isInteger(episodeNumber) || episodeNumber <= 0) {
-      throw repositoryError(
-        'VALIDATION',
-        operation,
-        'episodeNumber must be a positive integer.',
-        { episodeNumber },
-      );
+      throw repositoryError('VALIDATION', operation, 'episodeNumber must be a positive integer.', {
+        episodeNumber,
+      });
     }
     if (!Number.isFinite(durationMinutes) || durationMinutes < 0) {
       throw repositoryError(

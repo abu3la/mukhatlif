@@ -3,6 +3,7 @@ import type {
   HTMLAttributes,
   InputHTMLAttributes,
   ReactNode,
+  Ref,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from 'react';
@@ -23,13 +24,23 @@ interface PageHeaderProps {
   title: string;
   detail?: ReactNode;
   action?: ReactNode;
+  headingRef?: Ref<HTMLHeadingElement>;
+  headingTabIndex?: number;
 }
 
-export function PageHeader({ title, detail, action }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  detail,
+  action,
+  headingRef,
+  headingTabIndex,
+}: PageHeaderProps) {
   return (
     <header className="page-header">
       <div className="page-header__title-row">
-        <h1>{title}</h1>
+        <h1 ref={headingRef} tabIndex={headingTabIndex}>
+          {title}
+        </h1>
         {detail ? <div className="page-header__detail">{detail}</div> : null}
       </div>
       {action ? <div className="page-header__action">{action}</div> : null}

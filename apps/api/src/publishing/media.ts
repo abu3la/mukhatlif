@@ -11,9 +11,7 @@ export const MAX_IMAGE_SIDE = 8_192;
 export const MAX_IMAGE_PIXELS = 24_000_000;
 
 export class MediaReferenceError extends Error {
-  constructor(
-    public readonly code: 'MEDIA_ASSET_NOT_READY' | 'MEDIA_POSTER_NOT_READY',
-  ) {
+  constructor(public readonly code: 'MEDIA_ASSET_NOT_READY' | 'MEDIA_POSTER_NOT_READY') {
     super(code);
     this.name = 'MediaReferenceError';
   }
@@ -42,6 +40,7 @@ async function canonicalizeNode(
         mediaId: asset.id,
         alt: node.attrs?.alt,
         caption: node.attrs?.caption,
+        linkUrl: node.attrs?.linkUrl,
         presentation: node.attrs?.presentation === 'wide' ? 'wide' : 'content',
         alignment: canonicalImageAlignment(node.attrs?.alignment),
         radius: canonicalImageRadius(node.attrs?.radius),
@@ -207,10 +206,7 @@ function validateJpegHuffmanTables(data: Uint8Array): number {
   return classes;
 }
 
-function sanitizeJpeg(
-  bytes: Uint8Array,
-  expected: { width: number; height: number },
-): Uint8Array {
+function sanitizeJpeg(bytes: Uint8Array, expected: { width: number; height: number }): Uint8Array {
   if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
     throw new Error('MEDIA_SIGNATURE_MISMATCH');
   }
@@ -255,10 +251,7 @@ function sanitizeJpeg(
     if (marker === 0xdd && length !== 4) throw new Error('MEDIA_JPEG_MALFORMED');
     if (!isMetadata) output.push(bytes.slice(markerStart, segmentEnd));
 
-    const isStartOfFrame =
-      marker >= 0xc0 &&
-      marker <= 0xcf &&
-      ![0xc4, 0xc8, 0xcc].includes(marker);
+    const isStartOfFrame = marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker);
     if (isStartOfFrame) {
       if (length < 8) throw new Error('MEDIA_JPEG_MALFORMED');
       if (![0xc0, 0xc2].includes(marker)) throw new Error('MEDIA_JPEG_MALFORMED');
@@ -276,8 +269,8 @@ function sanitizeJpeg(
         const sampling = bytes[componentOffset + 1] ?? 0;
         if (
           componentIds.has(componentId) ||
-          (sampling >>> 4) < 1 ||
-          (sampling >>> 4) > 4 ||
+          sampling >>> 4 < 1 ||
+          sampling >>> 4 > 4 ||
           (sampling & 0x0f) < 1 ||
           (sampling & 0x0f) > 4 ||
           (bytes[componentOffset + 2] ?? 255) > 3
@@ -304,11 +297,7 @@ function sanitizeJpeg(
     offset = segmentEnd;
     if (marker !== 0xda) continue;
     const scanComponents = bytes[offset - length + 2] ?? 0;
-    if (
-      scanComponents < 1 ||
-      scanComponents > 3 ||
-      length !== 6 + scanComponents * 2
-    ) {
+    if (scanComponents < 1 || scanComponents > 3 || length !== 6 + scanComponents * 2) {
       throw new Error('MEDIA_JPEG_MALFORMED');
     }
     const scanDataStart = offset - length + 2;
@@ -316,7 +305,7 @@ function sanitizeJpeg(
     for (let index = 0; index < scanComponents; index += 1) {
       const componentId = bytes[scanDataStart + 1 + index * 2] ?? 0;
       const selectors = bytes[scanDataStart + 2 + index * 2] ?? 255;
-      if (scanIds.has(componentId) || (selectors >>> 4) > 3 || (selectors & 0x0f) > 3) {
+      if (scanIds.has(componentId) || selectors >>> 4 > 3 || (selectors & 0x0f) > 3) {
         throw new Error('MEDIA_JPEG_MALFORMED');
       }
       scanIds.add(componentId);
@@ -343,14 +332,7 @@ function sanitizeJpeg(
     output.push(bytes.slice(scanStart, offset));
   }
 
-  if (
-    !sawEnd ||
-    !sawScan ||
-    !sawQuantizationTable ||
-    huffmanClasses !== 3 ||
-    !width ||
-    !height
-  ) {
+  if (!sawEnd || !sawScan || !sawQuantizationTable || huffmanClasses !== 3 || !width || !height) {
     throw new Error('MEDIA_JPEG_MALFORMED');
   }
   assertExpectedDimensions(width, height, expected);
@@ -441,7 +423,9 @@ async function sanitizePng(
       throw new Error('MEDIA_PNG_MALFORMED');
     }
     const typeBytes = bytes.slice(offset + 4, offset + 8);
-    if (![...typeBytes].every((byte) => (byte >= 65 && byte <= 90) || (byte >= 97 && byte <= 122))) {
+    if (
+      ![...typeBytes].every((byte) => (byte >= 65 && byte <= 90) || (byte >= 97 && byte <= 122))
+    ) {
       throw new Error('MEDIA_PNG_MALFORMED');
     }
     const type = new TextDecoder().decode(typeBytes);
@@ -534,9 +518,7 @@ export async function validateAndSanitizeImage(
   if (input.byteLength > MAX_IMAGE_BYTES) throw new Error('MEDIA_FILE_TOO_LARGE');
   const bytes = new Uint8Array(input);
   const sanitized =
-    mimeType === 'image/jpeg'
-      ? sanitizeJpeg(bytes, expected)
-      : await sanitizePng(bytes, expected);
+    mimeType === 'image/jpeg' ? sanitizeJpeg(bytes, expected) : await sanitizePng(bytes, expected);
   return sanitized.buffer.slice(
     sanitized.byteOffset,
     sanitized.byteOffset + sanitized.byteLength,

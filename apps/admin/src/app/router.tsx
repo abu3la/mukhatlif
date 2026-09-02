@@ -4,6 +4,8 @@ import type { AdminAuthGateway, AdminRepository } from '@/data';
 import { InviteView } from '@/features/auth/ui/invite-page';
 import {
   AdminRouteLayout,
+  FormSubmissionRouteLayout,
+  NewsletterRouteLayout,
   RoleDirectoryRouteLayout,
   StudioMemberDirectoryRouteLayout,
   SubscriberRouteLayout,
@@ -90,7 +92,10 @@ const guestRoutes = [
   },
 ] satisfies RouteObject[];
 
-export function createAdminRoutes(repository: AdminRepository, authGateway: AdminAuthGateway): RouteObject[] {
+export function createAdminRoutes(
+  repository: AdminRepository,
+  authGateway: AdminAuthGateway,
+): RouteObject[] {
   return [
     {
       id: adminRouteIds.login,
@@ -122,6 +127,34 @@ export function createAdminRoutes(repository: AdminRepository, authGateway: Admi
               path: adminRoutePatterns.subscribers,
               handle: { studioPage: 'subscribers' },
               lazy: () => import('./routes/subscribers.route'),
+            },
+          ],
+        },
+        {
+          element: <NewsletterRouteLayout repository={repository} />,
+          children: [
+            {
+              id: adminRouteIds.newsletter,
+              path: adminRoutePatterns.newsletter,
+              handle: { studioPage: 'subscribers' },
+              lazy: () => import('./routes/newsletter.route'),
+            },
+          ],
+        },
+        {
+          element: <FormSubmissionRouteLayout repository={repository} />,
+          children: [
+            {
+              id: adminRouteIds.formSubmissions,
+              path: adminRoutePatterns.formSubmissions,
+              handle: { studioPage: 'forms' },
+              lazy: () => import('./routes/form-submissions.route'),
+            },
+            {
+              id: adminRouteIds.formSubmissionDetails,
+              path: adminRoutePatterns.formSubmissionDetails,
+              handle: { studioPage: 'forms' },
+              lazy: () => import('./routes/form-submission-details.route'),
             },
           ],
         },

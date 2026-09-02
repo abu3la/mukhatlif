@@ -1,0 +1,352 @@
+.form-submissions-page,
+.form-submission-details-page {
+  min-inline-size: 0;
+}
+
+.submission-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-block-end: 18px;
+  padding: 18px 20px;
+}
+
+.submission-table-card {
+  max-inline-size: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.submission-table {
+  min-inline-size: 900px;
+  padding-inline: 22px;
+}
+
+.submission-table__row {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.35fr) 110px 116px 130px 160px 106px;
+  align-items: center;
+  gap: 14px;
+  min-block-size: 72px;
+  padding-block: 12px;
+  border-block-end: 1px solid var(--line);
+}
+
+.submission-table__row:last-child {
+  border-block-end: 0;
+}
+
+.submission-table__row--header {
+  min-block-size: 46px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.submission-table__row > span,
+.submission-table__row > time {
+  min-inline-size: 0;
+  font-size: 13px;
+}
+
+.request-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 28px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.request-status--new {
+  background: #dcefe5;
+  color: #12613a;
+}
+
+.request-status--in_review {
+  background: #e3e5f2;
+  color: var(--ink);
+}
+
+.request-status--contacted {
+  background: #f4ead9;
+  color: #714b16;
+}
+
+.request-status--resolved {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.request-status--rejected,
+.request-status--spam {
+  background: #f3dfdf;
+  color: #862522;
+}
+
+.submission-pagination {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 14px;
+  margin-block-start: 16px;
+}
+
+.submission-pagination .button:first-child {
+  justify-self: start;
+}
+
+.submission-pagination .button:last-child {
+  justify-self: end;
+}
+
+.submission-pagination p {
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.submission-details-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.65fr);
+  align-items: start;
+  gap: 22px;
+}
+
+.submission-details-main,
+.submission-details-side {
+  display: flex;
+  min-inline-size: 0;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.submission-details-side {
+  position: sticky;
+  inset-block-start: 28px;
+}
+
+.submission-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-block-size: 64px;
+  padding: 14px 20px;
+  border-block-end: 1px solid var(--line);
+}
+
+.submission-section__header h2,
+.submission-management h2,
+.submission-notification h2 {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.submission-section__header p {
+  margin-block-start: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.submission-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 4px 20px 16px;
+}
+
+.submission-field {
+  min-inline-size: 0;
+  padding: 14px 0;
+  border-block-end: 1px solid var(--line);
+}
+
+.submission-field:nth-child(odd) {
+  padding-inline-end: 18px;
+}
+
+.submission-field:nth-child(even) {
+  padding-inline-start: 18px;
+}
+
+.submission-field:last-child,
+.submission-field:nth-last-child(2):nth-child(odd) {
+  border-block-end: 0;
+}
+
+.submission-field dt,
+.submission-readonly-management dt,
+.submission-notification dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.submission-field dd,
+.submission-readonly-management dd,
+.submission-notification dd {
+  min-inline-size: 0;
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.submission-field .text-link {
+  max-inline-size: 100%;
+  padding-inline: 0;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
+.submission-fields--compact .submission-field dd {
+  font-size: 13px;
+}
+
+.submission-management,
+.submission-notification {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.submission-management .textarea {
+  min-block-size: 132px;
+}
+
+.submission-management .button,
+.submission-notification .button {
+  inline-size: 100%;
+}
+
+.submission-readonly-management,
+.submission-notification dl {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+
+.notification-state {
+  padding: 10px 12px;
+  color: var(--ink-soft);
+  background: var(--canvas);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.notification-state--sent {
+  color: #12613a;
+  background: #dcefe5;
+}
+
+.notification-state--failed,
+.notification-state--unconfigured {
+  color: #862522;
+  background: #f3dfdf;
+}
+
+.notification-error {
+  padding: 12px;
+  color: #862522;
+  background: #fbefef;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.notification-error bdi {
+  display: block;
+  margin-block-start: 5px;
+  color: #713332;
+  overflow-wrap: anywhere;
+}
+
+.submission-attachments {
+  margin: 0;
+  padding: 4px 20px 16px;
+  list-style: none;
+}
+
+.submission-attachments li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 12px;
+  border-block-end: 1px solid var(--line);
+}
+
+.submission-attachments li:last-child {
+  border-block-end: 0;
+}
+
+.submission-attachments bdi {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.submission-attachments span {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 980px) {
+  .submission-details-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .submission-details-side {
+    position: static;
+  }
+}
+
+@media (max-width: 700px) {
+  .submission-filters,
+  .submission-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .submission-field,
+  .submission-field:nth-child(odd),
+  .submission-field:nth-child(even),
+  .submission-field:nth-last-child(-n + 2) {
+    padding-inline: 0;
+    border-block-end: 1px solid var(--line);
+  }
+
+  .submission-field:last-child {
+    border-block-end: 0;
+  }
+
+  .submission-section__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .submission-pagination {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .submission-pagination p {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    text-align: center;
+  }
+
+  .submission-pagination .button {
+    inline-size: 100%;
+  }
+}

@@ -374,6 +374,13 @@ describe('dynamic Studio roles', () => {
     expect(inviteResponse.status).toBe(201);
     expect(manager.role).toBe(role.id);
 
+    const acceptanceResponse = await request('/studio/invitations/accept', manager.id, {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ password: 'a-long-enough-passphrase' }),
+    });
+    expect(acceptanceResponse.status).toBe(200);
+
     const meResponse = await request('/studio/me', manager.id);
     expect(await meResponse.json()).toMatchObject({
       role: role.id,

@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "mukhtalif-admin",
-  "account_id": "c4b180c5ae20a242ec7024e2fc0a3478",
+  "name": "studio",
+  "account_id": "bb4abee6bf877ef411dc803b3be96373",
   "compatibility_date": "2026-08-01",
   "assets": {
     "directory": "dist",

@@ -1,9 +1,9 @@
 /**
  * Server-side configuration.
  *
- * Neither value carries a NEXT_PUBLIC_ prefix: every API read happens in a
- * server component, so the browser never learns the API origin and no token or
- * key is ever shipped to the client.
+ * Neither value carries a NEXT_PUBLIC_ prefix. Content reads stay in Server
+ * Components. A resolved public API origin is passed only to anonymous public
+ * form components; no token or credential is ever shipped to the client.
  */
 function origin(value: string | undefined, name: string): string | null {
   const trimmed = value?.trim();
@@ -35,6 +35,11 @@ export function apiOrigin(): string | null {
  */
 export function publicWebUrl(): string {
   return origin(process.env.PUBLIC_WEB_URL, 'PUBLIC_WEB_URL') ?? 'http://localhost:3000';
+}
+
+/** Only the final public hostname may be indexed. Preview and staging stay private to search. */
+export function isSearchIndexingEnabled(): boolean {
+  return publicWebUrl() === 'https://mukhtalif.net';
 }
 
 export function absoluteUrl(path: string): string {

@@ -23,7 +23,13 @@ import {
 } from '@mukhtalif/validation';
 import { requirePermission, type AppEnv } from '../auth';
 import { getMailchimpConfig, getMediaPublicOrigin } from '../env';
-import { MailchimpApiError, MailchimpClient } from '../mailchimp/client';
+import {
+  MailchimpApiError,
+  MailchimpClient,
+  type MailchimpAudienceSummary,
+  type MailchimpCampaign,
+  type MailchimpRecipientSegmentSummary,
+} from '../mailchimp/client';
 import { ArticleMutationError } from '../publishing/article-record';
 import { renderNewsletter } from '../publishing/newsletter';
 import { createAudienceConfirmationToken } from '../publishing/mailchimp-confirmation';
@@ -57,6 +63,36 @@ function mailchimpFailure(error: unknown): {
     };
   }
   throw error;
+}
+
+async function verifiedMailchimpTarget(client: MailchimpClient): Promise<{
+  audience: MailchimpAudienceSummary;
+  recipient: MailchimpRecipientSegmentSummary;
+}> {
+  const [audience, recipient] = await Promise.all([
+    client.getAudienceSummary(),
+    client.getRecipientSegmentSummary(),
+  ]);
+  return { audience, recipient };
+}
+
+function campaignTargetMismatch(
+  campaign: MailchimpCampaign,
+  config: NonNullable<ReturnType<typeof getMailchimpConfig>>,
+): { code: string; error: string } | null {
+  if (campaign.audienceId !== config.audienceId) {
+    return newsletterError(
+      'MAILCHIMP_AUDIENCE_MISMATCH',
+      'Mailchimp campaign audience does not match configuration',
+    );
+  }
+  if (campaign.recipientSegmentId !== config.recipientSegmentId) {
+    return newsletterError(
+      'MAILCHIMP_RECIPIENT_SEGMENT_MISMATCH',
+      'Mailchimp campaign recipient tag does not match configuration',
+    );
+  }
+  return null;
 }
 
 async function canonicalContent(
@@ -138,9 +174,9 @@ export const studioArticlesRoute = new Hono<AppEnv>()
       const capability: MailchimpCapability = { mode: 'live', configured: false };
       return c.json(capability);
     }
-    let audience: { name: string; count: number } | null = null;
+    let target: Awaited<ReturnType<typeof verifiedMailchimpTarget>> | null = null;
     try {
-      audience = await new MailchimpClient(config).getAudienceSummary();
+      target = await verifiedMailchimpTarget(new MailchimpClient(config));
     } catch (error) {
       if (!(error instanceof MailchimpApiError)) throw error;
     }
@@ -149,10 +185,17 @@ export const studioArticlesRoute = new Hono<AppEnv>()
       configured: true,
       fromName: config.fromName,
       replyTo: config.replyTo,
-      audienceName: audience?.name,
-      audienceCount: audience?.count,
-      audienceConfirmationToken: audience
-        ? await createAudienceConfirmationToken(config)
+      audienceName: target?.audience.name,
+      audienceCount: target?.audience.count,
+      recipientTag: target?.recipient.name,
+      recipientCount: target?.recipient.count,
+      audienceConfirmationToken: target
+        ? await createAudienceConfirmationToken(config, {
+            audienceName: target.audience.name,
+            audienceCount: target.audience.count,
+            recipientTag: target.recipient.name,
+            recipientCount: target.recipient.count,
+          })
         : undefined,
     };
     return c.json(capability);
@@ -439,16 +482,12 @@ export const studioArticlesRoute = new Hono<AppEnv>()
       let attemptedCampaignCreate = false;
       try {
         if (campaignId) {
+          await client.getRecipientSegmentSummary();
           const remote = await client.getCampaign(campaignId);
-          if (remote.audienceId !== config.audienceId) {
+          const targetMismatch = campaignTargetMismatch(remote, config);
+          if (targetMismatch) {
             await repo.releaseArticleNewsletterSync(snapshot.id, syncToken);
-            return c.json(
-              newsletterError(
-                'MAILCHIMP_AUDIENCE_MISMATCH',
-                'Mailchimp campaign audience does not match configuration',
-              ),
-              409,
-            );
+            return c.json(targetMismatch, 409);
           }
           if (remote.status === 'sent') {
             await repo.reconcileArticleNewsletterSent(
@@ -505,7 +544,8 @@ export const studioArticlesRoute = new Hono<AppEnv>()
           !snapshot.newsletter.campaignId &&
           attemptedCampaignCreate &&
           !campaignPersisted &&
-          (!(error instanceof MailchimpApiError) || error.status >= 500);
+          (!(error instanceof MailchimpApiError) ||
+            (error.operation.startsWith('create_campaign') && error.status >= 500));
         if ((remoteCampaignCreated && !campaignPersisted) || ambiguousCreate) {
           await repo.markArticleNewsletterSyncUnknown(snapshot.id, syncToken);
           return c.json(
@@ -546,15 +586,12 @@ export const studioArticlesRoute = new Hono<AppEnv>()
     }
 
     try {
-      const remote = await new MailchimpClient(config).getCampaign(campaignId);
-      if (remote.audienceId !== config.audienceId) {
-        return c.json(
-          newsletterError(
-            'MAILCHIMP_AUDIENCE_MISMATCH',
-            'Mailchimp campaign audience does not match configuration',
-          ),
-          409,
-        );
+      const client = new MailchimpClient(config);
+      await client.getRecipientSegmentSummary();
+      const remote = await client.getCampaign(campaignId);
+      const targetMismatch = campaignTargetMismatch(remote, config);
+      if (targetMismatch) {
+        return c.json(targetMismatch, 409);
       }
       if (remote.status === 'sent') {
         const reconciled = await repo.reconcileArticleNewsletterSent(
@@ -622,17 +659,6 @@ export const studioArticlesRoute = new Hono<AppEnv>()
       }
       const { audienceConfirmationToken, expectedVersion, expectedCampaignId } =
         c.req.valid('json');
-      const expectedAudienceToken = await createAudienceConfirmationToken(config);
-      if (audienceConfirmationToken !== expectedAudienceToken) {
-        return c.json(
-          newsletterError(
-            'MAILCHIMP_AUDIENCE_CONFIRMATION_MISMATCH',
-            'Audience confirmation is no longer valid',
-          ),
-          409,
-        );
-      }
-
       const client = new MailchimpClient(config);
       const claim = await repo.claimArticleNewsletterSend(
         c.req.param('id'),
@@ -690,6 +716,34 @@ export const studioArticlesRoute = new Hono<AppEnv>()
       }
       const sendToken = claim.sendToken;
 
+      let target: Awaited<ReturnType<typeof verifiedMailchimpTarget>>;
+      try {
+        target = await verifiedMailchimpTarget(client);
+      } catch (error) {
+        await repo.releaseArticleNewsletterSend(pending.id, sendToken);
+        const failure = mailchimpFailure(error);
+        return c.json(
+          newsletterError('MAILCHIMP_RECIPIENT_TARGET_UNVERIFIED', failure.body.error),
+          failure.status,
+        );
+      }
+      const expectedAudienceToken = await createAudienceConfirmationToken(config, {
+        audienceName: target.audience.name,
+        audienceCount: target.audience.count,
+        recipientTag: target.recipient.name,
+        recipientCount: target.recipient.count,
+      });
+      if (audienceConfirmationToken !== expectedAudienceToken) {
+        await repo.releaseArticleNewsletterSend(pending.id, sendToken);
+        return c.json(
+          newsletterError(
+            'MAILCHIMP_AUDIENCE_CONFIRMATION_MISMATCH',
+            'Audience confirmation is no longer valid',
+          ),
+          409,
+        );
+      }
+
       let mediaOrigin: string | null;
       try {
         await canonicalContent(repo, pending.content);
@@ -709,27 +763,11 @@ export const studioArticlesRoute = new Hono<AppEnv>()
       }
 
       try {
-        await client.getAudienceSummary();
-      } catch (error) {
-        await repo.releaseArticleNewsletterSend(pending.id, sendToken);
-        const failure = mailchimpFailure(error);
-        return c.json(
-          newsletterError('MAILCHIMP_AUDIENCE_UNVERIFIED', failure.body.error),
-          failure.status,
-        );
-      }
-
-      try {
         const remote = await client.getCampaign(campaignId);
-        if (remote.audienceId !== config.audienceId) {
+        const targetMismatch = campaignTargetMismatch(remote, config);
+        if (targetMismatch) {
           await repo.releaseArticleNewsletterSend(pending.id, sendToken);
-          return c.json(
-            newsletterError(
-              'MAILCHIMP_AUDIENCE_MISMATCH',
-              'Mailchimp campaign audience does not match configuration',
-            ),
-            409,
-          );
+          return c.json(targetMismatch, 409);
         }
         if (remote.status === 'sent') {
           const article = await repo.reconcileArticleNewsletterSent(
@@ -785,6 +823,41 @@ export const studioArticlesRoute = new Hono<AppEnv>()
         );
       }
 
+      // Mailchimp campaigns remain editable outside Studio. Re-read the remote
+      // target after checklist validation and immediately before the send action
+      // so recipient drift cannot pass on an earlier observation.
+      try {
+        const finalRemote = await client.getCampaign(campaignId);
+        const targetMismatch = campaignTargetMismatch(finalRemote, config);
+        if (targetMismatch) {
+          // Keep the local send fence if Mailchimp is already processing the
+          // drifted campaign. Releasing it could permit a second send attempt.
+          if (!['sent', 'sending', 'schedule'].includes(finalRemote.status)) {
+            await repo.releaseArticleNewsletterSend(pending.id, sendToken);
+          }
+          return c.json(targetMismatch, 409);
+        }
+        if (finalRemote.status === 'sent') {
+          const article = await repo.completeArticleNewsletterSend(
+            pending.id,
+            finalRemote.sendTime ?? new Date().toISOString(),
+            sendToken,
+          );
+          const current = article ?? (await repo.getArticle(pending.id));
+          if (!current) return c.json({ error: 'Article not found' }, 404);
+          const result: NewsletterSendResult = { article: current, operation: 'already_sent' };
+          return c.json(result);
+        }
+        if (['sending', 'schedule'].includes(finalRemote.status)) {
+          const result: NewsletterSendResult = { article: pending, operation: 'accepted' };
+          return c.json(result, 202);
+        }
+      } catch (error) {
+        await repo.releaseArticleNewsletterSend(pending.id, sendToken);
+        const failure = mailchimpFailure(error);
+        return c.json(failure.body, failure.status);
+      }
+
       try {
         await client.sendCampaign(campaignId);
       } catch {
@@ -801,14 +874,9 @@ export const studioArticlesRoute = new Hono<AppEnv>()
 
       try {
         const remote = await client.getCampaign(campaignId);
-        if (remote.audienceId !== config.audienceId) {
-          return c.json(
-            newsletterError(
-              'MAILCHIMP_AUDIENCE_MISMATCH',
-              'Mailchimp campaign audience does not match configuration',
-            ),
-            409,
-          );
+        const targetMismatch = campaignTargetMismatch(remote, config);
+        if (targetMismatch) {
+          return c.json(targetMismatch, 409);
         }
         if (remote.status === 'sent') {
           const article = await repo.completeArticleNewsletterSend(

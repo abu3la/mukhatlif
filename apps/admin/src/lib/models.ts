@@ -10,6 +10,7 @@ import {
   type ArticleNewsletter as ApiArticleNewsletter,
   type ArticleSeo as ApiArticleSeo,
   type EpisodeStatus as ApiEpisodeStatus,
+  type HomepageWeeklyEpisodesSettings as ApiHomepageWeeklyEpisodesSettings,
   type MailchimpCapability as ApiMailchimpCapability,
   type NewsletterPreview as ApiNewsletterPreview,
   type NewsletterCampaignResult as ApiNewsletterCampaignResult,
@@ -42,6 +43,7 @@ export type MailchimpCapability = ApiMailchimpCapability;
 export type NewsletterPreview = ApiNewsletterPreview;
 export type NewsletterCampaignResult = ApiNewsletterCampaignResult;
 export type NewsletterSendResult = ApiNewsletterSendResult;
+export type HomepageWeeklyEpisodesSettings = ApiHomepageWeeklyEpisodesSettings;
 
 export const SUBSCRIPTION_STATUSES = API_SUBSCRIPTION_STATUSES;
 export type SubscriptionStatus = ApiSubscriptionStatus;
@@ -217,6 +219,7 @@ export interface AdminStudioData {
   shows: Show[];
   episodes: Episode[];
   articles: Article[];
+  homepageWeeklyEpisodesSettings: HomepageWeeklyEpisodesSettings;
   guests: Guest[];
   guestSocials: GuestSocial[];
   guestAppearances: GuestAppearance[];
@@ -227,7 +230,7 @@ export interface AdminStudioData {
 
 export type AdminContentWorkspace = Pick<
   AdminStudioData,
-  'asOf' | 'shows' | 'episodes' | 'articles'
+  'asOf' | 'shows' | 'episodes' | 'articles' | 'homepageWeeklyEpisodesSettings'
 >;
 
 export type AdminGuestDirectory = Pick<

@@ -48,6 +48,7 @@ function createStudioValue(
       shows: demoData.shows.map((show) => ({ ...show })),
       episodes: demoData.episodes.map((episode) => ({ ...episode })),
       articles: demoData.articles.map((article) => ({ ...article })),
+      homepageWeeklyEpisodesSettings: { ...demoData.homepageWeeklyEpisodesSettings },
       guestDirectory: {
         guests: demoData.guests.map((guest) => ({ ...guest })),
         guestSocials: demoData.guestSocials.map((social) => ({ ...social })),
@@ -60,6 +61,9 @@ function createStudioValue(
     lastError: null,
     clearLastError: vi.fn(),
     createShow: vi.fn(async () => demoData.shows[0]!.id),
+    updateHomepageWeeklyEpisodesSettings: vi.fn(
+      async () => demoData.homepageWeeklyEpisodesSettings,
+    ),
     createArticle: vi.fn(async () => demoData.articles[0]!.id),
     updateArticle: vi.fn(async () => demoData.articles[0]!),
     transitionEpisodeStatus: vi.fn(async () => undefined),

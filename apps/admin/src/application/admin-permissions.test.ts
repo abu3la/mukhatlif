@@ -18,10 +18,12 @@ describe('admin permissions', () => {
   });
 
   it('allows a custom Studio member with one configured view permission into the Studio', () => {
-    const permissions = ['articles.view'] as const;
+    const permissions = ['forms.view'] as const;
 
     expect(hasStudioAccess(permissions)).toBe(true);
-    expect(firstViewablePage(permissions)).toBe('articles');
+    expect(canViewPage(permissions, 'forms')).toBe(true);
+    expect(canManagePage(permissions, 'forms')).toBe(false);
+    expect(firstViewablePage(permissions)).toBe('forms');
   });
 
   it('selects the first permitted page that the repository supports', () => {

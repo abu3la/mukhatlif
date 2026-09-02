@@ -10,8 +10,11 @@ export {
 export type { CreateEpisodeInput, UpdateEpisodeInput, UpdateEpisodeStatusInput } from './episode';
 
 export {
+  articleAdBlockAttributesSchema,
+  articleAdPlacementIdSchema,
   articleImageGalleryAttributesSchema,
   articleImageGalleryItemSchema,
+  articleImageLinkSchema,
   articleAuthorDisplayNameSchema,
   articleAuthorInputSchema,
   articleAuthorPlacementSchema,
@@ -95,3 +98,45 @@ export type {
 
 export { isPaginatedRequest, listQuerySchema, resolveListQuery } from './pagination';
 export type { ListQueryInput } from './pagination';
+
+export {
+  careersFormPayloadSchema,
+  formNotificationStatusSchema,
+  formSubmissionAttachmentRefSchema,
+  formSubmissionListQuerySchema,
+  formSubmissionPayloadSchemas,
+  formSubmissionSourceMetadataSchema,
+  formSubmissionStatusSchema,
+  formSubmissionTypeSchema,
+  guestReviewFormPayloadSchema,
+  guestSuggestionFormPayloadSchema,
+  partnershipFormPayloadSchema,
+  productionServiceFormPayloadSchema,
+  publicFormSubmissionSchemas,
+  sponsorshipFormPayloadSchema,
+  updateFormSubmissionSchema,
+} from './form-submission';
+export type {
+  CareersFormSubmissionInput,
+  FormSubmissionListQueryInput,
+  GuestReviewFormSubmissionInput,
+  GuestSuggestionFormSubmissionInput,
+  PartnershipFormSubmissionInput,
+  ProductionServiceFormSubmissionInput,
+  SponsorshipFormSubmissionInput,
+  UpdateFormSubmissionInput,
+} from './form-submission';
+
+export {
+  newsletterSubscriberListQuerySchema,
+  newsletterSubscriptionRequestSchema,
+  newsletterSubscriptionSourceMetadataSchema,
+  newsletterSubscriptionSyncStatusSchema,
+} from './newsletter-subscription';
+export type {
+  NewsletterSubscriberListQueryInput,
+  NewsletterSubscriptionRequestInput,
+} from './newsletter-subscription';
+
+export { updateHomepageWeeklyEpisodesSettingsSchema } from './homepage';
+export type { UpdateHomepageWeeklyEpisodesSettingsInput } from './homepage';

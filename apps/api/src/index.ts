@@ -7,13 +7,11 @@ import { ApiConfigurationError, getCorsAllowedOrigins } from './env';
 import { publicArticlesRoute, studioArticlesRoute } from './routes/articles';
 import { auditRoute } from './routes/audit';
 import { plansRoute, subscriberUsersRoute, subscriptionsRoute } from './routes/billing';
-import {
-  appEpisodesRoute,
-  publicEpisodesRoute,
-  studioEpisodesRoute,
-} from './routes/episodes';
-import { studioGuestsRoute } from './routes/guests';
+import { appEpisodesRoute, publicEpisodesRoute, studioEpisodesRoute } from './routes/episodes';
+import { publicGuestsRoute, studioGuestsRoute } from './routes/guests';
+import { publicFormSubmissionsRoute, studioFormSubmissionsRoute } from './routes/form-submissions';
 import { publicHomeRoute } from './routes/home';
+import { studioHomepageRoute } from './routes/homepage';
 import { studioInvitationsRoute } from './routes/invitations';
 import { followsRoute, meRoute, progressRoute, studioMeRoute } from './routes/me';
 import { permissionsRoute } from './routes/permissions';
@@ -22,6 +20,11 @@ import { publicShowsRoute, studioShowsRoute } from './routes/shows';
 import { studioSummaryRoute } from './routes/summary';
 import { studioMembersRoute } from './routes/studio-members';
 import { publicMediaRoute, studioMediaRoute } from './routes/media';
+import { publicRedirectsRoute } from './routes/redirects';
+import {
+  publicNewsletterSubscriptionsRoute,
+  studioNewsletterSubscribersRoute,
+} from './routes/newsletter-subscriptions';
 
 /**
  * The API is divided into three namespaces, each with exactly one audience and
@@ -86,10 +89,15 @@ app.get('/', (c) =>
           '/episodes',
           '/episodes/:id',
           '/episodes/:id/audio',
+          '/guests',
+          '/guests/:idOrSlug',
           '/articles',
           '/articles/:slug',
           '/media/:id',
           '/plans',
+          '/redirects/resolve?path=/legacy-path/',
+          'POST /forms/:type',
+          'POST /newsletter/subscriptions',
         ],
       },
       app: {
@@ -109,6 +117,7 @@ app.get('/', (c) =>
         endpoints: [
           '/studio/me',
           '/studio/summary',
+          '/studio/homepage/weekly-episodes',
           '/studio/invitations/me',
           'POST /studio/invitations/accept',
           '/studio/shows',
@@ -116,6 +125,8 @@ app.get('/', (c) =>
           '/studio/articles',
           '/studio/guests',
           '/studio/media',
+          '/studio/form-submissions',
+          '/studio/newsletter/subscribers',
           '/studio/members',
           '/studio/roles',
           '/studio/permissions',
@@ -132,9 +143,13 @@ app.get('/', (c) =>
 app.route('/home', publicHomeRoute);
 app.route('/shows', publicShowsRoute);
 app.route('/episodes', publicEpisodesRoute);
+app.route('/guests', publicGuestsRoute);
 app.route('/articles', publicArticlesRoute);
 app.route('/media', publicMediaRoute);
 app.route('/plans', plansRoute);
+app.route('/redirects', publicRedirectsRoute);
+app.route('/forms', publicFormSubmissionsRoute);
+app.route('/newsletter', publicNewsletterSubscriptionsRoute);
 
 /* ── app: signed-in listeners ─────────────────────────────────────────────── */
 app.route('/app/me', meRoute);
@@ -145,12 +160,15 @@ app.route('/app/episodes', appEpisodesRoute);
 /* ── studio: operators ────────────────────────────────────────────────────── */
 app.route('/studio/me', studioMeRoute);
 app.route('/studio/summary', studioSummaryRoute);
+app.route('/studio/homepage', studioHomepageRoute);
 app.route('/studio/invitations', studioInvitationsRoute);
 app.route('/studio/shows', studioShowsRoute);
 app.route('/studio/episodes', studioEpisodesRoute);
 app.route('/studio/articles', studioArticlesRoute);
 app.route('/studio/guests', studioGuestsRoute);
 app.route('/studio/media', studioMediaRoute);
+app.route('/studio/form-submissions', studioFormSubmissionsRoute);
+app.route('/studio/newsletter/subscribers', studioNewsletterSubscribersRoute);
 app.route('/studio/members', studioMembersRoute);
 app.route('/studio/roles', rolesRoute);
 app.route('/studio/permissions', permissionsRoute);

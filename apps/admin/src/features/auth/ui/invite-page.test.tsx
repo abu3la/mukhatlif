@@ -25,7 +25,6 @@ function gatewayStub(overrides: Partial<AdminAuthGateway> = {}): AdminAuthGatewa
       subject: { id: 'auth-1', email: 'new@mukhtalif.test' },
       accessToken: 'token',
     })),
-    sendSignInEmail: vi.fn(async () => undefined),
     signOut: vi.fn(async () => undefined),
     subscribe: () => () => undefined,
     ...overrides,
@@ -103,16 +102,19 @@ describe('invitation acceptance', () => {
     const gateway = gatewayStub();
     renderInvite(gateway, repositoryStub(INVITED), INVITE_LINK);
 
-    await waitFor(() => expect(gateway.verifyEmailLink).toHaveBeenCalledWith('abc123', 'invite'));
+    await waitFor(() => expect(gateway.verifyEmailLink).toHaveBeenCalledWith('abc123'));
     expect(await screen.findByLabelText(/^كلمة المرور/)).toBeInTheDocument();
     expect(await screen.findByText(/نورة الشمري/)).toBeInTheDocument();
   });
 
-  it('treats a link without the invite type as a re-sent sign-in token', async () => {
+  it('rejects a token that was not issued as a Studio invitation', async () => {
     const gateway = gatewayStub();
-    renderInvite(gateway, repositoryStub(INVITED), '?token_hash=xyz789&type=magiclink');
+    const repository = repositoryStub(INVITED);
+    renderInvite(gateway, repository, '?token_hash=xyz789&type=magiclink');
 
-    await waitFor(() => expect(gateway.verifyEmailLink).toHaveBeenCalledWith('xyz789', 'signin'));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/ليس دعوة صادرة من الاستوديو/);
+    expect(gateway.verifyEmailLink).not.toHaveBeenCalled();
+    expect(repository.readInvitation).not.toHaveBeenCalled();
   });
 
   it('accepts a default Supabase invitation session from the URL and opens password setup', async () => {
@@ -154,33 +156,25 @@ describe('invitation acceptance', () => {
     expect(gateway.verifyEmailLink).toHaveBeenCalledTimes(1);
   });
 
-  it('offers to resend when opened without a link, and asks for nothing else', async () => {
+  it('does not expose a public invitation request when opened without a link', async () => {
     const gateway = gatewayStub();
     const repository = repositoryStub(INVITED);
     renderInvite(gateway, repository);
 
-    expect(await screen.findByRole('button', { name: 'إرسال رابط جديد' })).toBeInTheDocument();
+    expect(
+      await screen.findByText('تُرسل الدعوات من داخل الاستوديو فقط.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'العودة إلى تسجيل الدخول' })).toHaveAttribute(
+      'href',
+      '/login',
+    );
+    expect(screen.queryByLabelText('البريد الإلكتروني')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /إرسال رابط/ })).not.toBeInTheDocument();
     // The password step must not be reachable without a verified link.
     expect(screen.queryByLabelText(/^كلمة المرور/)).not.toBeInTheDocument();
     await waitFor(() => expect(gateway.restoreInvitationSession).toHaveBeenCalledTimes(1));
     expect(gateway.restoreSession).not.toHaveBeenCalled();
     expect(repository.readInvitation).not.toHaveBeenCalled();
-  });
-
-  it('answers a resend identically whether or not the address was invited', async () => {
-    const user = userEvent.setup();
-    const gateway = gatewayStub();
-    renderInvite(gateway, repositoryStub(INVITED));
-
-    await screen.findByRole('button', { name: 'إرسال رابط جديد' });
-    await user.type(screen.getByLabelText('البريد الإلكتروني'), 'stranger@example.test');
-    await user.click(screen.getByRole('button', { name: 'إرسال رابط جديد' }));
-
-    await waitFor(() =>
-      expect(gateway.sendSignInEmail).toHaveBeenCalledWith('stranger@example.test'),
-    );
-    // A distinguishable answer would let anyone probe who has been invited.
-    expect(await screen.findByRole('status')).toHaveTextContent(/إن كان هذا البريد مدعوًّا/);
   });
 
   it('never offers to set a password for an identity with no invitation', async () => {
@@ -313,7 +307,7 @@ describe('invitation acceptance', () => {
 
     await setPassword(user, 'a-long-enough-pass');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/تم إعداد كلمة المرور/);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/حُفظت كلمة المرور/);
     expect(auth.retry).not.toHaveBeenCalled();
   });
 

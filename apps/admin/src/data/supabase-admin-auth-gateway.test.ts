@@ -10,7 +10,6 @@ import { SupabaseAdminAuthGateway } from './supabase-admin-auth-gateway';
 function createSupabaseClientMock(
   getSession: () => Promise<unknown> = async () => ({ data: { session: null }, error: null }),
 ) {
-  const signInWithOtp = vi.fn(async () => ({ data: {}, error: null }));
   const onAuthStateChange = vi.fn(() => ({
     data: { subscription: { unsubscribe: vi.fn() } },
   }));
@@ -19,12 +18,10 @@ function createSupabaseClientMock(
     client: {
       auth: {
         getSession,
-        signInWithOtp,
         onAuthStateChange,
       },
     } as unknown as SupabaseClient,
     getSession,
-    signInWithOtp,
   };
 }
 
@@ -114,75 +111,30 @@ describe('SupabaseAdminAuthGateway', () => {
     });
   });
 
-  it('restores a reissued magic-link session from the invite callback hash', async () => {
-    setBrowserUrl(
-      '/invite#access_token=access&refresh_token=refresh&expires_in=3600&token_type=bearer&type=magiclink',
-    );
-    const magicLinkSession = {
-      access_token: 'magic-link-token',
-      user: { id: 'invitee-2', email: 'reissued@mukhtalif.test' },
-    };
-    const getSession = vi.fn(async () => {
-      setBrowserUrl('/invite');
-      return { data: { session: magicLinkSession }, error: null };
-    });
-    const { client } = createSupabaseClientMock(getSession);
-    const gateway = new SupabaseAdminAuthGateway(
-      { url: 'https://project.supabase.co', anonKey: 'anon-key' },
-      client,
-    );
+  it.each(['magiclink', 'email', 'recovery'])(
+    'rejects a %s hash even on the invite path',
+    async (type) => {
+      setBrowserUrl(
+        `/invite#access_token=access&refresh_token=refresh&expires_in=3600&token_type=bearer&type=${type}`,
+      );
+      const getSession = vi.fn(async () => ({ data: { session: null }, error: null }));
+      const { client } = createSupabaseClientMock(getSession);
+      createClientMock.mockReturnValue(client);
 
-    await expect(gateway.restoreInvitationSession()).resolves.toEqual({
-      subject: { id: 'invitee-2', email: 'reissued@mukhtalif.test' },
-      accessToken: 'magic-link-token',
-    });
-  });
+      const gateway = new SupabaseAdminAuthGateway({
+        url: 'https://project.supabase.co',
+        anonKey: 'anon-key',
+      });
 
-  it('restores an email-link session from the invite callback hash', async () => {
-    setBrowserUrl(
-      '/invite#access_token=access&refresh_token=refresh&expires_in=3600&token_type=bearer&type=email',
-    );
-    const emailLinkSession = {
-      access_token: 'email-link-token',
-      user: { id: 'invitee-3', email: 'email-link@mukhtalif.test' },
-    };
-    const getSession = vi.fn(async () => {
-      setBrowserUrl('/invite');
-      return { data: { session: emailLinkSession }, error: null };
-    });
-    const { client } = createSupabaseClientMock(getSession);
-    const gateway = new SupabaseAdminAuthGateway(
-      { url: 'https://project.supabase.co', anonKey: 'anon-key' },
-      client,
-    );
-
-    await expect(gateway.restoreInvitationSession()).resolves.toEqual({
-      subject: { id: 'invitee-3', email: 'email-link@mukhtalif.test' },
-      accessToken: 'email-link-token',
-    });
-  });
-
-  it('rejects a recovery hash even on the invite path', async () => {
-    setBrowserUrl(
-      '/invite#access_token=access&refresh_token=refresh&expires_in=3600&token_type=bearer&type=recovery',
-    );
-    const getSession = vi.fn(async () => ({ data: { session: null }, error: null }));
-    const { client } = createSupabaseClientMock(getSession);
-    createClientMock.mockReturnValue(client);
-
-    const gateway = new SupabaseAdminAuthGateway({
-      url: 'https://project.supabase.co',
-      anonKey: 'anon-key',
-    });
-
-    expect(createClientMock).toHaveBeenCalledWith(
-      'https://project.supabase.co',
-      'anon-key',
-      expect.objectContaining({ auth: expect.objectContaining({ detectSessionInUrl: false }) }),
-    );
-    await expect(gateway.restoreInvitationSession()).resolves.toBeNull();
-    expect(getSession).not.toHaveBeenCalled();
-  });
+      expect(createClientMock).toHaveBeenCalledWith(
+        'https://project.supabase.co',
+        'anon-key',
+        expect.objectContaining({ auth: expect.objectContaining({ detectSessionInUrl: false }) }),
+      );
+      await expect(gateway.restoreInvitationSession()).resolves.toBeNull();
+      expect(getSession).not.toHaveBeenCalled();
+    },
+  );
 
   it('does not fall back to a persisted session if Supabase cannot consume the hash', async () => {
     setBrowserUrl(
@@ -200,23 +152,5 @@ describe('SupabaseAdminAuthGateway', () => {
     );
 
     await expect(gateway.restoreInvitationSession()).resolves.toBeNull();
-  });
-
-  it('sends a reissued Studio invitation back to the invite acceptance page', async () => {
-    const { client, signInWithOtp } = createSupabaseClientMock();
-    const gateway = new SupabaseAdminAuthGateway(
-      { url: 'https://project.supabase.co', anonKey: 'anon-key' },
-      client,
-    );
-
-    await gateway.sendSignInEmail('  editor@example.com  ');
-
-    expect(signInWithOtp).toHaveBeenCalledWith({
-      email: 'editor@example.com',
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/invite`,
-      },
-    });
   });
 });

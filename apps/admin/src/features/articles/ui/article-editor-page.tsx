@@ -100,6 +100,8 @@ interface NewsletterSendConfirmation {
   readonly expectedCampaignId: string;
   readonly audienceName: string;
   readonly audienceCount: number;
+  readonly recipientTag: string;
+  readonly recipientCount: number;
   readonly fromName?: string;
   readonly replyTo?: string;
   readonly mode: MailchimpCapability['mode'];
@@ -341,8 +343,8 @@ function NewsletterExportMenu({
   const [open, setOpen] = useState(false);
 
   const closeMenu = useCallback((restoreFocus = false) => {
+    if (restoreFocus) triggerRef.current?.focus();
     setOpen(false);
-    if (restoreFocus) requestAnimationFrame(() => triggerRef.current?.focus());
   }, []);
 
   useEffect(() => {
@@ -527,6 +529,7 @@ export function ArticleEditorView() {
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const sendTriggerRef = useRef<HTMLButtonElement>(null);
   const sendDialogRef = useRef<HTMLDialogElement>(null);
+  const mailchimpRequestRef = useRef(0);
   const [workingArticleId, setWorkingArticleId] = useState<ArticleId | undefined>(
     loadedArticle?.id,
   );
@@ -554,6 +557,7 @@ export function ArticleEditorView() {
   const [aiImportFeedback, setAiImportFeedback] = useState('');
   const [previewChannel, setPreviewChannel] = useState<PreviewChannel>('web');
   const [mailchimp, setMailchimp] = useState<MailchimpCapability | null>(null);
+  const [mailchimpLoading, setMailchimpLoading] = useState(true);
   const [mailchimpError, setMailchimpError] = useState('');
   const [emailPreview, setEmailPreview] = useState<NewsletterPreview | null>(null);
   const [operation, setOperation] = useState<EditorOperation>(null);
@@ -596,6 +600,14 @@ export function ArticleEditorView() {
     (dirty || currentArticle.newsletter.needsSync),
   );
   const articleVersionStale = Boolean(currentArticle && workingVersion !== currentArticle.version);
+  const mailchimpTargetVerified = Boolean(
+    mailchimp?.configured &&
+    mailchimp.audienceName &&
+    mailchimp.audienceCount !== undefined &&
+    mailchimp.recipientTag &&
+    mailchimp.recipientCount !== undefined &&
+    mailchimp.audienceConfirmationToken,
+  );
   const busy = operation !== null || coverUploadProgress !== null;
 
   useEffect(() => {
@@ -613,19 +625,30 @@ export function ArticleEditorView() {
     headingRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    void getMailchimpCapability()
-      .then((capability) => {
-        if (active) setMailchimp(capability);
-      })
-      .catch(() => {
-        if (active) setMailchimpError('تعذّر التحقق من إعداد Mailchimp.');
-      });
-    return () => {
-      active = false;
-    };
+  const refreshMailchimp = useCallback(async () => {
+    const requestId = mailchimpRequestRef.current + 1;
+    mailchimpRequestRef.current = requestId;
+    setMailchimp(null);
+    setMailchimpError('');
+    setMailchimpLoading(true);
+    try {
+      const capability = await getMailchimpCapability();
+      if (requestId === mailchimpRequestRef.current) setMailchimp(capability);
+    } catch {
+      if (requestId === mailchimpRequestRef.current) {
+        setMailchimpError('تعذّر التحقق من إعداد Mailchimp. أعد المحاولة.');
+      }
+    } finally {
+      if (requestId === mailchimpRequestRef.current) setMailchimpLoading(false);
+    }
   }, [getMailchimpCapability]);
+
+  useEffect(() => {
+    void refreshMailchimp();
+    return () => {
+      mailchimpRequestRef.current += 1;
+    };
+  }, [refreshMailchimp]);
 
   useEffect(() => {
     let active = true;
@@ -1039,10 +1062,12 @@ export function ArticleEditorView() {
     if (
       !canManage ||
       busy ||
-      !mailchimp?.configured ||
+      !mailchimp ||
+      !mailchimpTargetVerified ||
       newsletterSent ||
       newsletterSyncUnknown ||
-      newsletterSyncing
+      newsletterSyncing ||
+      articleVersionStale
     )
       return;
     if (!fields.newsletterEnabled || !fields.newsletterSubject.trim()) {
@@ -1080,6 +1105,8 @@ export function ArticleEditorView() {
     const audienceConfirmationToken = mailchimp?.audienceConfirmationToken;
     const audienceName = mailchimp?.audienceName;
     const audienceCount = mailchimp?.audienceCount;
+    const recipientTag = mailchimp?.recipientTag;
+    const recipientCount = mailchimp?.recipientCount;
     const campaignId = currentArticle?.newsletter.campaignId;
     if (
       !workingArticleId ||
@@ -1088,6 +1115,9 @@ export function ArticleEditorView() {
       !audienceConfirmationToken ||
       !audienceName ||
       audienceCount === undefined ||
+      !recipientTag ||
+      recipientCount === undefined ||
+      recipientCount < 1 ||
       !campaignId ||
       !canSend
     )
@@ -1100,6 +1130,8 @@ export function ArticleEditorView() {
       expectedCampaignId: campaignId,
       audienceName,
       audienceCount,
+      recipientTag,
+      recipientCount,
       fromName: mailchimp.fromName,
       replyTo: mailchimp.replyTo,
       mode: mailchimp.mode,
@@ -1221,6 +1253,9 @@ export function ArticleEditorView() {
     mailchimp?.configured &&
     mailchimp.audienceName &&
     mailchimp.audienceCount !== undefined &&
+    mailchimp.recipientTag &&
+    mailchimp.recipientCount !== undefined &&
+    mailchimp.recipientCount > 0 &&
     mailchimp.audienceConfirmationToken &&
     currentArticle?.newsletter.status === 'campaign_created' &&
     currentArticle.newsletter.campaignId &&
@@ -1994,17 +2029,22 @@ export function ArticleEditorView() {
               </Field>
             </div>
 
-            <div className="article-mailchimp-state" role="status">
+            <div
+              className="article-mailchimp-state"
+              role="status"
+              aria-live="polite"
+              aria-busy={mailchimpLoading}
+            >
               <b>Mailchimp</b>
               {mailchimp?.mode === 'simulation' ? (
                 <p>محاكاة محلية للعرض. لا تُرسل الرسائل خارج هذا الجهاز.</p>
               ) : mailchimpError ? (
                 <p>{mailchimpError}</p>
-              ) : !mailchimp ? (
+              ) : mailchimpLoading || !mailchimp ? (
                 <p>جارٍ التحقق من الإعداد…</p>
               ) : mailchimp.configured ? (
                 <p>
-                  إعداد Mailchimp متصل
+                  إعداد Mailchimp محفوظ
                   {mailchimp.fromName ? ` باسم ${mailchimp.fromName}` : ''}
                   {mailchimp.replyTo ? (
                     <>
@@ -2031,22 +2071,48 @@ export function ArticleEditorView() {
               ) : null}
               {mailchimp?.audienceName && mailchimp.audienceCount !== undefined ? (
                 <p>
-                  الجمهور: {mailchimp.audienceName}. عدد المشتركين:{' '}
+                  الجمهور: <bdi dir="auto">{mailchimp.audienceName}</bdi>. إجمالي أعضاء الجمهور:{' '}
                   {formatArabicInteger(mailchimp.audienceCount)}.
                 </p>
               ) : mailchimp?.mode === 'live' && mailchimp.configured ? (
-                <p>تعذّر التحقق من جمهور الإرسال. الإرسال معطّل حتى تتوفر بياناته.</p>
+                <p>تعذّر التحقق من الحساب والجمهور. الإرسال معطّل حتى يتاح الاتصال.</p>
               ) : null}
               {mailchimp?.mode === 'live' &&
               mailchimp.configured &&
+              mailchimp.audienceName &&
+              mailchimp.recipientTag &&
               !mailchimp.audienceConfirmationToken ? (
                 <p>تعذّر تثبيت بيانات الجمهور. الإرسال معطّل حتى يعيد الخادم التحقق منها.</p>
+              ) : null}
+              {mailchimp?.recipientTag && mailchimp.recipientCount !== undefined ? (
+                <p>
+                  شريحة الإرسال: <bdi dir="ltr">{mailchimp.recipientTag}</bdi>. المستلمون المؤهلون:{' '}
+                  {formatArabicInteger(mailchimp.recipientCount)}.
+                </p>
+              ) : mailchimp?.mode === 'live' &&
+                mailchimp.configured &&
+                mailchimp.audienceName &&
+                mailchimp.audienceCount !== undefined ? (
+                <p>تعذّر التحقق من شريحة الإرسال. الإرسال معطّل حتى تتوفر بياناتها.</p>
+              ) : null}
+              {mailchimp?.recipientCount === 0 ? (
+                <p>لا تضم شريحة الإرسال مستلمين مؤهلين حاليًا.</p>
               ) : null}
               {newsletterSent && currentArticle?.newsletter.sentAt ? (
                 <p>
                   أُرسلت في {DATE_FORMATTER.format(new Date(currentArticle.newsletter.sentAt))}.
                 </p>
               ) : null}
+              <div className="article-mailchimp-state__refresh">
+                <Button
+                  type="button"
+                  disabled={busy || mailchimpLoading}
+                  onClick={() => void refreshMailchimp()}
+                >
+                  {mailchimpLoading ? 'جارٍ التحقق…' : 'إعادة التحقق'}
+                </Button>
+                <small>يقرأ حالة الحساب والجمهور وشريحة الإرسال فقط، ولا ينشئ حملة أو يرسل رسالة.</small>
+              </div>
             </div>
 
             {canManage && !newsletterSent ? (
@@ -2055,10 +2121,11 @@ export function ArticleEditorView() {
                   type="button"
                   disabled={
                     busy ||
-                    !mailchimp?.configured ||
+                    !mailchimpTargetVerified ||
                     !fields.newsletterEnabled ||
                     newsletterSyncUnknown ||
-                    newsletterSyncing
+                    newsletterSyncing ||
+                    articleVersionStale
                   }
                   onClick={() => void syncCampaign()}
                 >
@@ -2154,15 +2221,25 @@ export function ArticleEditorView() {
         <div className="article-send-confirm__panel">
           <h2 id="send-newsletter-title">إرسال النشرة؟</h2>
           <p>
-            ستُرسل «{sendConfirmation?.subject}» إلى جمهور «{sendConfirmation?.audienceName}» في
-            Mailchimp. لا يمكن التراجع بعد بدء الإرسال.
+            ستُرسل «{sendConfirmation?.subject}» إلى شريحة {'«'}
+            <bdi dir="ltr">{sendConfirmation?.recipientTag}</bdi>
+            {'»'} ضمن جمهور {'«'}
+            <bdi dir="auto">{sendConfirmation?.audienceName}</bdi>
+            {'»'} في Mailchimp. لا يمكن التراجع بعد بدء الإرسال.
           </p>
           <p>
-            الجمهور: {sendConfirmation?.audienceName ?? 'غير محدد'}،{' '}
-            {sendConfirmation?.audienceCount === undefined
-              ? 'عدد غير متاح'
-              : `عدد المشتركين: ${formatArabicInteger(sendConfirmation.audienceCount)}`}
-            .
+            شريحة الإرسال: <bdi dir="ltr">{sendConfirmation?.recipientTag ?? 'غير محددة'}</bdi>
+            {`، المستلمون المؤهلون: ${
+              sendConfirmation?.recipientCount === undefined
+                ? 'عدد غير متاح'
+                : formatArabicInteger(sendConfirmation.recipientCount)
+            }. `}
+            الجمهور الكامل: <bdi dir="auto">{sendConfirmation?.audienceName ?? 'غير محدد'}</bdi>
+            {`، إجمالي أعضائه: ${
+              sendConfirmation?.audienceCount === undefined
+                ? 'عدد غير متاح'
+                : formatArabicInteger(sendConfirmation.audienceCount)
+            }.`}
           </p>
           {sendConfirmation?.fromName || sendConfirmation?.replyTo ? (
             <p>

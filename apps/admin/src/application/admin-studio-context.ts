@@ -8,6 +8,7 @@ import type {
   CreateArticleCommand,
   CreateGuestCommand,
   CreateShowCommand,
+  UpdateHomepageWeeklyEpisodesSettingsCommand,
   UpdateArticleCommand,
   UploadArticleImageCommand,
 } from '@/data';
@@ -25,6 +26,7 @@ import type {
   GuestSocialId,
   MailchimpCapability,
   NewsletterPreview,
+  HomepageWeeklyEpisodesSettings,
   ShowId,
 } from '@/lib';
 
@@ -48,6 +50,9 @@ export interface StudioDataContextValue {
   readonly lastError: Error | null;
   clearLastError(): void;
   createShow(command: CreateShowCommand): Promise<ShowId>;
+  updateHomepageWeeklyEpisodesSettings(
+    command: UpdateHomepageWeeklyEpisodesSettingsCommand,
+  ): Promise<HomepageWeeklyEpisodesSettings>;
   createArticle(command: CreateArticleCommand): Promise<ArticleId>;
   updateArticle(id: ArticleId, command: UpdateArticleCommand): Promise<Article>;
   transitionEpisodeStatus(

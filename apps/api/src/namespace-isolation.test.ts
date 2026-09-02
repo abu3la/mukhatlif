@@ -82,9 +82,7 @@ describe('route table', () => {
     // below then prove each namespace enforces its own rule.
     for (const route of ROUTES) {
       if (`${route.method} ${route.path}` === INDEX) continue;
-      const prefixes = ['/studio/', '/app/'].filter((prefix) =>
-        route.path.startsWith(prefix),
-      );
+      const prefixes = ['/studio/', '/app/'].filter((prefix) => route.path.startsWith(prefix));
       expect(prefixes.length, `${route.path} claims ${prefixes.length} namespaces`).toBeLessThan(2);
       // A namespace prefix may never appear anywhere but the start, which is
       // what would let /articles/studio/... slip past the guards.
@@ -93,13 +91,12 @@ describe('route table', () => {
     }
   });
 
-  it('exposes no mutating handler in the public namespace', () => {
-    const mutations = publicRoutes.filter(
-      (route) => !['GET', 'HEAD'].includes(route.method),
-    );
-    // A write cannot reach the anonymous catalogue: there is no handler to
-    // authorize against, so it 404s rather than being refused.
-    expect(mutations).toEqual([]);
+  it('exposes only the explicitly reviewed public intake mutations', () => {
+    const mutations = publicRoutes.filter((route) => !['GET', 'HEAD'].includes(route.method));
+    expect(mutations.map((route) => `${route.method} ${route.path}`)).toEqual([
+      'POST /forms/:type',
+      'POST /newsletter/subscriptions',
+    ]);
   });
 });
 
@@ -184,13 +181,15 @@ describe('public namespace', () => {
       const response = await request(route);
       // 404 is a legitimate answer for a placeholder identifier; 401 and 403
       // are not, because nothing here may require a caller.
-      expect([200, 206, 302, 404, 416]).toContain(response.status);
+      const allowedStatuses = route.method === 'POST' ? [200, 202, 400, 404] : [200, 206, 302, 404, 416];
+      expect(allowedStatuses).toContain(response.status);
     },
   );
 
   it('leaks no Studio-only field through any public read', async () => {
     const forbidden = [
       'audioKey',
+      'audioUrl',
       'storageKey',
       'authUserId',
       'auth_user_id',

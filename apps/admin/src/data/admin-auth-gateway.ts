@@ -28,15 +28,6 @@ export type AdminAuthErrorCode =
   | 'UNSUPPORTED'
   | 'UNKNOWN';
 
-/**
- * Which email the link came from.
- *
- * Supabase issues invitation tokens and re-sent sign-in tokens under different
- * types, and verifying with the wrong one fails. The link says which it is, so
- * this is read rather than guessed.
- */
-export type EmailLinkPurpose = 'invite' | 'signin';
-
 export class AdminAuthError extends Error {
   readonly code: AdminAuthErrorCode;
 
@@ -65,9 +56,7 @@ export interface AdminAuthGateway {
    * only way an invited person can authenticate: they have no password until
    * they set one at the end of the acceptance flow.
    */
-  verifyEmailLink(tokenHash: string, purpose: EmailLinkPurpose): Promise<AdminAuthSession>;
-  /** Sends a fresh sign-in link, for an invitation link that expired. */
-  sendSignInEmail(email: string): Promise<void>;
+  verifyEmailLink(tokenHash: string): Promise<AdminAuthSession>;
   signOut(): Promise<void>;
   subscribe(listener: (session: AdminAuthSession | null) => void): () => void;
 }

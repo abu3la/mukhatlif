@@ -70,6 +70,10 @@
   font-size: 14px;
 }
 
+.invite-return-link {
+  justify-self: start;
+}
+
 /* Names who the verified link belongs to, so nobody sets a password on an
    account they did not expect. */
 .invite-identity {

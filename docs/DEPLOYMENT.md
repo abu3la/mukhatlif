@@ -1,59 +1,63 @@
 # Deployment Runbook
 
+> **Environment ownership (2026-09-02):** Cloudflare Workers hosts development
+> deployments and Cloudflare R2 stores media. The production API and web app are
+> Hostinger Node.js deployments. Any older example below that points a
+> production hostname at a Worker is superseded by this rule. Form email must
+> follow `RESEND_ENVIRONMENTS.md`; production must never use a `workers.dev`
+> media origin.
+
 Order matters. Each stage assumes the previous one is verified.
 
 Mailchimp is intentionally not covered here — see `MAILCHIMP_PUBLISHING.md`. It
 is independent of everything below and can be configured later; the API treats a
 wholly absent Mailchimp configuration as "disabled", not as an error.
 
-Nothing in this runbook has been executed. It has been written against the code
-as it stands and the commands have been checked for shape, not run against a
-live account.
+Development migrations and imports have been exercised on the canonical
+development project. The Hostinger production sequence has not been executed.
 
 ---
 
 ## 0. Before you start
 
-| You need | Why |
-| --- | --- |
-| A Supabase project (staging first) | Application data and Auth |
-| A Cloudflare account with Workers and R2 | The API and the site |
-| `wrangler` authenticated | `pnpm --filter @mukhtalif/api exec wrangler whoami` |
+| You need                                 | Why                                                 |
+| ---------------------------------------- | --------------------------------------------------- |
+| A dedicated production Supabase project  | Production application data and Auth                |
+| A Cloudflare account with Workers and R2 | Development deployments and object storage          |
+| Hostinger Node.js application hosting    | Production API and public site                      |
+| `wrangler` authenticated                 | `pnpm --filter @mukhtalif/api exec wrangler whoami` |
 
 There is no Supabase CLI project in this repo — `apps/api/supabase/` holds
 migrations only. Apply them through the Supabase SQL editor or `psql`.
 
-**Never paste the service-role key anywhere outside `wrangler secret put`.** It
-bypasses row level security. It must not enter `wrangler.jsonc`, `.env`, a
-screenshot, or a commit.
+**Never place the service-role key in browser-visible configuration, a commit,
+or a screenshot.** Development stores it as a Cloudflare secret; production
+stores it only in Hostinger's environment secret store.
 
 ---
 
 ## 1. Database migrations
 
-Migrations `0001`–`0013` are already applied to any existing project. This
-release adds two.
+Do not assume any migration is already applied to a new production project. The
+current release contains migrations `0001` through `0022`; the production
+ledger must contain every one before the API is started.
 
 ### 1.1 Apply, in this order
 
-```bash
-psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f apps/api/supabase/migrations/0014_guests.sql
-```
+Use the guarded migration runner with a connection string for the dedicated
+production target, then confirm the ledger lists `0001` through `0022` exactly:
 
 ```bash
-psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f apps/api/supabase/migrations/0015_studio_invitation_acceptance.sql
+./scripts/migrate.sh
 ```
 
 `0015` runs inside an explicit transaction and rewrites
 `provision_invited_studio_member`, so a newly invited member starts pending. If
 it fails partway it rolls back whole; re-run it after fixing the cause.
 
-`0014` is not transactional in the same way. If it fails after creating some
-tables, drop the ones it created before re-running:
-
-```bash
-psql "$SUPABASE_DB_URL" -c "drop table if exists public.guest_appearances, public.guest_socials, public.guests cascade;"
-```
+Do not drop partially-created production objects manually. Stop, restore the
+verified pre-migration backup or reconcile the exact failed migration, and then
+rerun the guarded sequence.
 
 ### 1.2 Verify
 
@@ -63,13 +67,9 @@ psql "$SUPABASE_DB_URL" -f apps/api/supabase/verify_deployment.sql
 
 Every `status` column must read `ok`. The script is read-only and re-runnable.
 
-Section 4 is the one that matters most for this release: `0015` backfills every
-pre-existing member as `active` with `accepted_at = created_at`. If any row is
-`active` with a null `accepted_at`, the backfill did not run and those people
-cannot be told apart from pending invitees.
-
-Section 6 is a pre-existing gate from `MAILCHIMP_PUBLISHING.md`. It must pass
-before any newsletter is ever sent, regardless of this release.
+All sections must report `ok`, including access, invitations, content, media,
+forms, newsletter storage, and homepage settings. Mailchimp remains disabled
+until its subscription is renewed.
 
 ---
 
@@ -80,11 +80,10 @@ password. Two settings make that work.
 
 ### 2.1 Point the Worker at the acceptance page
 
-The Studio's acceptance route (client work not yet built — see §6) will live at
-`/invite`. Set:
+The Studio acceptance route is `/invite`. Set:
 
 ```
-STUDIO_INVITE_REDIRECT_URL = https://admin.mukhtalif.net/invite
+STUDIO_INVITE_REDIRECT_URL = https://studio.mukhtalif.net/invite
 ```
 
 The API validates this value: it must be absolute, HTTPS outside development,
@@ -106,7 +105,9 @@ real operators.
 
 ### 2.4 Check the flow end to end on staging
 
-Invite yourself at an address you control, then confirm:
+On the Cloudflare development deployment, invite only
+`aaahashmi95@gmail.com`. Supabase Auth SMTP is separate from form notifications
+and cannot be redirected by the Resend form routing table. Then confirm:
 
 1. `GET /studio/invitations/me` reports `status: "invited"`.
 2. The email arrives and its link lands on the allowlisted URL with a session.
@@ -118,7 +119,7 @@ Invite yourself at an address you control, then confirm:
 
 ---
 
-## 3. Cloudflare R2 and the API Worker
+## 3. Cloudflare R2 and the development API Worker
 
 ### 3.1 Create the buckets
 
@@ -130,10 +131,11 @@ pnpm --filter @mukhtalif/api exec wrangler r2 bucket create mukhtalif-audio
 pnpm --filter @mukhtalif/api exec wrangler r2 bucket create mukhtalif-media
 ```
 
-Keep both **private**. `mukhtalif-media` must not be given a public r2.dev URL:
-images are served through the Worker's `/media/:id` route, which is what applies
-sanitisation, immutability, and `nosniff`. A public bucket URL bypasses all of
-it and cannot be withdrawn from an already-sent email.
+Keep both **private**. `mukhtalif-media` must not be given a public r2.dev URL.
+The development Worker serves its `/media/:id` route; the production Hostinger
+API will use the R2 S3-compatible API and serve the equivalent production route.
+A public bucket URL bypasses sanitisation, immutability, and `nosniff` and cannot
+be withdrawn from an already-sent email.
 
 ### 3.2 Bind them
 
@@ -146,8 +148,9 @@ Edit `apps/api/wrangler.jsonc` and add, alongside `observability`:
 ],
 ```
 
-They are left commented out in the repo on purpose: binding a bucket that does
-not exist breaks `wrangler dev` for everyone who has not created it.
+The development bindings are committed in `apps/api/wrangler.jsonc`. Hostinger
+does not receive a Worker binding; its production Node storage adapter uses
+separate R2 S3 credentials stored only in Hostinger's secrets panel.
 
 ### 3.3 Set the Worker variables
 
@@ -156,22 +159,25 @@ not exist breaks `wrangler dev` for everyone who has not created it.
 is bound and this is unset**, which is deliberate: it would otherwise mint image
 URLs against whatever origin a request happened to arrive on.
 
-In `apps/api/wrangler.jsonc` `vars`:
+The committed `apps/api/wrangler.jsonc` values are:
 
 ```jsonc
 "APP_ENV": "production",
+"DEPLOYMENT_PLATFORM": "cloudflare-workers",
 "ALLOW_DEV_AUTH": "false",
-"CORS_ALLOWED_ORIGINS": "https://admin.mukhtalif.net",
-"MEDIA_PUBLIC_ORIGIN": "https://api.mukhtalif.net",
+"CORS_ALLOWED_ORIGINS": "https://studio.mukhtalif-development.workers.dev,https://web.mukhtalif-development.workers.dev",
+"MEDIA_PUBLIC_ORIGIN": "https://mukhtalif-api.mukhtalif-development.workers.dev",
+"RESEND_ENVIRONMENT": "development",
+"FORMS_FROM_EMAIL": "forms@devmail.mukhtalif.net",
 ```
 
-`CORS_ALLOWED_ORIGINS` lists the **Studio** only. The public site never calls the
-API from a browser — every read happens in a server component — so it does not
-belong here. A wildcard is rejected outright.
+`CORS_ALLOWED_ORIGINS` lists the development Studio and public Web origins. The
+public forms submit from the browser, so Web needs CORS even though catalogue
+reads happen server-side. A wildcard is rejected outright.
 
 `ALLOW_DEV_AUTH` must be `false`. The `x-dev-user` header bypasses Supabase
-entirely; it is gated on `APP_ENV=development` *and* this flag, and both must
-fail closed in production.
+entirely; it is gated on `APP_ENV=development` _and_ this flag, and both must
+fail closed on every public deployment.
 
 ### 3.4 Set the secrets
 
@@ -191,26 +197,29 @@ The API treats the two Supabase values as a pair: configuring one without the
 other is a configuration error, not a silent fallback to the in-memory
 repository.
 
+Store only the restricted development Resend key on Cloudflare. Follow
+`RESEND_ENVIRONMENTS.md`; the production key belongs only in Hostinger.
+
 ### 3.5 Deploy and smoke test
 
 ```bash
-pnpm --filter @mukhtalif/api exec wrangler deploy
+pnpm --filter @mukhtalif/api deploy
 ```
 
 ```bash
-curl -s https://api.mukhtalif.net/home | head -c 400
+curl -s https://mukhtalif-api.mukhtalif-development.workers.dev/home | head -c 400
 ```
 
 Then confirm the boundary actually holds:
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" https://api.mukhtalif.net/studio/summary
+curl -s -o /dev/null -w "%{http_code}\n" https://mukhtalif-api.mukhtalif-development.workers.dev/studio/summary
 ```
 
 This must be **401**. If it returns data, `ALLOW_DEV_AUTH` is still on.
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" -H "x-dev-user: usr-admin-1" https://api.mukhtalif.net/studio/guests
+curl -s -o /dev/null -w "%{http_code}\n" -H "x-dev-user: usr-admin-1" https://mukhtalif-api.mukhtalif-development.workers.dev/studio/guests
 ```
 
 This must also be **401**, not 200. The dev header must be inert in production.
@@ -231,7 +240,7 @@ from `/media/:id`.
 
 ---
 
-## 4. *(Mailchimp — deliberately skipped, see `MAILCHIMP_PUBLISHING.md`)*
+## 4. _(Mailchimp — deliberately skipped, see `MAILCHIMP_PUBLISHING.md`)_
 
 ---
 
@@ -260,10 +269,10 @@ This runs the Cloudflare build and serves the actual Worker bundle in
 `workerd`, not `next dev`. Check the Arabic RTL rendering and one article page
 before deploying — this is the last step where a mistake is free.
 
-### 5.3 Deploy
+### 5.3 Deploy development
 
 ```bash
-pnpm --filter @mukhtalif/web exec wrangler deploy --var MUKHTALIF_API_URL:https://api.mukhtalif.net --var PUBLIC_WEB_URL:https://mukhtalif.net
+pnpm --filter @mukhtalif/web exec wrangler deploy --var MUKHTALIF_API_URL:https://mukhtalif-api.mukhtalif-development.workers.dev --var PUBLIC_WEB_URL:https://web.mukhtalif-development.workers.dev
 ```
 
 `apps/web/wrangler.jsonc` ships with an empty `vars` block on purpose, so a
@@ -276,23 +285,88 @@ pnpm --filter @mukhtalif/web deploy
 ```
 
 Note that form takes its variables from `wrangler.jsonc`, so set them there
-first if you use it.
+first if you use it. This command is development-only.
 
-### 5.4 Verify
+### 5.4 Deploy production on Hostinger
+
+Create separate Hostinger Node.js applications for the production API and Web
+app. During acceptance their environment must use `https://api.mukhtalif.net`
+and `https://staging.mukhtalif.net`; do not copy either development Worker
+origin. The Web deployment must return `X-Robots-Tag: noindex, nofollow,
+noarchive` and matching HTML robots metadata. The API application uses the same
+Hono routes as the development Worker through a small Node adapter. Configure
+the API application as follows:
+
+Production deployment is manual. Connect each Hostinger application only to the
+repository's `main` branch and disable automatic deployment. A merge to `main`
+creates a release candidate but must not trigger a deployment. GitHub Actions
+only verifies the source.
+
+For every release:
+
+1. Record the approved `origin/main` commit SHA and confirm all verification jobs
+   passed for that exact SHA.
+2. Freeze additional merges to `main` until the release and smoke tests finish.
+3. Obtain a new explicit **"publish now" / "انشر الآن"** instruction.
+4. In hPanel, manually redeploy the API and verify it before manually redeploying
+   Studio and Web from the same commit.
+5. Record the deployed SHA and smoke-test results in the release record.
+
+If Hostinger cannot guarantee manual-only behavior for the selected integration,
+do not activate it. Never accept automatic deployment as a fallback.
+
+```text
+Build command: pnpm --filter @mukhtalif/api build:hostinger
+Start command: pnpm --filter @mukhtalif/api start:hostinger
+Generated entry: apps/api/dist/node.cjs
+Liveness path: /health/live
+```
+
+Configure the other two applications from the same `main` SHA:
+
+```text
+Studio build: pnpm --filter @mukhtalif/admin build:hostinger
+Studio output: apps/admin/dist
+Web build: pnpm --filter @mukhtalif/web build:hostinger
+Web start: pnpm --filter @mukhtalif/web start:hostinger
+```
+
+The Studio and Web build guards reject development Supabase/Worker origins and
+reject any Web canonical origin other than `https://staging.mukhtalif.net`
+during this acceptance release.
+
+Both build and start run
+`pnpm --filter @mukhtalif/api verify:hostinger-production`. Enter every variable
+listed in `apps/api/.env.production.hostinger.example` in Hostinger's secrets
+panel. The five `R2_*` variables are all-or-nothing; the credentials must be
+bucket-scoped Object Read & Write keys. Set `TRUST_PROXY_HOPS` only after
+confirming Hostinger's reverse-proxy chain. A value that is too high trusts a
+client-supplied forwarding address; a value that is too low groups requests by
+the proxy address.
+
+Local build and runtime smoke tests are complete. The 2026-09-02 acceptance
+release is authorized, but a Hostinger preview still must pass against real R2
+credentials before changing DNS: `/health/live` must return 200, an
+unauthenticated Studio route must return 401, allowed CORS preflights must
+succeed, media HEAD/full/range reads must match stored sizes and ETags, and one
+disposable upload/delete cycle must pass in each bucket.
+
+### 5.5 Verify
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" https://mukhtalif.net/articles/<a-published-slug>
+curl -s -o /dev/null -w "%{http_code}\n" https://staging.mukhtalif.net/articles/<a-published-slug>
 ```
 
 Then confirm, on the deployed site:
 
 - An unpublished slug renders the Arabic 404, not an error page.
 - The article canonical tag matches `PUBLIC_WEB_URL` exactly.
+- Every staging response includes `X-Robots-Tag: noindex, nofollow, noarchive`.
 - **View source and search for `MUKHTALIF_API_URL`, `supabase`, and `eyJ`.** All
   three must be absent: every read is server-side and no credential or API
   origin should reach the browser.
 
-### 5.5 A note on build-time API availability
+### 5.6 A note on build-time API availability
 
 Reads carry `revalidate: 60`. When the API is reachable at build time the home
 and programmes pages prerender and refresh on that interval. When it is not, the

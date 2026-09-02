@@ -47,6 +47,7 @@ function createStudioValue(
       shows: [],
       episodes: [],
       articles,
+      homepageWeeklyEpisodesSettings: { ...demoData.homepageWeeklyEpisodesSettings },
       guestDirectory: null,
     },
     repositoryKind: 'fixture',
@@ -63,6 +64,9 @@ function createStudioValue(
     lastError: null,
     clearLastError: vi.fn(),
     createShow: vi.fn(async () => demoData.shows[0]!.id),
+    updateHomepageWeeklyEpisodesSettings: vi.fn(
+      async () => demoData.homepageWeeklyEpisodesSettings,
+    ),
     createArticle: vi.fn(async () => firstArticle.id),
     updateArticle: vi.fn(async () => firstArticle),
     transitionEpisodeStatus: vi.fn(async () => undefined),
@@ -75,6 +79,8 @@ function createStudioValue(
       replyTo: 'hello@mukhtalif.local',
       audienceName: 'جمهور العرض المحلي',
       audienceCount: 24,
+      recipientTag: 'nlpage',
+      recipientCount: 24,
       audienceConfirmationToken: 'fixture-audience-confirmation-v1',
     })),
     previewArticleNewsletter: vi.fn(async () => ({
@@ -1016,6 +1022,82 @@ describe('ArticleEditorView', () => {
     restoreClipboard();
   });
 
+  it('rechecks Mailchimp safely without creating a campaign or sending a message', async () => {
+    const user = userEvent.setup();
+    const getMailchimpCapability = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Mailchimp is temporarily unavailable.'))
+      .mockResolvedValueOnce({
+        mode: 'live' as const,
+        configured: true,
+        fromName: 'مختلف',
+        replyTo: 'newsletter@mukhtalif.net',
+        audienceName: 'نشرة مختلف',
+        audienceCount: 436,
+        recipientTag: 'nlpage',
+        recipientCount: 389,
+        audienceConfirmationToken: 'verified-audience-v2',
+      });
+    const syncArticleNewsletterCampaign = vi.fn(async () => ({
+      article: demoData.articles[0]!,
+      operation: 'created' as const,
+    }));
+    const sendArticleNewsletter = vi.fn(async () => ({
+      article: demoData.articles[0]!,
+      operation: 'sent' as const,
+    }));
+
+    renderEditor([structuredClone(demoData.articles[0]!)], {
+      getMailchimpCapability,
+      syncArticleNewsletterCampaign,
+      sendArticleNewsletter,
+    });
+
+    expect(await screen.findByText('تعذّر التحقق من إعداد Mailchimp. أعد المحاولة.')).toBeVisible();
+    expect(
+      screen.getByText(
+        'يقرأ حالة الحساب والجمهور وشريحة الإرسال فقط، ولا ينشئ حملة أو يرسل رسالة.',
+      ),
+    ).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'إعادة التحقق' }));
+
+    await waitFor(() => expect(getMailchimpCapability).toHaveBeenCalledTimes(2));
+    const capabilitySummary = (await screen.findByText(/إعداد Mailchimp محفوظ باسم مختلف/)).closest(
+      '.article-mailchimp-state',
+    );
+    expect(capabilitySummary).toHaveTextContent(
+      'الجمهور: نشرة مختلف. إجمالي أعضاء الجمهور: 436.',
+    );
+    expect(capabilitySummary).toHaveTextContent(
+      'شريحة الإرسال: nlpage. المستلمون المؤهلون: 389.',
+    );
+    expect(syncArticleNewsletterCampaign).not.toHaveBeenCalled();
+    expect(sendArticleNewsletter).not.toHaveBeenCalled();
+  });
+
+  it('does not offer campaign sync until the configured Mailchimp target is verified', async () => {
+    const syncArticleNewsletterCampaign = vi.fn(async () => ({
+      article: demoData.articles[0]!,
+      operation: 'created' as const,
+    }));
+
+    renderEditor([structuredClone(demoData.articles[0]!)], {
+      getMailchimpCapability: vi.fn(async () => ({
+        mode: 'live' as const,
+        configured: true,
+      })),
+      syncArticleNewsletterCampaign,
+    });
+
+    expect(
+      await screen.findByText('تعذّر التحقق من الحساب والجمهور. الإرسال معطّل حتى يتاح الاتصال.'),
+    ).toBeVisible();
+    const syncButton = screen.getByRole('button', { name: 'إنشاء مسودة Mailchimp' });
+    expect(syncButton).toBeDisabled();
+    expect(syncArticleNewsletterCampaign).not.toHaveBeenCalled();
+  });
+
   it('keeps the native send dialog closed until requested and restores focus after Escape', async () => {
     const user = userEvent.setup();
     const article: Article = {
@@ -1045,7 +1127,7 @@ describe('ArticleEditorView', () => {
     const dialog = screen.getByRole('dialog', { name: 'إرسال النشرة؟' });
     expect(dialog).toHaveAttribute('open');
     expect(within(dialog).getAllByText(/جمهور العرض المحلي/)).not.toHaveLength(0);
-    expect(within(dialog).getByText(/عدد المشتركين: 24/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/المستلمون المؤهلون: 24/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'تأكيد الإرسال' })).toHaveFocus();
 
     await user.keyboard('{Escape}');
@@ -1104,6 +1186,7 @@ describe('ArticleEditorView', () => {
     ]);
 
     await waitFor(() => expect(sendButton).toBeDisabled());
+    expect(screen.getByRole('button', { name: 'تحديث مسودة Mailchimp' })).toBeDisabled();
     expect(screen.getByText(/تغيّر المقال في جلسة أخرى/)).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

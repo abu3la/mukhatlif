@@ -1,5 +1,10 @@
 import {
   CLIENT_SURFACE_HEADER,
+  FORM_NOTIFICATION_STATUSES,
+  FORM_SUBMISSION_STATUSES,
+  FORM_SUBMISSION_TYPES,
+  NEWSLETTER_CONSENT_EVENT_KINDS,
+  NEWSLETTER_SUBSCRIPTION_SYNC_STATUSES,
   NEWSLETTER_STATUSES,
   PERMISSION_IDS,
   isPermissionId,
@@ -8,6 +13,8 @@ import {
 } from '@mukhtalif/types';
 import {
   createStudioRoleSchema,
+  formSubmissionPayloadSchemas,
+  formSubmissionSourceMetadataSchema,
   richTextDocumentSchema,
   updateRolePermissionsSchema,
 } from '@mukhtalif/validation';
@@ -19,11 +26,16 @@ import type {
   AuthenticatedStudioMember as ApiAuthenticatedStudioMember,
   Episode as ApiEpisode,
   EpisodeStatus as ApiEpisodeStatus,
+  FormSubmission as ApiFormSubmission,
+  FormSubmissionType as ApiFormSubmissionType,
   Guest as ApiGuest,
   GuestAppearance as ApiGuestAppearance,
   GuestDirectory as ApiGuestDirectory,
   GuestSocial as ApiGuestSocial,
+  HomepageWeeklyEpisodesSettings as ApiHomepageWeeklyEpisodesSettings,
+  NewsletterSubscriberListItem as ApiNewsletterSubscriberListItem,
   PermissionId as ApiPermissionId,
+  PaginatedList as ApiPaginatedList,
   Plan as ApiPlan,
   Show as ApiShow,
   SubscriberUser as ApiSubscriberUser,
@@ -49,6 +61,7 @@ import type {
   GuestId,
   GuestSocial,
   GuestSocialId,
+  HomepageWeeklyEpisodesSettings,
   MailchimpCapability,
   NewsletterPreview,
   PlusPlan,
@@ -66,7 +79,9 @@ import type {
 } from '@/lib';
 import type {
   AdminAnalyticsSnapshot,
+  AdminFormSubmissionListQuery,
   AdminInvitationState,
+  AdminNewsletterSubscriberListQuery,
   ArticleMediaAsset,
   AdminNewsletterCampaignResult,
   AdminNewsletterSendResult,
@@ -84,8 +99,10 @@ import type {
   EpisodeStatusCommand,
   UpdateArticleCommand,
   UpdateEpisodeCommand,
+  UpdateFormSubmissionCommand,
   UpdateGuestCommand,
   UpdateGuestSocialCommand,
+  UpdateHomepageWeeklyEpisodesSettingsCommand,
   UpdateShowCommand,
   UploadArticleImageCommand,
 } from './admin-repository';
@@ -106,19 +123,15 @@ const HONO_CAPABILITIES = {
   'access-management': true,
 } as const;
 
-const EPISODE_STATUSES = new Set<ApiEpisodeStatus>([
-  'draft',
-  'scheduled',
-  'published',
-  'archived',
-]);
+const EPISODE_STATUSES = new Set<ApiEpisodeStatus>(['draft', 'scheduled', 'published', 'archived']);
 const ARTICLE_STATUSES = new Set<ApiArticleStatus>(['draft', 'published']);
 const NEWSLETTER_STATUS_SET = new Set<string>(NEWSLETTER_STATUSES);
-const SUBSCRIPTION_STATUSES = new Set<ApiSubscriptionStatus>([
-  'active',
-  'past_due',
-  'canceled',
-]);
+const SUBSCRIPTION_STATUSES = new Set<ApiSubscriptionStatus>(['active', 'past_due', 'canceled']);
+const FORM_TYPES = new Set<string>(FORM_SUBMISSION_TYPES);
+const FORM_STATUSES = new Set<string>(FORM_SUBMISSION_STATUSES);
+const FORM_NOTIFICATION_STATUS_SET = new Set<string>(FORM_NOTIFICATION_STATUSES);
+const NEWSLETTER_LOCAL_STATUS_SET = new Set<string>(NEWSLETTER_CONSENT_EVENT_KINDS);
+const NEWSLETTER_SYNC_STATUS_SET = new Set<string>(NEWSLETTER_SUBSCRIPTION_SYNC_STATUSES);
 
 export interface HonoAdminRepositoryOptions {
   readonly baseUrl: string;
@@ -156,6 +169,11 @@ function hasOptionalString(record: JsonRecord, key: string): boolean {
   return record[key] === undefined || typeof record[key] === 'string';
 }
 
+function hasOnlyKeys(record: JsonRecord, allowed: readonly string[]): boolean {
+  const keys = new Set(allowed);
+  return Object.keys(record).every((key) => keys.has(key));
+}
+
 function isApiShow(value: unknown): value is ApiShow {
   if (!isRecord(value)) return false;
   return (
@@ -170,6 +188,26 @@ function isApiShow(value: unknown): value is ApiShow {
     hasString(value, 'category') &&
     typeof value.premium === 'boolean' &&
     hasString(value, 'createdAt')
+  );
+}
+
+function isApiHomepageWeeklyEpisodesSettings(
+  value: unknown,
+): value is ApiHomepageWeeklyEpisodesSettings {
+  if (!isRecord(value)) return false;
+
+  const title = value.title;
+  return (
+    typeof value.enabled === 'boolean' &&
+    typeof title === 'string' &&
+    title === title.trim() &&
+    title.length >= 1 &&
+    title.length <= 80 &&
+    value.windowDays === 7 &&
+    typeof value.version === 'number' &&
+    Number.isInteger(value.version) &&
+    value.version >= 1 &&
+    hasString(value, 'updatedAt')
   );
 }
 
@@ -314,11 +352,16 @@ function isMailchimpCapability(value: unknown): value is MailchimpCapability {
     hasOptionalString(value, 'fromName') &&
     hasOptionalString(value, 'replyTo') &&
     hasOptionalString(value, 'audienceName') &&
+    hasOptionalString(value, 'recipientTag') &&
     hasOptionalString(value, 'audienceConfirmationToken') &&
     (value.audienceCount === undefined ||
       (typeof value.audienceCount === 'number' &&
         Number.isInteger(value.audienceCount) &&
-        value.audienceCount >= 0))
+        value.audienceCount >= 0)) &&
+    (value.recipientCount === undefined ||
+      (typeof value.recipientCount === 'number' &&
+        Number.isInteger(value.recipientCount) &&
+        value.recipientCount >= 0))
   );
 }
 
@@ -425,11 +468,7 @@ function isApiStudioMemberBase(
 }
 
 function isApiStudioMemberAccess(value: unknown): value is ApiStudioMemberAccess {
-  return (
-    isApiStudioMemberBase(value) &&
-    isRecord(value) &&
-    typeof value.authLinked === 'boolean'
-  );
+  return isApiStudioMemberBase(value) && isRecord(value) && typeof value.authLinked === 'boolean';
 }
 
 function isApiProvisionedStudioMember(value: unknown): value is ApiStudioMemberAccess {
@@ -478,9 +517,7 @@ function isCanonicalPermissionList(
   return true;
 }
 
-function isApiAuthenticatedStudioMember(
-  value: unknown,
-): value is ApiAuthenticatedStudioMember {
+function isApiAuthenticatedStudioMember(value: unknown): value is ApiAuthenticatedStudioMember {
   if (!isApiStudioMemberBase(value) || !isRecord(value)) return false;
   return value.role === 'admin'
     ? isCanonicalPermissionList(value.permissions, {
@@ -515,6 +552,142 @@ function isApiSubscription(value: unknown): value is ApiSubscription {
     hasString(value, 'currentPeriodEnd') &&
     hasString(value, 'createdAt')
   );
+}
+
+function isFormSubmissionAttachment(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    hasString(value, 'id') &&
+    hasString(value, 'fileName') &&
+    hasString(value, 'mimeType') &&
+    typeof value.byteSize === 'number' &&
+    Number.isInteger(value.byteSize) &&
+    value.byteSize >= 0
+  );
+}
+
+function isApiFormSubmission(value: unknown): value is ApiFormSubmission {
+  if (!isRecord(value) || typeof value.type !== 'string' || !FORM_TYPES.has(value.type)) {
+    return false;
+  }
+  const type = value.type as ApiFormSubmissionType;
+  return (
+    hasString(value, 'id') &&
+    typeof value.status === 'string' &&
+    FORM_STATUSES.has(value.status) &&
+    hasOptionalString(value, 'assigneeId') &&
+    hasString(value, 'internalNotes') &&
+    Array.isArray(value.attachmentRefs) &&
+    value.attachmentRefs.every(isFormSubmissionAttachment) &&
+    formSubmissionSourceMetadataSchema.safeParse(value.sourceMetadata).success &&
+    typeof value.notificationStatus === 'string' &&
+    FORM_NOTIFICATION_STATUS_SET.has(value.notificationStatus) &&
+    typeof value.notificationAttemptCount === 'number' &&
+    Number.isInteger(value.notificationAttemptCount) &&
+    value.notificationAttemptCount >= 0 &&
+    hasOptionalString(value, 'notificationAttemptedAt') &&
+    hasOptionalString(value, 'notificationError') &&
+    hasOptionalString(value, 'notificationProviderMessageId') &&
+    hasString(value, 'statusUpdatedAt') &&
+    hasOptionalString(value, 'resolvedAt') &&
+    hasString(value, 'createdAt') &&
+    hasString(value, 'updatedAt') &&
+    formSubmissionPayloadSchemas[type].safeParse(value.payload).success
+  );
+}
+
+function isFormSubmissionPage(value: unknown): value is ApiPaginatedList<ApiFormSubmission> {
+  if (!isRecord(value) || !Array.isArray(value.items) || !value.items.every(isApiFormSubmission)) {
+    return false;
+  }
+  const pageInfo = value.pageInfo;
+  return (
+    isRecord(pageInfo) &&
+    typeof pageInfo.page === 'number' &&
+    Number.isInteger(pageInfo.page) &&
+    pageInfo.page >= 1 &&
+    typeof pageInfo.perPage === 'number' &&
+    Number.isInteger(pageInfo.perPage) &&
+    pageInfo.perPage >= 1 &&
+    typeof pageInfo.total === 'number' &&
+    Number.isInteger(pageInfo.total) &&
+    pageInfo.total >= 0 &&
+    typeof pageInfo.totalPages === 'number' &&
+    Number.isInteger(pageInfo.totalPages) &&
+    pageInfo.totalPages >= 0 &&
+    typeof pageInfo.hasNextPage === 'boolean' &&
+    typeof pageInfo.hasPreviousPage === 'boolean'
+  );
+}
+
+function isApiNewsletterSubscriber(value: unknown): value is ApiNewsletterSubscriberListItem {
+  if (!isRecord(value)) return false;
+  return (
+    hasOnlyKeys(value, [
+      'email',
+      'firstName',
+      'localStatus',
+      'mailchimpSyncStatus',
+      'requestedAt',
+      'updatedAt',
+    ]) &&
+    hasString(value, 'email') &&
+    hasOptionalString(value, 'firstName') &&
+    typeof value.localStatus === 'string' &&
+    NEWSLETTER_LOCAL_STATUS_SET.has(value.localStatus) &&
+    typeof value.mailchimpSyncStatus === 'string' &&
+    NEWSLETTER_SYNC_STATUS_SET.has(value.mailchimpSyncStatus) &&
+    hasString(value, 'requestedAt') &&
+    Number.isFinite(Date.parse(value.requestedAt as string)) &&
+    hasString(value, 'updatedAt') &&
+    Number.isFinite(Date.parse(value.updatedAt as string))
+  );
+}
+
+function isNewsletterSubscriberPage(
+  value: unknown,
+): value is ApiPaginatedList<ApiNewsletterSubscriberListItem> {
+  if (
+    !isRecord(value) ||
+    !hasOnlyKeys(value, ['items', 'pageInfo']) ||
+    !Array.isArray(value.items) ||
+    !value.items.every(isApiNewsletterSubscriber)
+  ) {
+    return false;
+  }
+  const pageInfo = value.pageInfo;
+  return (
+    isRecord(pageInfo) &&
+    hasOnlyKeys(pageInfo, [
+      'page',
+      'perPage',
+      'total',
+      'totalPages',
+      'hasNextPage',
+      'hasPreviousPage',
+    ]) &&
+    typeof pageInfo.page === 'number' &&
+    Number.isInteger(pageInfo.page) &&
+    pageInfo.page >= 1 &&
+    typeof pageInfo.perPage === 'number' &&
+    Number.isInteger(pageInfo.perPage) &&
+    pageInfo.perPage >= 1 &&
+    typeof pageInfo.total === 'number' &&
+    Number.isInteger(pageInfo.total) &&
+    pageInfo.total >= 0 &&
+    typeof pageInfo.totalPages === 'number' &&
+    Number.isInteger(pageInfo.totalPages) &&
+    pageInfo.totalPages >= 0 &&
+    typeof pageInfo.hasNextPage === 'boolean' &&
+    typeof pageInfo.hasPreviousPage === 'boolean'
+  );
+}
+
+function toAdminFormSubmission(submission: ApiFormSubmission): ApiFormSubmission {
+  const cloned = structuredClone(submission);
+  return cloned.assigneeId
+    ? { ...cloned, assigneeId: encodeId('studio_member', cloned.assigneeId) }
+    : cloned;
 }
 
 function expectEntity<T>(
@@ -677,19 +850,28 @@ export class HonoAdminRepository implements AdminRepository {
 
   async readContentWorkspace(): Promise<AdminContentWorkspace> {
     const operation = 'readContentWorkspace';
-    const [showsPayload, episodesPayload, articlesPayload] = await Promise.all([
-      this.requestJson(operation, '/studio/shows'),
-      this.requestJson(operation, '/studio/episodes'),
-      this.requestJson(operation, '/studio/articles'),
-    ]);
+    const [showsPayload, episodesPayload, articlesPayload, homepageSettingsPayload] =
+      await Promise.all([
+        this.requestJson(operation, '/studio/shows'),
+        this.requestJson(operation, '/studio/episodes'),
+        this.requestJson(operation, '/studio/articles'),
+        this.requestJson(operation, '/studio/homepage/weekly-episodes'),
+      ]);
     const shows = expectCollection(showsPayload, isApiShow, operation, 'show');
     const episodes = expectCollection(episodesPayload, isApiEpisode, operation, 'episode');
     const articles = expectCollection(articlesPayload, isApiArticle, operation, 'article');
+    const homepageWeeklyEpisodesSettings = expectEntity(
+      homepageSettingsPayload,
+      isApiHomepageWeeklyEpisodesSettings,
+      operation,
+      'homepage weekly episode settings',
+    );
     return {
       asOf: this.now().toISOString(),
       shows: shows.map((show) => this.toAdminShow(show)),
       episodes: episodes.map((episode) => this.toAdminEpisode(episode)),
       articles: articles.map((article) => this.toAdminArticle(article)),
+      homepageWeeklyEpisodesSettings: { ...homepageWeeklyEpisodesSettings },
     };
   }
 
@@ -701,12 +883,7 @@ export class HonoAdminRepository implements AdminRepository {
       this.requestJson(operation, '/studio/subscriptions'),
     ]);
     const plans = expectCollection(plansPayload, isApiPlan, operation, 'plan');
-    const users = expectCollection(
-      usersPayload,
-      isApiSubscriberUser,
-      operation,
-      'subscriber user',
-    );
+    const users = expectCollection(usersPayload, isApiSubscriberUser, operation, 'subscriber user');
     const subscriptions = expectCollection(
       subscriptionsPayload,
       isApiSubscription,
@@ -737,12 +914,7 @@ export class HonoAdminRepository implements AdminRepository {
   async readStudioMemberDirectory(): Promise<AdminStudioMemberDirectory> {
     const operation = 'readStudioMemberDirectory';
     const payload = await this.requestJson(operation, '/studio/members');
-    const members = expectCollection(
-      payload,
-      isApiStudioMemberAccess,
-      operation,
-      'Studio member',
-    );
+    const members = expectCollection(payload, isApiStudioMemberAccess, operation, 'Studio member');
     return {
       studioMembers: members.map((member) => this.toStudioMember(member)),
     };
@@ -758,13 +930,8 @@ export class HonoAdminRepository implements AdminRepository {
 
   async readRole(id: RoleId): Promise<StudioRole> {
     const operation = 'readRole';
-    const payload = await this.requestJson(
-      operation,
-      `/studio/roles/${encodeURIComponent(id)}`,
-    );
-    return this.toAdminRole(
-      expectEntity(payload, isApiStudioRole, operation, 'studio role'),
-    );
+    const payload = await this.requestJson(operation, `/studio/roles/${encodeURIComponent(id)}`);
+    return this.toAdminRole(expectEntity(payload, isApiStudioRole, operation, 'studio role'));
   }
 
   async readGuestDirectory(): Promise<AdminGuestDirectory> {
@@ -806,6 +973,7 @@ export class HonoAdminRepository implements AdminRepository {
       shows: content.shows,
       episodes: content.episodes,
       articles: content.articles,
+      homepageWeeklyEpisodesSettings: content.homepageWeeklyEpisodesSettings,
       guests: guests.guests,
       guestSocials: guests.guestSocials,
       guestAppearances: guests.guestAppearances,
@@ -813,6 +981,133 @@ export class HonoAdminRepository implements AdminRepository {
       users: subscribers.users,
       subscriptions: subscribers.subscriptions,
     };
+  }
+
+  async listFormSubmissions(
+    query: AdminFormSubmissionListQuery,
+  ): Promise<ApiPaginatedList<ApiFormSubmission>> {
+    const operation = 'listFormSubmissions';
+    if (
+      !Number.isInteger(query.page) ||
+      query.page < 1 ||
+      !Number.isInteger(query.perPage) ||
+      query.perPage < 1 ||
+      query.perPage > 100
+    ) {
+      throw new AdminRepositoryError({
+        code: 'VALIDATION',
+        operation,
+        message: 'Form-submission paging values are invalid.',
+        retryable: false,
+      });
+    }
+    const search = new URLSearchParams({
+      page: String(query.page),
+      perPage: String(query.perPage),
+    });
+    if (query.type) search.set('type', query.type);
+    if (query.status) search.set('status', query.status);
+    if (query.assigneeId) {
+      search.set('assigneeId', decodeId(query.assigneeId, 'studio_member', operation));
+    }
+    const payload = await this.requestJson(
+      operation,
+      `/studio/form-submissions?${search.toString()}`,
+    );
+    const page = expectEntity(payload, isFormSubmissionPage, operation, 'form-submission page');
+    return {
+      items: page.items.map(toAdminFormSubmission),
+      pageInfo: { ...page.pageInfo },
+    };
+  }
+
+  async getFormSubmission(id: string): Promise<ApiFormSubmission> {
+    const operation = 'getFormSubmission';
+    const payload = await this.requestJson(
+      operation,
+      `/studio/form-submissions/${encodeURIComponent(id)}`,
+    );
+    return toAdminFormSubmission(
+      expectEntity(payload, isApiFormSubmission, operation, 'form submission'),
+    );
+  }
+
+  async updateFormSubmission(
+    id: string,
+    command: UpdateFormSubmissionCommand,
+  ): Promise<ApiFormSubmission> {
+    const operation = 'updateFormSubmission';
+    const body: Record<string, unknown> = {};
+    if (command.status !== undefined) body.status = command.status;
+    if (command.assigneeId !== undefined) {
+      body.assigneeId = command.assigneeId
+        ? decodeId(command.assigneeId, 'studio_member', operation)
+        : null;
+    }
+    if (command.internalNotes !== undefined) body.internalNotes = command.internalNotes;
+    const payload = await this.requestJson(
+      operation,
+      `/studio/form-submissions/${encodeURIComponent(id)}`,
+      { method: 'PATCH', body: JSON.stringify(body) },
+    );
+    return toAdminFormSubmission(
+      expectEntity(payload, isApiFormSubmission, operation, 'form submission'),
+    );
+  }
+
+  async retryFormSubmissionNotification(id: string): Promise<ApiFormSubmission> {
+    const operation = 'retryFormSubmissionNotification';
+    const payload = await this.requestJson(
+      operation,
+      `/studio/form-submissions/${encodeURIComponent(id)}/notification/retry`,
+      { method: 'POST' },
+    );
+    return toAdminFormSubmission(
+      expectEntity(payload, isApiFormSubmission, operation, 'form submission'),
+    );
+  }
+
+  async listNewsletterSubscribers(
+    query: AdminNewsletterSubscriberListQuery,
+  ): Promise<ApiPaginatedList<ApiNewsletterSubscriberListItem>> {
+    const operation = 'listNewsletterSubscribers';
+    const normalizedSearch = query.search?.trim();
+    if (
+      !Number.isInteger(query.page) ||
+      query.page < 1 ||
+      !Number.isInteger(query.perPage) ||
+      query.perPage < 1 ||
+      query.perPage > 100 ||
+      (query.search !== undefined && (!normalizedSearch || normalizedSearch.length > 200)) ||
+      (query.localStatus !== undefined && !NEWSLETTER_LOCAL_STATUS_SET.has(query.localStatus)) ||
+      (query.mailchimpStatus !== undefined &&
+        !NEWSLETTER_SYNC_STATUS_SET.has(query.mailchimpStatus))
+    ) {
+      throw new AdminRepositoryError({
+        code: 'VALIDATION',
+        operation,
+        message: 'Newsletter directory filters are invalid.',
+        retryable: false,
+      });
+    }
+
+    const payload = await this.requestJson(operation, '/studio/newsletter/subscribers/query', {
+      method: 'POST',
+      body: JSON.stringify({
+        page: query.page,
+        perPage: query.perPage,
+        ...(normalizedSearch ? { search: normalizedSearch } : {}),
+        ...(query.localStatus ? { localStatus: query.localStatus } : {}),
+        ...(query.mailchimpStatus ? { mailchimpStatus: query.mailchimpStatus } : {}),
+      }),
+    });
+    const page = expectEntity(
+      payload,
+      isNewsletterSubscriberPage,
+      operation,
+      'newsletter subscriber page',
+    );
+    return structuredClone(page);
   }
 
   async createShow(command: CreateShowCommand): Promise<Show> {
@@ -851,6 +1146,24 @@ export class HonoAdminRepository implements AdminRepository {
       },
     );
     return this.toAdminShow(expectEntity(payload, isApiShow, operation, 'show'));
+  }
+
+  async updateHomepageWeeklyEpisodesSettings(
+    command: UpdateHomepageWeeklyEpisodesSettingsCommand,
+  ): Promise<HomepageWeeklyEpisodesSettings> {
+    const operation = 'updateHomepageWeeklyEpisodesSettings';
+    const payload = await this.requestJson(operation, '/studio/homepage/weekly-episodes', {
+      method: 'PATCH',
+      body: JSON.stringify(command),
+    });
+    return {
+      ...expectEntity(
+        payload,
+        isApiHomepageWeeklyEpisodesSettings,
+        operation,
+        'homepage weekly episode settings',
+      ),
+    };
   }
 
   async createEpisode(command: CreateEpisodeCommand): Promise<Episode> {
@@ -946,15 +1259,12 @@ export class HonoAdminRepository implements AdminRepository {
   async listArticleAuthors(): Promise<ArticleAuthorCandidate[]> {
     const operation = 'listArticleAuthors';
     const payload = await this.requestJson(operation, '/studio/articles/authors');
-    return expectCollection(
-      payload,
-      isApiArticleAuthorCandidate,
-      operation,
-      'article author',
-    ).map(({ studioMemberId, displayName }) => ({
-      studioMemberId: encodeId('studio_member', studioMemberId),
-      displayName,
-    }));
+    return expectCollection(payload, isApiArticleAuthorCandidate, operation, 'article author').map(
+      ({ studioMemberId, displayName }) => ({
+        studioMemberId: encodeId('studio_member', studioMemberId),
+        displayName,
+      }),
+    );
   }
 
   async uploadArticleImage(command: UploadArticleImageCommand): Promise<ArticleMediaAsset> {
@@ -997,7 +1307,10 @@ export class HonoAdminRepository implements AdminRepository {
       headers.forEach((value, name) => request.setRequestHeader(name, value));
       request.upload.addEventListener('progress', (event) => {
         if (!event.lengthComputable || event.total <= 0) return;
-        const percentage = Math.min(100, Math.max(0, Math.round((event.loaded / event.total) * 100)));
+        const percentage = Math.min(
+          100,
+          Math.max(0, Math.round((event.loaded / event.total) * 100)),
+        );
         command.onProgress?.(percentage);
       });
       request.addEventListener('error', () => {
@@ -1080,11 +1393,7 @@ export class HonoAdminRepository implements AdminRepository {
           command.author.type === 'studio_member'
             ? {
                 type: 'studio_member',
-                studioMemberId: decodeId(
-                  command.author.studioMemberId,
-                  'studio_member',
-                  operation,
-                ),
+                studioMemberId: decodeId(command.author.studioMemberId, 'studio_member', operation),
               }
             : command.author,
         authorPlacement: command.authorPlacement,
@@ -1178,10 +1487,7 @@ export class HonoAdminRepository implements AdminRepository {
 
   async getMailchimpCapability(): Promise<MailchimpCapability> {
     const operation = 'getMailchimpCapability';
-    const payload = await this.requestJson(
-      operation,
-      '/studio/articles/mailchimp/capability',
-    );
+    const payload = await this.requestJson(operation, '/studio/articles/mailchimp/capability');
     if (!isMailchimpCapability(payload)) {
       throw new AdminRepositoryError({
         code: 'INVALID_RESPONSE',
@@ -1349,9 +1655,7 @@ export class HonoAdminRepository implements AdminRepository {
     });
   }
 
-  async createStudioMember(
-    command: CreateStudioMemberCommand,
-  ): Promise<StudioMember> {
+  async createStudioMember(command: CreateStudioMemberCommand): Promise<StudioMember> {
     const operation = 'createStudioMember';
     const normalized = normalizeCreateStudioMemberCommand(command);
     const payload = await this.requestJson(
@@ -1397,16 +1701,11 @@ export class HonoAdminRepository implements AdminRepository {
     return this.toStudioMember(created);
   }
 
-  async updateStudioMemberRole(
-    id: StudioMemberId,
-    role: AdminUserRole,
-  ): Promise<StudioMember> {
+  async updateStudioMemberRole(id: StudioMemberId, role: AdminUserRole): Promise<StudioMember> {
     const operation = 'updateStudioMemberRole';
     const payload = await this.requestJson(
       operation,
-      `/studio/members/${encodeURIComponent(
-        decodeId(id, 'studio_member', operation),
-      )}/role`,
+      `/studio/members/${encodeURIComponent(decodeId(id, 'studio_member', operation))}/role`,
       { method: 'PATCH', body: JSON.stringify({ role }) },
     );
     return this.toStudioMember(
@@ -1440,9 +1739,7 @@ export class HonoAdminRepository implements AdminRepository {
       true,
       201,
     );
-    return this.toAdminRole(
-      expectEntity(payload, isApiStudioRole, operation, 'studio role'),
-    );
+    return this.toAdminRole(expectEntity(payload, isApiStudioRole, operation, 'studio role'));
   }
 
   async updateRolePermissions(
@@ -1698,16 +1995,13 @@ export class HonoAdminRepository implements AdminRepository {
     }
     const status = response.status;
     const remoteCode =
-      isRecord(remoteBody) && typeof remoteBody.code === 'string'
-        ? remoteBody.code
-        : undefined;
+      isRecord(remoteBody) && typeof remoteBody.code === 'string' ? remoteBody.code : undefined;
     const code =
       remoteCode === 'VALIDATION_ERROR'
         ? 'VALIDATION'
         : remoteCode === 'ADMIN_REQUIRED'
           ? 'FORBIDDEN'
-          : remoteCode === 'EMAIL_ALREADY_EXISTS' ||
-              remoteCode === 'AUTH_IDENTITY_ALREADY_EXISTS'
+          : remoteCode === 'EMAIL_ALREADY_EXISTS' || remoteCode === 'AUTH_IDENTITY_ALREADY_EXISTS'
             ? 'CONFLICT'
             : remoteCode === 'INVITE_DELIVERY_FAILED' ||
                 remoteCode === 'STUDIO_MEMBER_PROVISIONING_FAILED' ||
@@ -1715,27 +2009,26 @@ export class HonoAdminRepository implements AdminRepository {
               ? 'REMOTE_UNAVAILABLE'
               : remoteCode === 'STUDIO_MEMBER_PROVISIONING_PARTIAL_FAILURE'
                 ? 'REMOTE_ERROR'
-              : status === 401
-        ? 'UNAUTHENTICATED'
-        : status === 403
-          ? 'FORBIDDEN'
-          : status === 404
-            ? 'NOT_FOUND'
-            : status === 409
-              ? 'CONFLICT'
-              : status === 422 || status === 400
-                ? 'VALIDATION'
-                : status === 429
-                  ? 'RATE_LIMITED'
-                  : status >= 500
-                    ? 'REMOTE_UNAVAILABLE'
-                    : 'REMOTE_ERROR';
+                : status === 401
+                  ? 'UNAUTHENTICATED'
+                  : status === 403
+                    ? 'FORBIDDEN'
+                    : status === 404
+                      ? 'NOT_FOUND'
+                      : status === 409
+                        ? 'CONFLICT'
+                        : status === 422 || status === 400
+                          ? 'VALIDATION'
+                          : status === 429
+                            ? 'RATE_LIMITED'
+                            : status >= 500
+                              ? 'REMOTE_UNAVAILABLE'
+                              : 'REMOTE_ERROR';
     const retryableProvisioningFailure =
       remoteCode === 'INVITE_DELIVERY_FAILED' ||
       remoteCode === 'STUDIO_MEMBER_PROVISIONING_FAILED' ||
       remoteCode === 'AUTH_PROVISIONING_UNAVAILABLE';
-    const unsafeToRetry =
-      remoteCode === 'STUDIO_MEMBER_PROVISIONING_PARTIAL_FAILURE';
+    const unsafeToRetry = remoteCode === 'STUDIO_MEMBER_PROVISIONING_PARTIAL_FAILURE';
     return new AdminRepositoryError({
       code,
       operation,
@@ -1900,10 +2193,7 @@ export class HonoAdminRepository implements AdminRepository {
     };
   }
 
-  private toAdminSubscription(
-    subscription: ApiSubscription,
-    operation: string,
-  ): Subscription {
+  private toAdminSubscription(subscription: ApiSubscription, operation: string): Subscription {
     if (subscription.currency.toUpperCase() !== 'SAR') {
       throw new AdminRepositoryError({
         code: 'INVALID_RESPONSE',

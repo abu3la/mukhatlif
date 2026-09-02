@@ -3,17 +3,21 @@ import type {
   Episode,
   HomeSummary,
   PaginatedList,
+  PublicGuest,
+  PublicGuestProfile,
   PublishedArticle,
   Show,
 } from '@mukhtalif/types';
 import { connection } from 'next/server';
 import { apiOrigin } from './config';
+import type { LegacyRedirectResolution } from './legacy-redirect';
 
 /**
  * Read-only API access for server components.
  *
- * Every call runs on the server. The browser never talks to the API, so no
- * origin, credential, or Supabase key reaches the client bundle.
+ * Every content read runs on the server. Anonymous request forms are the only
+ * direct browser-to-API flow, and they receive a public origin but no credential
+ * or Supabase key.
  */
 export class ApiUnavailableError extends Error {
   constructor(readonly detail: string) {
@@ -136,4 +140,30 @@ export function listArticles(options: {
 
 export function getArticle(slug: string): Promise<PublishedArticle> {
   return read<PublishedArticle>(`/articles/${encodeURIComponent(slug)}`);
+}
+
+export function listGuests(options: {
+  page?: number;
+  perPage?: number;
+  search?: string;
+}): Promise<PaginatedList<PublicGuest>> {
+  return read<PaginatedList<PublicGuest>>(
+    `/guests${query({
+      page: options.page ?? 1,
+      perPage: options.perPage ?? 12,
+      search: options.search,
+    })}`,
+  );
+}
+
+export function getGuestProfile(idOrSlug: string): Promise<PublicGuestProfile> {
+  return read<PublicGuestProfile>(`/guests/${encodeURIComponent(idOrSlug)}`);
+}
+
+/**
+ * Resolves one reviewed WordPress-era path without exposing the redirect table
+ * to the public site. The API returns only the destination and HTTP status.
+ */
+export function resolveLegacyRedirect(path: string): Promise<LegacyRedirectResolution> {
+  return read<LegacyRedirectResolution>(`/redirects/resolve${query({ path })}`);
 }

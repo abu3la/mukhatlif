@@ -17,6 +17,9 @@ export const adminRouteIds = {
   articleNew: 'article-new',
   articleDetails: 'article-details',
   subscribers: 'subscribers',
+  newsletter: 'newsletter',
+  formSubmissions: 'form-submissions',
+  formSubmissionDetails: 'form-submission-details',
   roles: 'roles',
   roleNew: 'role-new',
   roleDetails: 'role-details',
@@ -42,6 +45,9 @@ export const adminRoutePatterns = {
   articleNew: '/articles/new',
   articleDetails: '/articles/:articleId',
   subscribers: '/subscribers',
+  newsletter: '/newsletter',
+  formSubmissions: '/requests',
+  formSubmissionDetails: '/requests/:submissionId',
   roles: '/roles',
   roleNew: '/roles/new',
   roleDetails: '/roles/:roleId',
@@ -63,17 +69,19 @@ export const adminPaths = {
   showNew: adminRoutePatterns.showNew,
   guests: adminRoutePatterns.guests,
   guestNew: adminRoutePatterns.guestNew,
-  guest: (guestId: GuestId): `/guests/${string}` =>
-    `/guests/${encodeURIComponent(guestId)}`,
+  guest: (guestId: GuestId): `/guests/${string}` => `/guests/${encodeURIComponent(guestId)}`,
   articles: adminRoutePatterns.articles,
   articleNew: adminRoutePatterns.articleNew,
   article: (articleId: ArticleId): `/articles/${string}` =>
     `/articles/${encodeURIComponent(articleId)}`,
   subscribers: adminRoutePatterns.subscribers,
+  newsletter: adminRoutePatterns.newsletter,
+  formSubmissions: adminRoutePatterns.formSubmissions,
+  formSubmission: (submissionId: string): `/requests/${string}` =>
+    `/requests/${encodeURIComponent(submissionId)}`,
   roles: adminRoutePatterns.roles,
   roleNew: adminRoutePatterns.roleNew,
-  role: (roleId: RoleId): `/roles/${string}` =>
-    `/roles/${encodeURIComponent(roleId)}`,
+  role: (roleId: RoleId): `/roles/${string}` => `/roles/${encodeURIComponent(roleId)}`,
   studioMembers: adminRoutePatterns.studioMembers,
   studioMemberNew: adminRoutePatterns.studioMemberNew,
   access: adminRoutePatterns.access,
@@ -86,9 +94,9 @@ export const adminPagePaths = {
   guests: adminPaths.guests,
   articles: adminPaths.articles,
   subscribers: adminPaths.subscribers,
+  forms: adminPaths.formSubmissions,
   access: adminPaths.roles,
 } as const satisfies Record<StudioPageId, string>;
 
 export type AdminRouteId = (typeof adminRouteIds)[keyof typeof adminRouteIds];
-export type AdminRoutePattern =
-  (typeof adminRoutePatterns)[keyof typeof adminRoutePatterns];
+export type AdminRoutePattern = (typeof adminRoutePatterns)[keyof typeof adminRoutePatterns];

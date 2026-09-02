@@ -1,3 +1,5 @@
+import type { PublicEpisodeRecord } from './episode';
+
 /**
  * Guests are people who appear in episodes. They are Studio-managed editorial
  * records: a guest is neither an application user nor a Studio member, and a
@@ -35,6 +37,9 @@ export interface GuestSocial {
   handle: string;
 }
 
+/** Public social projection. Storage identifiers stay inside the Studio API. */
+export type PublicGuestSocial = Pick<GuestSocial, 'platform' | 'handle'>;
+
 /** A guest's participation in one episode. The pair is unique. */
 export interface GuestAppearance {
   guestId: string;
@@ -49,4 +54,27 @@ export interface GuestDirectory {
   guests: Guest[];
   socials: GuestSocial[];
   appearances: GuestAppearance[];
+}
+
+/**
+ * Public guest cards never expose editorial contact data or creation
+ * metadata. A guest enters the public directory only through at least one
+ * published episode, so the count is always greater than zero.
+ */
+export interface PublicGuest {
+  id: string;
+  slug: string;
+  name: string;
+  role: string;
+  city: string;
+  bio: string;
+  photoUrl?: string;
+  episodeCount: number;
+}
+
+/** A public guest and the published catalogue episodes they appeared in. */
+export interface PublicGuestProfile {
+  guest: PublicGuest;
+  socials: PublicGuestSocial[];
+  episodes: PublicEpisodeRecord[];
 }

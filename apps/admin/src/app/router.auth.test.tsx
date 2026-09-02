@@ -37,10 +37,7 @@ async function renderRoute(
 ) {
   const gateway = new FixtureAdminAuthGateway({
     storage: new MemoryStorage(),
-    accounts:
-      accountIndex === 2
-        ? [...FIXTURE_ADMIN_ACCOUNTS, APP_ONLY_AUTH_ACCOUNT]
-        : undefined,
+    accounts: accountIndex === 2 ? [...FIXTURE_ADMIN_ACCOUNTS, APP_ONLY_AUTH_ACCOUNT] : undefined,
   });
   if (accountIndex !== undefined) {
     const account = gateway.demoAccounts[accountIndex];
@@ -64,11 +61,7 @@ async function renderRoute(
     initialEntries: [path],
   });
   render(
-    <AppProviders
-      authGateway={gateway}
-      repository={repository}
-      queryClient={queryClient}
-    >
+    <AppProviders authGateway={gateway} repository={repository} queryClient={queryClient}>
       <RouterProvider router={router} />
     </AppProviders>,
   );
@@ -116,18 +109,73 @@ describe('admin auth routing', () => {
     ).toBeInTheDocument();
     expect(readDirectory).not.toHaveBeenCalled();
     expect(screen.queryByRole('link', { name: 'المشتركون' })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'الأدوار والصلاحيات' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'الأدوار والصلاحيات' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'حسابات الاستوديو' })).not.toBeInTheDocument();
+  });
+
+  it('lets a forms viewer open the request inbox as a first-class Studio page', async () => {
+    const permissions = createDefaultRolePermissionMatrix();
+    permissions.editor = ['forms.view'];
+
+    await renderRoute('/requests', 1, permissions);
+
+    expect(await screen.findByRole('heading', { name: 'طلبات الموقع' })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation', { name: 'أقسام الاستوديو' })).getByRole('link', {
+        name: 'طلبات الموقع',
+      }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByRole('link', { name: 'المقالات' })).not.toBeInTheDocument();
+  });
+
+  it('lets a subscriber viewer open the newsletter directory as a separate Studio page', async () => {
+    const permissions = createDefaultRolePermissionMatrix();
+    permissions.editor = ['subscribers.view'];
+
+    await renderRoute('/newsletter', 1, permissions);
+
+    expect(await screen.findByRole('heading', { name: 'النشرة البريدية' })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation', { name: 'أقسام الاستوديو' })).getByRole('link', {
+        name: 'النشرة البريدية',
+      }),
+    ).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('denies the newsletter directory before its repository query mounts', async () => {
+    const permissions = createDefaultRolePermissionMatrix();
+    permissions.editor = ['articles.view'];
+    const { repository } = await renderRoute('/newsletter', 1, permissions);
+    const listNewsletterSubscribers = vi.spyOn(repository, 'listNewsletterSubscribers');
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'لا تملك صلاحية عرض صفحة المشتركون',
+      }),
+    ).toBeInTheDocument();
+    expect(listNewsletterSubscribers).not.toHaveBeenCalled();
+    expect(screen.queryByRole('link', { name: 'النشرة البريدية' })).not.toBeInTheDocument();
+  });
+
+  it('denies the request inbox before its repository query mounts', async () => {
+    const permissions = createDefaultRolePermissionMatrix();
+    permissions.editor = ['articles.view'];
+    const { repository } = await renderRoute('/requests', 1, permissions);
+    const listFormSubmissions = vi.spyOn(repository, 'listFormSubmissions');
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'لا تملك صلاحية عرض صفحة طلبات الموقع',
+      }),
+    ).toBeInTheDocument();
+    expect(listFormSubmissions).not.toHaveBeenCalled();
+    expect(screen.queryByRole('link', { name: 'طلبات الموقع' })).not.toBeInTheDocument();
   });
 
   it('renders the roles page separately for an administrator', async () => {
     await renderRoute('/roles', 0);
 
-    expect(
-      await screen.findByRole('heading', { name: 'الأدوار والصلاحيات' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'الأدوار والصلاحيات' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'إضافة حساب إداري' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'الأدوار والصلاحيات' })).toHaveAttribute(
       'aria-current',
@@ -162,9 +210,7 @@ describe('admin auth routing', () => {
         name: 'لا تملك صلاحية إدارة صفحة إدارة الوصول',
       }),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('form', { name: 'بيانات الدور الجديد' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'بيانات الدور الجديد' })).not.toBeInTheDocument();
   });
 
   it('lets an access viewer browse one role without editing it', async () => {
@@ -177,19 +223,16 @@ describe('admin auth routing', () => {
     expect(screen.queryByRole('button', { name: 'حفظ الصلاحيات' })).not.toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'الحلقات' })).toBeDisabled();
     expect(
-      within(screen.getByRole('navigation', { name: 'أقسام الاستوديو' })).getByRole(
-        'link',
-        { name: 'الأدوار والصلاحيات' },
-      ),
+      within(screen.getByRole('navigation', { name: 'أقسام الاستوديو' })).getByRole('link', {
+        name: 'الأدوار والصلاحيات',
+      }),
     ).toHaveAttribute('aria-current', 'page');
   });
 
   it('redirects the legacy access path to the roles page', async () => {
     const { router } = await renderRoute('/access', 0);
 
-    expect(
-      await screen.findByRole('heading', { name: 'الأدوار والصلاحيات' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'الأدوار والصلاحيات' })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/roles');
   });
 
@@ -225,15 +268,12 @@ describe('admin auth routing', () => {
 
     await screen.findByRole('heading', { name: 'حسابات الاستوديو' });
     await user.click(screen.getByRole('link', { name: 'إضافة حساب' }));
-    expect(
-      await screen.findByRole('heading', { name: 'إضافة حساب إداري' }),
-    ).toHaveFocus();
+    expect(await screen.findByRole('heading', { name: 'إضافة حساب إداري' })).toHaveFocus();
     expect(router.state.location.pathname).toBe('/users/new');
     expect(
-      within(screen.getByRole('navigation', { name: 'أقسام الاستوديو' })).getByRole(
-        'link',
-        { name: 'حسابات الاستوديو' },
-      ),
+      within(screen.getByRole('navigation', { name: 'أقسام الاستوديو' })).getByRole('link', {
+        name: 'حسابات الاستوديو',
+      }),
     ).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('navigation', { name: 'مسار الصفحة' })).toHaveTextContent(
       'حسابات الاستوديوإضافة حساب إداري',
@@ -261,10 +301,9 @@ describe('admin auth routing', () => {
     );
 
     await user.click(
-      within(screen.getByRole('navigation', { name: 'مسار الصفحة' })).getByRole(
-        'link',
-        { name: 'حسابات الاستوديو' },
-      ),
+      within(screen.getByRole('navigation', { name: 'مسار الصفحة' })).getByRole('link', {
+        name: 'حسابات الاستوديو',
+      }),
     );
     expect(await screen.findByRole('heading', { name: 'حسابات الاستوديو' })).toBeInTheDocument();
     expect(
@@ -285,9 +324,7 @@ describe('admin auth routing', () => {
     expect(screen.getByRole('textbox', { name: 'البريد الإلكتروني' })).toHaveValue(
       'maha.salem@example.com',
     );
-    expect(screen.getByLabelText('كلمة المرور')).toHaveValue(
-      FIXTURE_CREATED_ACCOUNT_PASSWORD,
-    );
+    expect(screen.getByLabelText('كلمة المرور')).toHaveValue(FIXTURE_CREATED_ACCOUNT_PASSWORD);
     await user.click(screen.getByRole('button', { name: 'تسجيل الدخول' }));
 
     expect(
@@ -310,10 +347,7 @@ describe('admin auth routing', () => {
 
     expect(await screen.findByRole('heading', { name: 'دور جديد' })).toHaveFocus();
     await user.type(screen.getByRole('textbox', { name: 'اسم الدور' }), 'مراجع المقالات');
-    await user.type(
-      screen.getByRole('textbox', { name: /الوصف/ }),
-      'يراجع المقالات المنشورة.',
-    );
+    await user.type(screen.getByRole('textbox', { name: /الوصف/ }), 'يراجع المقالات المنشورة.');
     await user.click(
       within(screen.getByRole('group', { name: 'المقالات' })).getByRole('radio', {
         name: 'عرض فقط',
@@ -323,20 +357,19 @@ describe('admin auth routing', () => {
 
     expect(await screen.findByRole('heading', { name: 'مراجع المقالات' })).toHaveFocus();
     expect(
-      within(screen.getByRole('navigation', { name: 'أقسام الاستوديو' })).getByRole(
-        'link',
-        { name: 'الأدوار والصلاحيات' },
-      ),
+      within(screen.getByRole('navigation', { name: 'أقسام الاستوديو' })).getByRole('link', {
+        name: 'الأدوار والصلاحيات',
+      }),
     ).toHaveAttribute('aria-current', 'page');
 
     await user.click(
-      within(screen.getByRole('navigation', { name: 'أقسام الاستوديو' })).getByRole(
-        'link',
-        { name: 'حسابات الاستوديو' },
-      ),
+      within(screen.getByRole('navigation', { name: 'أقسام الاستوديو' })).getByRole('link', {
+        name: 'حسابات الاستوديو',
+      }),
     );
     await screen.findByRole('heading', { name: 'حسابات الاستوديو' });
     await user.click(screen.getByRole('link', { name: 'إضافة حساب' }));
+    expect(await screen.findByRole('heading', { name: 'إضافة حساب إداري' })).toHaveFocus();
     await user.type(screen.getByRole('textbox', { name: 'الاسم' }), 'أروى المراجعة');
     await user.type(
       screen.getByRole('textbox', { name: 'البريد الإلكتروني' }),
@@ -376,10 +409,7 @@ describe('admin auth routing', () => {
 
     expect(await screen.findByRole('heading', { name: 'المقالات' })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/articles');
-    expect(screen.getByRole('link', { name: 'المقالات' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
+    expect(screen.getByRole('link', { name: 'المقالات' })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('link', { name: 'الحلقات' })).not.toBeInTheDocument();
   });
 
@@ -445,9 +475,7 @@ describe('admin auth routing', () => {
     const studioRoute = createAdminRoutes(
       repositoryWithoutGuests,
       new FixtureAdminAuthGateway({ storage: null }),
-    ).find(
-      (route) => route.id === 'studio',
-    );
+    ).find((route) => route.id === 'studio');
     const routeIds = studioRoute?.children?.map((route) => route.id);
 
     expect(routeIds).not.toContain('guests');

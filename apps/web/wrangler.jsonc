@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "mukhtalif-web",
-  "account_id": "c4b180c5ae20a242ec7024e2fc0a3478",
+  "name": "web",
+  "account_id": "bb4abee6bf877ef411dc803b3be96373",
   "main": ".open-next/worker.js",
   // nodejs_compat requires a compatibility date of 2024-09-23 or later.
   "compatibility_date": "2026-08-01",
@@ -27,10 +27,12 @@
   // PUBLIC_WEB_URL. The API builds absolute article links into newsletters from
   // that value, and a sent email cannot be rewritten.
   "vars": {
-    "MUKHTALIF_API_URL": "https://mukhtalif-api.mukhtalif.workers.dev",
+    // The public site reads content server-side from the API Worker in this
+    // account. Keep both deployments on the same account and environment.
+    "MUKHTALIF_API_URL": "https://mukhtalif-api.mukhtalif-development.workers.dev",
     // Must match the API Worker's own PUBLIC_WEB_URL once newsletters are
     // enabled: the API bakes absolute article links from that value into sent
     // email, and a delivered message cannot be rewritten afterwards.
-    "PUBLIC_WEB_URL": "https://mukhtalif-web.mukhtalif.workers.dev"
+    "PUBLIC_WEB_URL": "https://web.mukhtalif-development.workers.dev"
   }
 }

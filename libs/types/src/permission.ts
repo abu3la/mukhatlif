@@ -8,6 +8,7 @@ export const STUDIO_PAGE_IDS = [
   'guests',
   'articles',
   'subscribers',
+  'forms',
   'access',
 ] as const;
 
@@ -21,6 +22,7 @@ export const STUDIO_PAGE_ACTIONS = {
   guests: ['view', 'manage'],
   articles: ['view', 'manage'],
   subscribers: ['view', 'manage'],
+  forms: ['view', 'manage'],
   access: ['view', 'manage'],
 } as const satisfies Readonly<Record<StudioPageId, readonly PermissionAction[]>>;
 
@@ -44,6 +46,8 @@ export const PERMISSION_IDS = [
   'articles.manage',
   'subscribers.view',
   'subscribers.manage',
+  'forms.view',
+  'forms.manage',
   'access.view',
   'access.manage',
 ] as const;
@@ -67,6 +71,8 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     'guests.manage',
     'articles.view',
     'articles.manage',
+    'forms.view',
+    'forms.manage',
   ],
   admin: [...PERMISSION_IDS],
 } as const satisfies Readonly<Record<SystemRoleId, readonly PermissionId[]>>;

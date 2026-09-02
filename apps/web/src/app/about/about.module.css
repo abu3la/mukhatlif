@@ -1,0 +1,366 @@
+.page {
+  padding-block: clamp(28px, 4vw, 44px) 64px;
+}
+
+.hero {
+  min-block-size: calc(100svh - 152px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(28px, 5vw, 64px);
+  padding: clamp(28px, 5vw, 56px);
+  color: var(--night-text);
+  background: var(--night);
+  border: 1px solid var(--night-line);
+  border-radius: var(--radius-card);
+}
+
+.hero :focus-visible {
+  outline-color: var(--green);
+}
+
+.heroCopy {
+  width: 100%;
+  max-width: 820px;
+  margin-block: auto 0;
+  min-width: 0;
+}
+
+.titleLine {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mark {
+  inline-size: 12px;
+  block-size: 12px;
+  flex: none;
+  background: var(--green);
+  transform: rotate(45deg);
+}
+
+.title {
+  color: var(--night-text);
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.statement {
+  max-width: 16ch;
+  margin-block-start: 22px;
+  color: var(--night-text);
+  font-size: clamp(36px, 5vw, 58px);
+  font-weight: 700;
+  line-height: 1.24;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.mission {
+  max-width: 58ch;
+  margin-block-start: 20px;
+  color: var(--night-muted);
+  font-size: 16px;
+  line-height: 1.9;
+  text-wrap: pretty;
+}
+
+.platforms {
+  margin-block-start: 28px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.platformsLabel {
+  color: var(--night-muted);
+  font-size: 13px;
+}
+
+.platformLink {
+  min-height: 36px;
+  padding-inline: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--night-text);
+  border: 1px solid var(--night-line);
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.platformLink:hover {
+  color: var(--night-text);
+  background: var(--night-lifted);
+}
+
+.third {
+  width: 100%;
+  max-width: 760px;
+  min-width: 0;
+  display: flex;
+  align-self: flex-end;
+  align-items: flex-end;
+  flex-direction: row-reverse;
+  gap: clamp(24px, 4vw, 48px);
+  margin-block-start: auto;
+}
+
+.thirdValue {
+  display: block;
+  flex: none;
+  color: var(--night-text);
+  font-size: clamp(84px, 11vw, 144px);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.thirdText {
+  max-width: 42ch;
+  margin-block-end: 4px;
+  color: var(--night-muted);
+  font-size: 15px;
+  line-height: 1.85;
+  text-wrap: pretty;
+}
+
+.section {
+  margin-block-start: 52px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+}
+
+.sectionTitle {
+  color: var(--ink);
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 700;
+}
+
+.sectionLink {
+  min-height: 32px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--secondary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sectionLink:hover {
+  color: var(--ink);
+}
+
+.sectionIntro {
+  max-width: 60ch;
+  margin-block-start: 8px;
+  color: var(--secondary);
+  line-height: 1.8;
+  text-wrap: pretty;
+}
+
+.presenterList {
+  margin: 22px 0 0;
+  padding: 8px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.presenterRow {
+  min-height: 64px;
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(170px, 1fr) minmax(92px, auto);
+  align-items: center;
+  gap: 20px;
+  border-radius: 9px;
+}
+
+.presenterRow:nth-child(even) {
+  background: var(--surface-hover);
+}
+
+.presenterName {
+  min-width: 0;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.presenterShow {
+  min-width: 0;
+  color: var(--secondary);
+  font-size: 14px;
+}
+
+.presenterLink,
+.comingSoon {
+  justify-self: end;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.presenterLink {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--secondary);
+}
+
+.presenterLink:hover {
+  color: var(--ink);
+}
+
+.comingSoon {
+  color: var(--secondary);
+}
+
+.teamList {
+  margin: 22px 0 0;
+  padding: clamp(24px, 4vw, 40px);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px clamp(28px, 4vw, 56px);
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.teamMember {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.teamName {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.teamRole {
+  color: var(--secondary);
+  font-size: 14px;
+}
+
+@media (max-width: 800px) {
+  .presenterRow {
+    grid-template-columns: minmax(130px, 0.8fr) minmax(150px, 1fr) minmax(92px, auto);
+    gap: 14px;
+  }
+
+  .teamList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .page {
+    padding-block: 24px 52px;
+  }
+
+  .hero {
+    gap: 24px;
+    padding: 24px 20px;
+  }
+
+  .statement {
+    max-width: 18ch;
+    font-size: clamp(32px, 10vw, 42px);
+  }
+
+  .platforms {
+    align-items: stretch;
+  }
+
+  .platformsLabel {
+    flex-basis: 100%;
+  }
+
+  .third {
+    align-self: stretch;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .thirdValue {
+    font-size: clamp(72px, 27vw, 108px);
+  }
+
+  .section {
+    margin-block-start: 40px;
+  }
+
+  .sectionHeader {
+    align-items: flex-start;
+  }
+
+  .sectionTitle {
+    font-size: 24px;
+  }
+
+  .presenterList {
+    padding: 6px;
+  }
+
+  .presenterRow {
+    min-height: 84px;
+    padding: 14px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 14px;
+  }
+
+  .presenterName {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .presenterShow {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .presenterLink,
+  .comingSoon {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .teamList {
+    padding: 24px 20px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-width: 400px) {
+  .presenterRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+  }
+
+  .presenterName,
+  .presenterShow,
+  .presenterLink,
+  .comingSoon {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+  }
+
+  .presenterLink,
+  .comingSoon {
+    margin-block-start: 7px;
+  }
+}

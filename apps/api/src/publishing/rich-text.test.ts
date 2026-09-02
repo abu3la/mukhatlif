@@ -217,7 +217,11 @@ describe('canonical rich-text validation', () => {
 
     const invalidGalleries = [
       { attrs: { items: validItems.slice(0, 1) } },
-      { attrs: { items: [...validItems, { mediaId: third, alt: '٣' }, { mediaId: first, alt: '٤' }] } },
+      {
+        attrs: {
+          items: [...validItems, { mediaId: third, alt: '٣' }, { mediaId: first, alt: '٤' }],
+        },
+      },
       { attrs: { items: [validItems[0], { mediaId: first, alt: 'مكرر' }] } },
       { attrs: { items: [{ mediaId: first, alt: '   ' }, validItems[1]] } },
       { attrs: { items: validItems, caption: '   ' } },
@@ -237,7 +241,9 @@ describe('canonical rich-text validation', () => {
     expect(
       richTextDocumentSchema.safeParse({
         type: 'doc',
-        content: [{ type: 'blockquote', content: [{ type: 'imageGallery', attrs: { items: validItems } }] }],
+        content: [
+          { type: 'blockquote', content: [{ type: 'imageGallery', attrs: { items: validItems } }] },
+        ],
       }).success,
     ).toBe(false);
 
@@ -249,10 +255,7 @@ describe('canonical rich-text validation', () => {
       {
         type: 'imageGallery',
         attrs: {
-          items: [
-            ...validItems,
-            { mediaId: third, alt: 'الصورة الثالثة' },
-          ],
+          items: [...validItems, { mediaId: third, alt: 'الصورة الثالثة' }],
         },
       },
     ];
@@ -271,6 +274,101 @@ describe('canonical rich-text validation', () => {
         ],
       }).success,
     ).toBe(false);
+  });
+
+  it('accepts only safe top-level internal ad placements', () => {
+    const validAd = {
+      type: 'adBlock',
+      attrs: {
+        placementId: 'article-middle-1',
+        format: 'inline',
+        label: 'منتصف المقال',
+      },
+    };
+    expect(richTextDocumentSchema.safeParse({ type: 'doc', content: [validAd] }).success).toBe(
+      true,
+    );
+
+    for (const ad of [
+      { ...validAd, attrs: { ...validAd.attrs, placementId: 'Article_Middle' } },
+      { ...validAd, attrs: { ...validAd.attrs, placementId: 'https://ads.example/slot' } },
+      { ...validAd, attrs: { ...validAd.attrs, format: 'iframe' } },
+      { ...validAd, attrs: { ...validAd.attrs, label: 'سطر\nثان' } },
+      { ...validAd, attrs: { ...validAd.attrs, label: 'اسم\u202eمخفي' } },
+      { ...validAd, attrs: { ...validAd.attrs, src: 'https://ads.example' } },
+      { ...validAd, attrs: { ...validAd.attrs, iframe: '<iframe></iframe>' } },
+      { ...validAd, attrs: { ...validAd.attrs, script: 'alert(1)' } },
+      { ...validAd, content: [] },
+    ]) {
+      expect(
+        richTextDocumentSchema.safeParse({ type: 'doc', content: [ad] }).success,
+        JSON.stringify(ad),
+      ).toBe(false);
+    }
+
+    expect(
+      richTextDocumentSchema.safeParse({
+        type: 'doc',
+        content: [{ type: 'blockquote', content: [validAd] }],
+      }).success,
+    ).toBe(false);
+    expect(
+      richTextDocumentSchema.safeParse({
+        type: 'doc',
+        content: Array.from({ length: 13 }, (_, index) => ({
+          type: 'adBlock',
+          attrs: { placementId: `article-slot-${index + 1}`, format: 'banner' },
+        })),
+      }).success,
+    ).toBe(false);
+
+    expect(
+      createArticleSchema.safeParse({
+        slug: 'ad-only',
+        titleAr: 'إعلان فقط',
+        author: { type: 'custom', displayName: 'فريق مختلف' },
+        content: { type: 'doc', content: [validAd] },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts only HTTPS or site-relative links on image blocks', () => {
+    const base = {
+      type: 'imageBlock',
+      attrs: {
+        mediaId: 'med-0123456789abcdef0123456789abcdef',
+        alt: 'إعلان الراعي',
+        presentation: 'wide',
+      },
+    };
+    for (const linkUrl of ['https://sponsor.example/campaign', '/sponsor']) {
+      expect(
+        richTextDocumentSchema.safeParse({
+          type: 'doc',
+          content: [{ ...base, attrs: { ...base.attrs, linkUrl } }],
+        }).success,
+        linkUrl,
+      ).toBe(true);
+    }
+    for (const linkUrl of [
+      'javascript:alert(1)',
+      'data:text/html,bad',
+      'http://insecure.example',
+      '//attacker.example',
+      'https://user:secret@example.com',
+      'mailto:ads@example.com',
+      '#campaign',
+      'https://sponsor.example/line\nbreak',
+      'https://sponsor.example/hidden\u202evalue',
+    ]) {
+      expect(
+        richTextDocumentSchema.safeParse({
+          type: 'doc',
+          content: [{ ...base, attrs: { ...base.attrs, linkUrl } }],
+        }).success,
+        linkUrl,
+      ).toBe(false);
+    }
   });
 
   it('normalizes custom author names and rejects multiline or directional controls', () => {
@@ -586,6 +684,109 @@ describe('rich-text rendering', () => {
     expect(defensiveFallback).toContain('justify-content:flex-start');
   });
 
+  it('renders a semantic web ad slot and omits it from email and plain text', () => {
+    const document: RichTextDocument = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'قبل الإعلان' }] },
+        {
+          type: 'adBlock',
+          attrs: {
+            placementId: 'article-middle-1',
+            format: 'banner',
+            label: 'مساحة داخلية لا تُنشر',
+          },
+        },
+        { type: 'paragraph', content: [{ type: 'text', text: 'بعد الإعلان' }] },
+      ],
+    };
+
+    const web = renderRichText(document);
+    expect(web).toContain('<aside class="article-ad-slot"');
+    expect(web).toContain('data-article-ad=""');
+    expect(web).toContain('data-ad-placement="article-middle-1"');
+    expect(web).toContain('data-ad-format="banner"');
+    expect(web).toContain('aria-label="مساحة إعلانية"');
+    expect(web).toContain('article-ad-slot__fallback">مساحة إعلانية</span>');
+    expect(web).not.toContain('مساحة داخلية لا تُنشر');
+    expect(web).not.toContain('<iframe');
+    expect(web).not.toContain('<script');
+
+    const email = renderRichText(document, { mode: 'email' });
+    expect(email).not.toContain('article-ad');
+    expect(email).not.toContain('article-middle-1');
+    expect(email).not.toContain('مساحة إعلانية');
+    expect(richTextToPlainText(document)).toBe('قبل الإعلان\n\nبعد الإعلان');
+    expect(richTextToEmailPlainText(document, 'https://mukhtalif.net')).toBe(
+      'قبل الإعلان\n\nبعد الإعلان',
+    );
+
+    const defensive = renderRichText({
+      type: 'doc',
+      content: [
+        {
+          type: 'adBlock',
+          attrs: { placementId: '"><script>alert(1)</script>', format: 'inline' },
+        },
+      ],
+    });
+    expect(defensive).not.toContain('script');
+    expect(defensive).not.toContain('data-article-ad');
+  });
+
+  it('wraps a linked image with a safe destination on web and email', async () => {
+    const mediaId = 'med-0123456789abcdef0123456789abcdef';
+    const external: RichTextDocument = {
+      type: 'doc',
+      content: [
+        {
+          type: 'imageBlock',
+          attrs: {
+            mediaId,
+            alt: 'إعلان الراعي',
+            presentation: 'wide',
+            linkUrl: 'https://sponsor.example/campaign',
+          },
+        },
+      ],
+    };
+    const web = renderRichText(external);
+    expect(web).toContain(
+      '<a href="https://sponsor.example/campaign" target="_blank" rel="noopener noreferrer"><img',
+    );
+    expect(web).not.toContain('javascript:');
+    expect(richTextToPlainText(external)).toBe('إعلان الراعي\nhttps://sponsor.example/campaign');
+
+    const internal: RichTextDocument = {
+      type: 'doc',
+      content: [
+        {
+          ...external.content![0],
+          attrs: { ...external.content![0]!.attrs, linkUrl: '/sponsor' },
+        },
+      ],
+    };
+    const internalWeb = renderRichText(internal);
+    expect(internalWeb).toContain('<a href="/sponsor"><img');
+    expect(internalWeb).not.toContain('target="_blank"');
+    const email = renderRichText(internal, {
+      mode: 'email',
+      relativeLinkBaseUrl: 'https://mukhtalif.net',
+    });
+    expect(email).toContain(
+      '<a href="https://mukhtalif.net/sponsor" target="_blank" rel="noopener noreferrer"><img',
+    );
+    expect(richTextToEmailPlainText(internal, 'https://mukhtalif.net')).toBe(
+      'إعلان الراعي\nhttps://mukhtalif.net/sponsor',
+    );
+
+    const canonical = await canonicalizeRichTextMedia(external, async (id) => ({
+      id,
+      status: 'ready',
+    }));
+    expect(canonical.content?.[0]?.attrs?.linkUrl).toBe('https://sponsor.example/campaign');
+  });
+
   it('renders complete gallery images and one shared caption for web, email, and plain text', () => {
     const document: RichTextDocument = {
       type: 'doc',
@@ -636,8 +837,7 @@ describe('rich-text rendering', () => {
     expect(email).not.toContain('object-fit');
     expect(email.indexOf('تعليق &lt;مشترك&gt;')).toBeGreaterThan(email.indexOf('</table>'));
 
-    const expectedText =
-      'الصورة الأولى <آمنة>\nالصورة الثانية\nالصورة الثالثة\nتعليق <مشترك>';
+    const expectedText = 'الصورة الأولى <آمنة>\nالصورة الثانية\nالصورة الثالثة\nتعليق <مشترك>';
     expect(richTextToPlainText(document)).toBe(expectedText);
     expect(richTextToEmailPlainText(document, 'https://mukhtalif.net')).toBe(expectedText);
   });
@@ -669,9 +869,7 @@ describe('rich-text rendering', () => {
     expect(canonical.content?.[0]).not.toHaveProperty('content');
     expect(richTextReferencesMedia(canonical, first)).toBe(true);
     expect(richTextReferencesMedia(canonical, second)).toBe(true);
-    expect(
-      richTextReferencesMedia(canonical, 'med-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'),
-    ).toBe(false);
+    expect(richTextReferencesMedia(canonical, 'med-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).toBe(false);
 
     await expect(
       canonicalizeRichTextMedia(document, async (id) => ({

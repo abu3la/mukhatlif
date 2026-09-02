@@ -11,6 +11,7 @@ import {
   type StudioDataContextValue,
   type SubscriberDirectoryContextValue,
 } from '@/application';
+import { AdminRepositoryError } from '@/data';
 import { demoData, type PermissionId } from '@/lib';
 import { ArticlesView, CreateArticleView } from '@/features/articles/ui/articles-page';
 import { OverviewView } from '@/features/overview/ui/overview-page';
@@ -49,7 +50,10 @@ function createAuthValue(permissions: PermissionId[]): AdminAuthContextValue {
 
 function createStudioValue(
   overrides: Partial<
-    Pick<StudioDataContextValue, 'createShow' | 'createArticle'>
+    Pick<
+      StudioDataContextValue,
+      'createShow' | 'createArticle' | 'updateHomepageWeeklyEpisodesSettings'
+    >
   > = {},
 ): StudioDataContextValue {
   return {
@@ -58,6 +62,7 @@ function createStudioValue(
       shows: demoData.shows.map((show) => ({ ...show })),
       episodes: demoData.episodes.map((episode) => ({ ...episode })),
       articles: demoData.articles.map((article) => ({ ...article })),
+      homepageWeeklyEpisodesSettings: { ...demoData.homepageWeeklyEpisodesSettings },
       guestDirectory: {
         guests: demoData.guests.map((guest) => ({ ...guest })),
         guestSocials: demoData.guestSocials.map((social) => ({ ...social })),
@@ -70,6 +75,9 @@ function createStudioValue(
     lastError: null,
     clearLastError: vi.fn(),
     createShow: vi.fn(async () => demoData.shows[0]!.id),
+    updateHomepageWeeklyEpisodesSettings: vi.fn(
+      async () => demoData.homepageWeeklyEpisodesSettings,
+    ),
     createArticle: vi.fn(async () => demoData.articles[0]!.id),
     updateArticle: vi.fn(async () => demoData.articles[0]!),
     transitionEpisodeStatus: vi.fn(async () => undefined),
@@ -80,6 +88,8 @@ function createStudioValue(
       configured: true,
       audienceName: 'جمهور العرض المحلي',
       audienceCount: 24,
+      recipientTag: 'nlpage',
+      recipientCount: 24,
     })),
     previewArticleNewsletter: vi.fn(async () => ({
       subject: 'نشرة تجريبية',
@@ -129,11 +139,15 @@ function createSubscriberValue(): SubscriberDirectoryContextValue {
   };
 }
 
-function renderPage(children: ReactNode, permissions: PermissionId[]) {
+function renderPage(
+  children: ReactNode,
+  permissions: PermissionId[],
+  overrides: Partial<Pick<StudioDataContextValue, 'updateHomepageWeeklyEpisodesSettings'>> = {},
+) {
   return render(
     <MemoryRouter>
       <AdminAuthContext.Provider value={createAuthValue(permissions)}>
-        <StudioDataContext.Provider value={createStudioValue()}>
+        <StudioDataContext.Provider value={createStudioValue(overrides)}>
           <SubscriberDirectoryContext.Provider value={createSubscriberValue()}>
             {children}
           </SubscriberDirectoryContext.Provider>
@@ -207,16 +221,20 @@ describe('page mutation controls', () => {
     const episodeRender = renderPage(<EpisodesView />, VIEW_ONLY_PERMISSIONS);
     expect(screen.getByRole('heading', { name: 'الحلقات' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'حلقة جديدة' })).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'طبيبة غيّرت مسارها إلى التقنية' }),
-    ).toHaveAttribute('href', '/episodes/episode_9');
+    expect(screen.getByRole('link', { name: 'طبيبة غيّرت مسارها إلى التقنية' })).toHaveAttribute(
+      'href',
+      '/episodes/episode_9',
+    );
     expect(screen.queryByRole('button', { name: 'نشر' })).not.toBeInTheDocument();
     episodeRender.unmount();
 
     const showRender = renderPage(<ShowsView />, VIEW_ONLY_PERMISSIONS);
     expect(screen.getByText('بترولي')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'برنامج جديد' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('form')).not.toBeInTheDocument();
+    expect(screen.getByRole('form', { name: 'قسم حلقات آخر أسبوع' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'عنوان القسم' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'عرض القسم في الصفحة الرئيسية' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'حفظ إعدادات القسم' })).not.toBeInTheDocument();
     showRender.unmount();
 
     const articleRender = renderPage(<ArticlesView />, VIEW_ONLY_PERMISSIONS);
@@ -236,6 +254,11 @@ describe('page mutation controls', () => {
 
     renderPage(<SubscribersView />, VIEW_ONLY_PERMISSIONS);
     expect(screen.getByRole('heading', { name: 'المشتركون' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'حسابات التطبيق واشتراكات مختلف بلس. مشتركو البريد في صفحة «النشرة البريدية».',
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'تفعيل بلس يدويًا' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'إعادة التفعيل يدويًا' })).not.toBeInTheDocument();
   });
@@ -250,11 +273,9 @@ describe('page mutation controls', () => {
     episodeRender.unmount();
 
     const showRender = renderPage(<ShowsView />, MANAGE_PERMISSIONS);
-    expect(screen.getByRole('link', { name: 'برنامج جديد' })).toHaveAttribute(
-      'href',
-      '/shows/new',
-    );
-    expect(screen.queryByRole('form')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'برنامج جديد' })).toHaveAttribute('href', '/shows/new');
+    expect(screen.getByRole('form', { name: 'قسم حلقات آخر أسبوع' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'حفظ إعدادات القسم' })).toBeDisabled();
     showRender.unmount();
 
     const articleRender = renderPage(<ArticlesView />, MANAGE_PERMISSIONS);
@@ -275,6 +296,54 @@ describe('page mutation controls', () => {
     expect(screen.getByRole('button', { name: 'إعادة التفعيل يدويًا' })).toBeInTheDocument();
   });
 
+  it('يحفظ إعدادات قسم حلقات آخر أسبوع برقم النسخة', async () => {
+    const user = userEvent.setup();
+    const update = vi.fn(async () => ({
+      ...demoData.homepageWeeklyEpisodesSettings,
+      enabled: false,
+      title: 'حصاد مختلف',
+      version: 2,
+    }));
+    renderPage(<ShowsView />, MANAGE_PERMISSIONS, {
+      updateHomepageWeeklyEpisodesSettings: update,
+    });
+
+    const title = screen.getByRole('textbox', { name: 'عنوان القسم' });
+    await user.clear(title);
+    await user.type(title, 'حصاد مختلف');
+    await user.click(screen.getByRole('switch', { name: 'عرض القسم في الصفحة الرئيسية' }));
+    await user.click(screen.getByRole('button', { name: 'حفظ إعدادات القسم' }));
+
+    expect(update).toHaveBeenCalledWith({
+      enabled: false,
+      title: 'حصاد مختلف',
+      expectedVersion: 1,
+    });
+    expect(await screen.findByText('حُفظت إعدادات القسم.')).toHaveAttribute('role', 'status');
+  });
+
+  it('يوضح تعارض النسخة ويطلب المراجعة', async () => {
+    const user = userEvent.setup();
+    const update = vi.fn(async () => {
+      throw new AdminRepositoryError({
+        code: 'CONFLICT',
+        operation: 'updateHomepageWeeklyEpisodesSettings',
+        message: 'Homepage settings changed.',
+        retryable: false,
+      });
+    });
+    renderPage(<ShowsView />, MANAGE_PERMISSIONS, {
+      updateHomepageWeeklyEpisodesSettings: update,
+    });
+
+    await user.click(screen.getByRole('switch', { name: 'عرض القسم في الصفحة الرئيسية' }));
+    await user.click(screen.getByRole('button', { name: 'حفظ إعدادات القسم' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'تغيّرت إعدادات القسم في جلسة أخرى. راجعها وحاول مجددًا.',
+    );
+  });
+
   it('creates a show from its dedicated breadcrumb page, then returns to the list', async () => {
     const user = userEvent.setup();
     const createShow = vi.fn(async () => demoData.shows[0]!.id);
@@ -286,10 +355,7 @@ describe('page mutation controls', () => {
       'href',
       '/shows',
     );
-    expect(within(breadcrumb).getByText('برنامج جديد')).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
+    expect(within(breadcrumb).getByText('برنامج جديد')).toHaveAttribute('aria-current', 'page');
 
     await user.type(screen.getByRole('textbox', { name: 'اسم البرنامج' }), ' خارج الإطار ');
     await user.type(
@@ -327,25 +393,13 @@ describe('page mutation controls', () => {
       'href',
       '/articles',
     );
-    expect(within(breadcrumb).getByText('مقال جديد')).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
+    expect(within(breadcrumb).getByText('مقال جديد')).toHaveAttribute('aria-current', 'page');
 
     await user.type(screen.getByRole('textbox', { name: 'عنوان المقال' }), ' مستقبل العمل ');
-    await user.type(
-      screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }),
-      'future-of-work',
-    );
-    await user.type(
-      screen.getByRole('textbox', { name: 'محتوى المقال' }),
-      'نص المقال التجريبي.',
-    );
+    await user.type(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }), 'future-of-work');
+    await user.type(screen.getByRole('textbox', { name: 'محتوى المقال' }), 'نص المقال التجريبي.');
     await user.click(screen.getByRole('checkbox', { name: /إعداد نشرة لهذا المقال/ }));
-    await user.type(
-      screen.getByRole('textbox', { name: 'عنوان الرسالة' }),
-      'رسالة الأسبوع',
-    );
+    await user.type(screen.getByRole('textbox', { name: 'عنوان الرسالة' }), 'رسالة الأسبوع');
     await user.click(screen.getByRole('button', { name: 'حفظ المسودة' }));
 
     expect(createArticle).toHaveBeenCalledWith(
@@ -420,9 +474,6 @@ describe('page mutation controls', () => {
       'href',
       '/episodes',
     );
-    expect(within(breadcrumb).getByText('حلقة جديدة')).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
+    expect(within(breadcrumb).getByText('حلقة جديدة')).toHaveAttribute('aria-current', 'page');
   });
 });

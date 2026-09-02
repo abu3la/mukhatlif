@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ArticleMediaAsset } from '@/data';
@@ -87,6 +87,7 @@ describe('RichTextEditor', () => {
               mediaId: 'med-00000000000000000000000000000001',
               alt: 'غلاف الحلقة',
               caption: 'تعليق الصورة',
+              linkUrl: 'https://sponsor.example/campaign',
               presentation: 'wide',
               alignment: 'end',
               radius: 'round',
@@ -142,6 +143,7 @@ describe('RichTextEditor', () => {
             mediaId: 'med-00000000000000000000000000000001',
             alt: 'غلاف الحلقة',
             caption: 'تعليق الصورة',
+            linkUrl: 'https://sponsor.example/campaign',
             presentation: 'wide',
             alignment: 'end',
             radius: 'round',
@@ -190,6 +192,7 @@ describe('RichTextEditor', () => {
               presentation: 'content',
               alignment: 'unsupported',
               radius: '20px',
+              linkUrl: 'javascript:alert(1)',
             },
           },
         ],
@@ -324,6 +327,7 @@ describe('RichTextEditor', () => {
       'رفع صورة',
       'معرض صور',
       'فيديو',
+      'مساحة إعلانية',
       'تراجع',
       'إعادة',
     ];
@@ -365,6 +369,91 @@ describe('RichTextEditor', () => {
 
     const marks = changes.at(-1)?.document.content?.[0]?.content?.[0]?.marks;
     expect(marks?.map((mark) => mark.type)).toEqual(expect.arrayContaining(['bold', 'italic']));
+  });
+
+  it('normalizes, inserts, edits, and removes an internal ad placement', async () => {
+    expect(
+      normalizeArticleDocument({
+        type: 'adBlock',
+        attrs: {
+          placementId: 'article-middle-1',
+          format: 'banner',
+          label: '  منتصف المقال  ',
+          iframe: '<iframe></iframe>',
+          script: 'alert(1)',
+          style: 'position:fixed',
+        },
+      }),
+    ).toEqual({
+      type: 'adBlock',
+      attrs: {
+        placementId: 'article-middle-1',
+        format: 'banner',
+        label: 'منتصف المقال',
+      },
+    });
+
+    const user = userEvent.setup();
+    const changes: RichTextValue[] = [];
+    render(<RichTextEditor initialDocument={DOCUMENT} onChange={(value) => changes.push(value)} />);
+
+    await user.click(screen.getByRole('button', { name: 'مساحة إعلانية' }));
+    const addGroup = screen.getByRole('group', { name: 'إضافة مساحة إعلانية' });
+    await user.type(within(addGroup).getByRole('textbox', { name: 'معرّف المساحة' }), 'Article');
+    await user.click(within(addGroup).getByRole('button', { name: 'إضافة المساحة' }));
+    expect(within(addGroup).getByRole('alert')).toHaveTextContent(
+      'استخدم أحرفًا إنجليزية صغيرة وأرقامًا وشرطات',
+    );
+    const placement = within(addGroup).getByRole('textbox', { name: 'معرّف المساحة' });
+    await user.clear(placement);
+    await user.type(placement, 'article-middle-1');
+    await user.type(
+      within(addGroup).getByRole('textbox', { name: 'اسم المساحة (اختياري)' }),
+      'منتصف المقال',
+    );
+    await user.selectOptions(
+      within(addGroup).getByRole('combobox', { name: 'شكل المساحة' }),
+      'banner',
+    );
+    await user.click(within(addGroup).getByRole('button', { name: 'إضافة المساحة' }));
+
+    expect(changes.at(-1)?.document.content).toEqual(
+      expect.arrayContaining([
+        {
+          type: 'adBlock',
+          attrs: {
+            placementId: 'article-middle-1',
+            format: 'banner',
+            label: 'منتصف المقال',
+          },
+        },
+      ]),
+    );
+    expect(
+      screen.getByRole('complementary', { name: 'مساحة إعلانية: منتصف المقال' }),
+    ).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'تعديل المساحة' }));
+    const editGroup = screen.getByRole('group', { name: 'تعديل مساحة إعلانية' });
+    const label = within(editGroup).getByRole('textbox', { name: 'اسم المساحة (اختياري)' });
+    await user.clear(label);
+    await user.click(within(editGroup).getByRole('button', { name: 'حفظ المساحة' }));
+    expect(changes.at(-1)?.document.content).toEqual(
+      expect.arrayContaining([
+        {
+          type: 'adBlock',
+          attrs: { placementId: 'article-middle-1', format: 'banner' },
+        },
+      ]),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'تعديل المساحة' }));
+    await user.click(
+      within(screen.getByRole('group', { name: 'تعديل مساحة إعلانية' })).getByRole('button', {
+        name: 'إزالة المساحة',
+      }),
+    );
+    expect(changes.at(-1)?.document.content?.some((node) => node.type === 'adBlock')).toBe(false);
   });
 
   it('wraps text through icon-only alignment and direction menus', async () => {
@@ -805,65 +894,68 @@ describe('RichTextEditor', () => {
   it.each([
     ['29 صورة', 27, 1],
     ['30 صورة', 28, 0],
-  ])('counts gallery items toward the article limit at %s', async (_label, singles, expectedSlots) => {
-    const user = userEvent.setup();
-    const sharedAsset: ArticleMediaAsset = {
-      id: 'med-00000000000000000000000000000001',
-      kind: 'image',
-      mimeType: 'image/png',
-      fileName: 'limit.png',
-      byteSize: 4_000,
-      width: 1_200,
-      height: 800,
-      defaultAlt: 'صورة الحد',
-      status: 'ready',
-      publicUrl: 'data:image/png;base64,LIMIT',
-      createdAt: '2026-08-18T08:00:00.000Z',
-    };
-    const document = {
-      type: 'doc',
-      content: [
-        { type: 'paragraph', content: [{ type: 'text', text: 'موضع المعرض' }] },
-        ...Array.from({ length: singles }, () => ({
-          type: 'imageBlock',
-          attrs: {
-            mediaId: sharedAsset.id,
-            alt: 'صورة مفردة',
-            presentation: 'content',
-            alignment: 'center',
-            radius: 'none',
+  ])(
+    'counts gallery items toward the article limit at %s',
+    async (_label, singles, expectedSlots) => {
+      const user = userEvent.setup();
+      const sharedAsset: ArticleMediaAsset = {
+        id: 'med-00000000000000000000000000000001',
+        kind: 'image',
+        mimeType: 'image/png',
+        fileName: 'limit.png',
+        byteSize: 4_000,
+        width: 1_200,
+        height: 800,
+        defaultAlt: 'صورة الحد',
+        status: 'ready',
+        publicUrl: 'data:image/png;base64,LIMIT',
+        createdAt: '2026-08-18T08:00:00.000Z',
+      };
+      const document = {
+        type: 'doc',
+        content: [
+          { type: 'paragraph', content: [{ type: 'text', text: 'موضع المعرض' }] },
+          ...Array.from({ length: singles }, () => ({
+            type: 'imageBlock',
+            attrs: {
+              mediaId: sharedAsset.id,
+              alt: 'صورة مفردة',
+              presentation: 'content',
+              alignment: 'center',
+              radius: 'none',
+            },
+          })),
+          {
+            type: 'imageGallery',
+            attrs: {
+              items: [
+                { mediaId: sharedAsset.id, alt: 'الصورة الأولى' },
+                {
+                  mediaId: 'med-00000000000000000000000000000002',
+                  alt: 'الصورة الثانية',
+                },
+              ],
+            },
           },
-        })),
-        {
-          type: 'imageGallery',
-          attrs: {
-            items: [
-              { mediaId: sharedAsset.id, alt: 'الصورة الأولى' },
-              {
-                mediaId: 'med-00000000000000000000000000000002',
-                alt: 'الصورة الثانية',
-              },
-            ],
-          },
-        },
-      ],
-    };
-    render(
-      <RichTextEditor
-        initialDocument={document}
-        mediaAssets={[sharedAsset]}
-        refreshMedia={vi.fn(async () => undefined)}
-        uploadImage={vi.fn(async () => sharedAsset)}
-        onChange={vi.fn()}
-      />,
-    );
+        ],
+      };
+      render(
+        <RichTextEditor
+          initialDocument={document}
+          mediaAssets={[sharedAsset]}
+          refreshMedia={vi.fn(async () => undefined)}
+          uploadImage={vi.fn(async () => sharedAsset)}
+          onChange={vi.fn()}
+        />,
+      );
 
-    await user.click(screen.getByRole('button', { name: 'معرض صور' }));
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'لا توجد مساحة لصورتين جديدتين. أزل صورًا من المقال أولًا.',
-    );
-    expect(screen.getByRole('button', { name: 'إضافة المعرض' })).toBeDisabled();
-    expect(screen.getByRole('option', { name: 'limit.png' })).toBeDisabled();
-    expect(expectedSlots).toBeLessThan(2);
-  });
+      await user.click(screen.getByRole('button', { name: 'معرض صور' }));
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'لا توجد مساحة لصورتين جديدتين. أزل صورًا من المقال أولًا.',
+      );
+      expect(screen.getByRole('button', { name: 'إضافة المعرض' })).toBeDisabled();
+      expect(screen.getByRole('option', { name: 'limit.png' })).toBeDisabled();
+      expect(expectedSlots).toBeLessThan(2);
+    },
+  );
 });

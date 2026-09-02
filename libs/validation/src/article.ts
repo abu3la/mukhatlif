@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  ARTICLE_AD_FORMATS,
   ARTICLE_AUTHOR_PLACEMENTS,
   ARTICLE_AUTHOR_TYPES,
   ARTICLE_IMAGE_PRESENTATIONS,
@@ -11,6 +12,8 @@ import {
   ARTICLE_TEXT_VERTICAL_ALIGNMENTS,
   RICH_TEXT_MARK_TYPES,
   RICH_TEXT_NODE_TYPES,
+  type ArticleAdBlockAttributes,
+  type ArticleAdFormat,
   type ArticleImageGalleryAttributes,
   type ArticleImageGalleryItem,
   type ArticleImagePresentation,
@@ -58,6 +61,37 @@ export const articleImageGalleryAttributesSchema: z.ZodType<ArticleImageGalleryA
 
 const articleAuthorControlCharacterPattern = /[\p{Cc}\p{Zl}\p{Zp}]/u;
 const articleAuthorBidiControlPattern = /[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
+
+export const articleAdPlacementIdSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(64)
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    'Ad placement identifiers accept lowercase letters, numbers, and single hyphens only',
+  );
+
+const articleAdLabelSchema = z
+  .string()
+  .refine(
+    (value) => !articleAuthorControlCharacterPattern.test(value),
+    'Ad labels must be a single line without control characters',
+  )
+  .refine(
+    (value) => !articleAuthorBidiControlPattern.test(value),
+    'Ad labels cannot contain bidirectional control characters',
+  )
+  .transform((value) => value.trim().normalize('NFC'))
+  .pipe(z.string().min(1).max(80));
+
+export const articleAdBlockAttributesSchema: z.ZodType<ArticleAdBlockAttributes> = z
+  .object({
+    placementId: articleAdPlacementIdSchema,
+    format: z.enum(ARTICLE_AD_FORMATS),
+    label: articleAdLabelSchema.optional(),
+  })
+  .strict();
 
 export const articleAuthorDisplayNameSchema = z
   .string()
@@ -129,6 +163,27 @@ const safeLinkSchema = z
     }
   }, 'Link must be HTTPS, mail, anchor, or site-relative');
 
+export const articleImageLinkSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(2048)
+  .refine(
+    (href) =>
+      !articleAuthorControlCharacterPattern.test(href) &&
+      !articleAuthorBidiControlPattern.test(href),
+    'Image link cannot contain control characters',
+  )
+  .refine((href) => {
+    if (href.startsWith('/') && !href.startsWith('//')) return true;
+    try {
+      const url = new URL(href);
+      return url.protocol === 'https:' && !url.username && !url.password;
+    } catch {
+      return false;
+    }
+  }, 'Image link must be HTTPS or site-relative');
+
 export const richTextMarkSchema = z
   .object({
     type: z.enum(RICH_TEXT_MARK_TYPES),
@@ -171,6 +226,7 @@ type RichTextNodeInput = {
     items?: ArticleImageGalleryItem[];
     alt?: string;
     caption?: string;
+    linkUrl?: string;
     presentation?: ArticleImagePresentation;
     alignment?: ArticleTextAlignment;
     radius?: ArticleImageRadius;
@@ -180,6 +236,9 @@ type RichTextNodeInput = {
     provider?: 'youtube' | 'vimeo';
     videoId?: string;
     title?: string;
+    placementId?: string;
+    format?: ArticleAdFormat;
+    label?: string;
   };
   marks?: z.infer<typeof richTextMarkSchema>[];
   text?: string;
@@ -200,6 +259,7 @@ export const richTextNodeSchema: z.ZodType<RichTextNodeInput> = z.lazy(() =>
           items: articleImageGalleryItemsSchema.optional(),
           alt: z.string().trim().min(1).max(500).optional(),
           caption: z.string().trim().min(1).max(1_000).optional(),
+          linkUrl: articleImageLinkSchema.optional(),
           presentation: z.enum(ARTICLE_IMAGE_PRESENTATIONS).optional(),
           alignment: z.enum(ARTICLE_TEXT_ALIGNMENTS).optional(),
           radius: z.enum(ARTICLE_IMAGE_RADII).optional(),
@@ -209,6 +269,9 @@ export const richTextNodeSchema: z.ZodType<RichTextNodeInput> = z.lazy(() =>
           provider: z.enum(['youtube', 'vimeo']).optional(),
           videoId: z.string().trim().min(1).max(32).optional(),
           title: z.string().trim().min(1).max(240).optional(),
+          placementId: articleAdPlacementIdSchema.optional(),
+          format: z.enum(ARTICLE_AD_FORMATS).optional(),
+          label: articleAdLabelSchema.optional(),
         })
         .strict()
         .optional(),
@@ -272,6 +335,7 @@ export const richTextNodeSchema: z.ZodType<RichTextNodeInput> = z.lazy(() =>
         'items',
         'alt',
         'caption',
+        'linkUrl',
         'presentation',
         'radius',
         'provider',
@@ -304,6 +368,16 @@ export const richTextNodeSchema: z.ZodType<RichTextNodeInput> = z.lazy(() =>
         context.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Only text-section nodes can set text layout attributes',
+        });
+      }
+      const hasAdAttributes =
+        node.attrs?.placementId !== undefined ||
+        node.attrs?.format !== undefined ||
+        node.attrs?.label !== undefined;
+      if (node.type !== 'adBlock' && hasAdAttributes) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Only ad blocks can set ad placement attributes',
         });
       }
       if (node.type === 'imageBlock') {
@@ -370,6 +444,7 @@ export const richTextNodeSchema: z.ZodType<RichTextNodeInput> = z.lazy(() =>
           node.attrs?.mediaId ||
           node.attrs?.items ||
           node.attrs?.alt ||
+          node.attrs?.linkUrl ||
           node.attrs?.presentation ||
           node.attrs?.alignment ||
           node.attrs?.radius
@@ -387,6 +462,24 @@ export const richTextNodeSchema: z.ZodType<RichTextNodeInput> = z.lazy(() =>
           context.addIssue({
             code: z.ZodIssueCode.custom,
             message: 'Middle or bottom alignment requires a fixed text-section height',
+          });
+        }
+      }
+      if (node.type === 'adBlock') {
+        const parsed = articleAdBlockAttributesSchema.safeParse(node.attrs);
+        if (!parsed.success) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Ad blocks require a safe internal placement, format, and optional label',
+          });
+        }
+        const unsupportedAttributes = Object.keys(node.attrs ?? {}).filter(
+          (attribute) => !['placementId', 'format', 'label'].includes(attribute),
+        );
+        if (unsupportedAttributes.length > 0) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Ad blocks accept only an internal placement, format, and label',
           });
         }
       }
@@ -428,6 +521,7 @@ export const richTextDocumentSchema: z.ZodType<RichTextDocument> = richTextNodeS
       'imageBlock',
       'imageGallery',
       'videoEmbed',
+      'adBlock',
     ]);
     const listItemChildren = new Set([
       'paragraph',
@@ -490,6 +584,15 @@ export const richTextDocumentSchema: z.ZodType<RichTextDocument> = richTextNodeS
             });
           }
           break;
+        case 'adBlock':
+          if (node.content !== undefined) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'adBlock nodes cannot have content',
+              path: [...path, 'content'],
+            });
+          }
+          break;
         case 'imageGallery':
           if (node.content !== undefined) {
             context.addIssue({
@@ -523,6 +626,7 @@ export const richTextDocumentSchema: z.ZodType<RichTextDocument> = richTextNodeS
       return total;
     }, 0);
     const videoCount = topLevel.filter((node) => node.type === 'videoEmbed').length;
+    const adCount = topLevel.filter((node) => node.type === 'adBlock').length;
     if (imageCount > 30) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -533,6 +637,12 @@ export const richTextDocumentSchema: z.ZodType<RichTextDocument> = richTextNodeS
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'A document can contain at most 5 videos',
+      });
+    }
+    if (adCount > 12) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'A document can contain at most 12 ad placements',
       });
     }
     const totals = countDocument(document);
@@ -551,11 +661,7 @@ export const richTextDocumentSchema: z.ZodType<RichTextDocument> = richTextNodeS
 export function hasMeaningfulArticleContent(document: RichTextDocument): boolean {
   const visit = (node: RichTextDocument | RichTextNodeInput): boolean => {
     if (node.type === 'text' && node.text?.trim()) return true;
-    if (
-      node.type === 'imageBlock' ||
-      node.type === 'imageGallery' ||
-      node.type === 'videoEmbed'
-    ) {
+    if (node.type === 'imageBlock' || node.type === 'imageGallery' || node.type === 'videoEmbed') {
       return true;
     }
     return node.content?.some(visit) ?? false;

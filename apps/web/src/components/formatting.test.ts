@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { dateTimeAttribute, formatDate, formatDuration, formatNumber } from './formatting';
 
 describe('formatDuration', () => {
-  it('renders minutes, whole hours, and mixed durations in Arabic', () => {
-    expect(formatDuration(39 * 60)).toBe('39 دقيقة');
-    expect(formatDuration(60 * 60)).toBe('ساعة');
-    expect(formatDuration(95 * 60)).toBe('ساعة و35 دقيقة');
-    expect(formatDuration(2 * 60 * 60)).toBe('2 ساعات');
+  it('renders compact Arabic-Indic minute durations', () => {
+    expect(formatDuration(39 * 60)).toBe('٣٩ د');
+    expect(formatDuration(60 * 60)).toBe('٦٠ د');
+    expect(formatDuration(95 * 60)).toBe('٩٥ د');
+    expect(formatDuration(2 * 60 * 60)).toBe('١٢٠ د');
   });
 
   it('returns nothing for a missing or nonsensical duration', () => {
@@ -17,9 +17,9 @@ describe('formatDuration', () => {
 });
 
 describe('formatDate', () => {
-  it('uses Latin digits, matching the Studio display setting', () => {
-    expect(formatDate('2026-07-20T00:00:00Z')).toMatch(/2026/);
-    expect(formatNumber(2026)).toBe('2026');
+  it('uses Arabic-Indic digits from the listener design', () => {
+    expect(formatDate('2026-07-20T00:00:00Z')).toMatch(/٢٠٢٦/);
+    expect(formatNumber(2026)).toBe('٢٠٢٦');
   });
 
   it('degrades to an empty string rather than rendering "Invalid Date"', () => {

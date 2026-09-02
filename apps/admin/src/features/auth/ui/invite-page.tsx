@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminPaths, useAdminAuth } from '@/application';
 import {
   AdminAuthError,
@@ -7,7 +7,6 @@ import {
   type AdminAuthGateway,
   type AdminInvitationState,
   type AdminRepository,
-  type EmailLinkPurpose,
 } from '@/data';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { Button, Field, Input } from '@/shared/ui/primitives';
@@ -30,7 +29,7 @@ const MIN_PASSWORD_LENGTH = 12;
 function linkErrorMessage(error: unknown): string {
   if (error instanceof AdminAuthError) {
     if (error.code === 'EXPIRED_LINK') {
-      return 'انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطًا جديدًا.';
+      return 'انتهت صلاحية الرابط أو استُخدم من قبل. اطلب من مسؤول الاستوديو إرسال دعوة جديدة.';
     }
     if (error.code === 'INVALID_LINK' || error.code === 'INVALID_CREDENTIALS') {
       return 'الرابط غير صالح. تأكد من فتحه كاملًا من رسالة الدعوة.';
@@ -54,7 +53,7 @@ function acceptErrorMessage(error: unknown): string {
   // when the fresh password sign-in below fails, so do not mislead the invitee
   // into thinking their new password was discarded.
   if (error instanceof AdminAuthError) {
-    return 'تم إعداد كلمة المرور، لكن تعذّر بدء الجلسة. سجّل الدخول بكلمة المرور التي اخترتها.';
+    return 'حُفظت كلمة المرور، لكن تعذّر بدء الجلسة. سجّل الدخول بكلمة المرور التي اخترتها.';
   }
   if (error instanceof AdminRepositoryError) {
     if (error.code === 'CONFLICT') return 'قُبلت هذه الدعوة من قبل. سجّل الدخول بكلمة مرورك.';
@@ -77,19 +76,17 @@ export function InviteView({
   const auth = useAdminAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [step, setStep] = useState<'link' | 'password' | 'done'>('link');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [invitation, setInvitation] = useState<AdminInvitationState | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const linkConsumed = useRef(false);
 
   /**
-   * Accepts either supported Supabase invitation link form:
+   * Accepts either supported Supabase invitation transport:
    *
-   * - token_hash in the query string, used by re-sent sign-in links;
+   * - token_hash in the query string, used by a customized invitation template;
    * - an Auth session in the URL hash, used by default Supabase invitations.
    *
    * A query token is removed immediately: a single-use credential left in the
@@ -98,9 +95,9 @@ export function InviteView({
    */
   useEffect(() => {
     const tokenHash = searchParams.get('token_hash');
+    const linkType = searchParams.get('type');
     if (linkConsumed.current) return;
     linkConsumed.current = true;
-    const purpose: EmailLinkPurpose = searchParams.get('type') === 'invite' ? 'invite' : 'signin';
     if (tokenHash) setSearchParams(new URLSearchParams(), { replace: true });
 
     void (async () => {
@@ -108,7 +105,11 @@ export function InviteView({
       setError('');
       try {
         if (tokenHash) {
-          await authGateway.verifyEmailLink(tokenHash, purpose);
+          if (linkType !== 'invite') {
+            setError('هذا الرابط ليس دعوة صادرة من الاستوديو.');
+            return;
+          }
+          await authGateway.verifyEmailLink(tokenHash);
         } else {
           const session = await authGateway.restoreInvitationSession();
           // Opening /invite normally is not enough to grant password setup.
@@ -137,23 +138,6 @@ export function InviteView({
       }
     })();
   }, [authGateway, repository, searchParams, setSearchParams]);
-
-  async function resend(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError('');
-    setNotice('');
-    setBusy(true);
-    try {
-      await authGateway.sendSignInEmail(email);
-      // Deliberately the same message whether or not the address is known:
-      // a different one would let anyone probe who has been invited.
-      setNotice('إن كان هذا البريد مدعوًّا، فسيصله رابط جديد خلال دقائق.');
-    } catch (caught) {
-      setError(linkErrorMessage(caught));
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function accept(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -196,7 +180,7 @@ export function InviteView({
             <h1 id="invite-title">قبول دعوة الاستوديو</h1>
             <p>
               {step === 'link'
-                ? 'افتح رابط الدعوة من رسالة البريد لإكمال إنشاء حسابك.'
+                ? 'تُرسل الدعوات من داخل الاستوديو فقط.'
                 : step === 'password'
                   ? 'بقي أن تختار كلمة مرور لحسابك.'
                   : 'اكتمل إعداد حسابك.'}
@@ -216,39 +200,15 @@ export function InviteView({
                 {error}
               </p>
             ) : null}
-            {notice ? (
-              <p className="notice" role="status">
-                {notice}
-              </p>
-            ) : null}
-            <form className="auth-form" onSubmit={(event) => void resend(event)}>
+            <div className="auth-form">
               <p className="invite-hint">
-                إن لم يصلك الرابط أو انتهت صلاحيته، أدخل بريدك لإرسال رابط جديد.
+                إذا لم يصلك الرابط أو انتهت صلاحيته، اطلب من مسؤول الاستوديو إرسال دعوة
+                جديدة.
               </p>
-              <Field label="البريد الإلكتروني">
-                <Input
-                  type="email"
-                  name="email"
-                  value={email}
-                  dir="ltr"
-                  lang="en"
-                  inputMode="email"
-                  autoComplete="username"
-                  required
-                  disabled={busy}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </Field>
-              <Button
-                className="auth-form__submit"
-                type="submit"
-                variant="primary"
-                disabled={busy || !email}
-                aria-busy={busy}
-              >
-                {busy ? 'جارٍ الإرسال…' : 'إرسال رابط جديد'}
-              </Button>
-            </form>
+              <Link className="back-link invite-return-link" to={adminPaths.login}>
+                العودة إلى تسجيل الدخول
+              </Link>
+            </div>
           </>
         ) : null}
 

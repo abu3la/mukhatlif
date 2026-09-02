@@ -8,6 +8,7 @@ import type {
   ArticleImagePresentation,
   ArticleImageRadius,
 } from '@mukhtalif/types';
+import { articleAdBlockAttributesSchema, articleImageLinkSchema } from '@mukhtalif/validation';
 import type { ArticleMediaAsset } from '@/data';
 import { normalizeArticleTextSectionAttributes } from './article-text-section';
 
@@ -28,10 +29,16 @@ export function normalizeArticleImageRadius(value: unknown): ArticleImageRadius 
   return value === 'soft' || value === 'round' ? value : 'none';
 }
 
+export function normalizeArticleImageLink(value: unknown): string | undefined {
+  const parsed = articleImageLinkSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
+
 export interface ImageBlockAttributes {
   readonly mediaId: string;
   readonly alt: string;
   readonly caption?: string;
+  readonly linkUrl?: string;
   readonly presentation: ArticleImagePresentation;
   readonly alignment: ArticleImageAlignment;
   readonly radius: ArticleImageRadius;
@@ -102,6 +109,7 @@ function ImageBlockNodeView({ node, editor, selected, deleteNode, getPos }: Reac
   const presentation = normalizeArticleImagePresentation(attrs.presentation);
   const alignment = normalizeArticleImageAlignment(attrs.alignment);
   const radius = normalizeArticleImageRadius(attrs.radius);
+  const linkUrl = normalizeArticleImageLink(attrs.linkUrl);
   return (
     <NodeViewWrapper
       as="figure"
@@ -119,6 +127,11 @@ function ImageBlockNodeView({ node, editor, selected, deleteNode, getPos }: Reac
         </div>
       )}
       {attrs.caption ? <figcaption>{attrs.caption}</figcaption> : null}
+      {linkUrl ? (
+        <span className="article-media-node__link" dir="ltr" contentEditable={false}>
+          {linkUrl}
+        </span>
+      ) : null}
       {editor.isEditable && !context?.disabled ? (
         <div className="article-media-node__actions" contentEditable={false}>
           <button
@@ -248,6 +261,7 @@ export const ArticleImageBlock = Node.create({
       mediaId: { default: '' },
       alt: { default: '' },
       caption: { default: null },
+      linkUrl: { default: null },
       presentation: { default: 'content' },
       alignment: { default: 'center' },
       radius: { default: 'none' },
@@ -469,6 +483,21 @@ function renderContentNode(
     const presentation = normalizeArticleImagePresentation(attrs.presentation);
     const alignment = normalizeArticleImageAlignment(attrs.alignment);
     const radius = normalizeArticleImageRadius(attrs.radius);
+    const linkUrl = normalizeArticleImageLink(attrs.linkUrl);
+    const image = asset?.publicUrl ? (
+      <img src={asset.publicUrl} alt={attrs.alt} loading="lazy" />
+    ) : null;
+    const linkedImage =
+      image && linkUrl ? (
+        <a
+          href={linkUrl}
+          {...(!linkUrl.startsWith('/') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+        >
+          {image}
+        </a>
+      ) : (
+        image
+      );
     return (
       <figure
         key={key}
@@ -477,7 +506,7 @@ function renderContentNode(
         data-alignment={alignment}
         data-radius={radius}
       >
-        {asset?.publicUrl ? <img src={asset.publicUrl} alt={attrs.alt} loading="lazy" /> : null}
+        {linkedImage}
         {attrs.caption ? <figcaption>{attrs.caption}</figcaption> : null}
       </figure>
     );
@@ -536,6 +565,23 @@ function renderContentNode(
         </div>
         {attrs.caption ? <figcaption>{attrs.caption}</figcaption> : null}
       </figure>
+    );
+  }
+  if (node.type === 'adBlock') {
+    if (channel === 'email') return null;
+    const parsed = articleAdBlockAttributesSchema.safeParse(node.attrs);
+    if (!parsed.success) return null;
+    return (
+      <aside
+        key={key}
+        className="article-ad-slot"
+        data-article-ad=""
+        data-ad-placement={parsed.data.placementId}
+        data-ad-format={parsed.data.format}
+        aria-label="مساحة إعلانية"
+      >
+        <span className="article-ad-slot__fallback">مساحة إعلانية</span>
+      </aside>
     );
   }
   return <Fragment key={key}>{children}</Fragment>;

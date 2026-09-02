@@ -2,7 +2,20 @@
 
 ## Storage and Origin
 
-Create a private Cloudflare R2 bucket and bind it to the Worker as `MEDIA`. Configure `MEDIA_PUBLIC_ORIGIN` as the HTTPS origin that serves this Worker's `/media/:id` route. Outside development, the API fails closed if the bucket exists without this origin. Local development may derive the current Worker origin.
+Create a private Cloudflare R2 bucket. Development binds it to the Worker as
+`MEDIA`; production accesses the same service from Hostinger through the
+S3-compatible adapter in `apps/api/src/storage/r2-s3.ts`. Configure
+`MEDIA_PUBLIC_ORIGIN` as the HTTPS origin that serves the runtime's `/media/:id`
+route. Hostinger production requires exactly `https://api.mukhtalif.net`.
+Outside local development, the API fails closed if storage exists without a
+safe origin.
+
+Hostinger receives all five `R2_*` values from its secret store. The adapter
+streams uploads through multipart transfer, preserves HTTP metadata and ETags,
+and derives full-object size from `Content-Range` for partial reads so the
+existing media/audio response contract remains identical to native Worker R2.
+Validate a HEAD, full GET, ranged GET, upload, and delete against each live
+bucket before production cutover.
 
 Apply `0011_article_media_assets.sql` to Supabase before enabling the binding. The table has RLS enabled and grants no direct `anon` or `authenticated` access. Browsers never receive the R2 object key or credentials.
 
@@ -15,13 +28,13 @@ The Studio upload is intentionally two-step:
 
 Both mutations require `articles.manage`; the ready library requires `articles.view`. The upload accepts only JPEG and PNG, at most 10 MiB, at most 8192 pixels on either side, and at most 24 megapixels. SVG, GIF, WebP, HEIC, encoded request bodies, dimension mismatches, malformed images, and trailing data are rejected.
 
-The Worker strips JPEG application/comment segments and rejects malformed marker or scan structure and bytes after EOI. For PNG it validates every chunk CRC and ordering, rejects unknown critical chunks, validates the decompressed non-interlaced raster length and row filters, strips ancillary metadata/application chunks, and retains only rendering-critical transparency. Only the sanitized bytes are stored in R2. Public responses are immutable and include `X-Content-Type-Options: nosniff`.
+The API strips JPEG application/comment segments and rejects malformed marker or scan structure and bytes after EOI. For PNG it validates every chunk CRC and ordering, rejects unknown critical chunks, validates the decompressed non-interlaced raster length and row filters, strips ancillary metadata/application chunks, and retains only rendering-critical transparency. Only the sanitized bytes are stored in R2. Public responses are immutable and include `X-Content-Type-Options: nosniff`.
 
 JPEG EXIF orientation is stripped with the rest of the metadata. This v1 path does not rotate or transcode pixels, so Studio clients must normalize camera images before reserving an upload when their display orientation depends on EXIF. A production image-transcoding service should own auto-orientation before expanding the accepted formats.
 
 Pending uploads are not listed or publicly readable. A private-token compare-and-swap lease prevents concurrent PUTs; an abandoned lease may be reclaimed after 15 minutes. Every lease writes to its own attempt-specific R2 key, and only token-fenced completion promotes that key into the ready row, so a stale worker cannot overwrite or delete a newer attempt. There is no delete endpoint in this slice because removing an object already embedded in a sent email would break that immutable edition.
 
-A Worker crash after the R2 write but before database completion can leave an unreferenced attempt object. Production operations should periodically remove only old R2 keys that are absent from `article_media_assets.storage_key`, with a retention window longer than the upload lease. Do not apply a blanket lifecycle rule to attempt-shaped keys because ready assets also retain their successfully fenced attempt key.
+A runtime crash after the R2 write but before database completion can leave an unreferenced attempt object. Production operations should periodically remove only old R2 keys that are absent from `article_media_assets.storage_key`, with a retention window longer than the upload lease. Do not apply a blanket lifecycle rule to attempt-shaped keys because ready assets also retain their successfully fenced attempt key.
 
 ## Cover Image Contract
 
@@ -48,7 +61,8 @@ Video files and arbitrary iframe/source URLs are not accepted. Web HTML builds o
 ## Production Checklist
 
 1. Apply migration `0011_article_media_assets.sql` in staging.
-2. Bind the private R2 bucket as `MEDIA`.
+2. Bind the private R2 bucket as `MEDIA` in development; configure all five
+   Hostinger `R2_*` values for production.
 3. Set the stable HTTPS `MEDIA_PUBLIC_ORIGIN`.
 4. Upload JPEG and PNG samples, then confirm metadata chunks are absent from stored objects.
 5. Confirm pending or malformed uploads return 404 from `/media/:id`.

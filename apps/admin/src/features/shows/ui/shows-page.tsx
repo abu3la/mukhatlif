@@ -36,6 +36,121 @@ function showSaveErrorMessage(error: unknown): string {
   }
 }
 
+function homepageSettingsErrorMessage(error: unknown): string {
+  if (isAdminRepositoryError(error)) {
+    if (error.code === 'CONFLICT') {
+      return 'تغيّرت إعدادات القسم في جلسة أخرى. راجعها وحاول مجددًا.';
+    }
+    if (error.code === 'UNAUTHENTICATED') {
+      return 'انتهت جلسة الدخول. سجّل الدخول ثم حاول مرة أخرى.';
+    }
+    if (error.code === 'FORBIDDEN') return 'ليس لديك صلاحية لتعديل القسم.';
+    if (error.code === 'NETWORK' || error.code === 'REMOTE_UNAVAILABLE') {
+      return 'تعذّر الاتصال بالخادم. حاول مرة أخرى.';
+    }
+  }
+  return 'تعذّر حفظ إعدادات القسم. راجع البيانات وحاول مجددًا.';
+}
+
+function HomepageWeeklyEpisodesSettings() {
+  const { viewer } = useAdminAuth();
+  const { data, isMutating, updateHomepageWeeklyEpisodesSettings } = useStudioData();
+  const settings = data.homepageWeeklyEpisodesSettings;
+  const canManageShows = viewer ? canManagePage(viewer, 'shows') : false;
+  const [enabled, setEnabled] = useState(settings.enabled);
+  const [title, setTitle] = useState(settings.title);
+  const [feedback, setFeedback] = useState('');
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setEnabled(settings.enabled);
+    setTitle(settings.title);
+  }, [settings.enabled, settings.title, settings.version]);
+
+  const normalizedTitle = title.trim();
+  const hasChanges =
+    enabled !== settings.enabled || normalizedTitle !== settings.title;
+
+  async function saveSettings(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canManageShows || isMutating || !hasChanges) return;
+    if (!normalizedTitle) {
+      setHasError(true);
+      setFeedback('أدخل عنوان القسم.');
+      return;
+    }
+    setFeedback('');
+    setHasError(false);
+    try {
+      const updated = await updateHomepageWeeklyEpisodesSettings({
+        enabled,
+        title: normalizedTitle,
+        expectedVersion: settings.version,
+      });
+      setEnabled(updated.enabled);
+      setTitle(updated.title);
+      setFeedback('حُفظت إعدادات القسم.');
+    } catch (cause) {
+      setHasError(true);
+      setFeedback(homepageSettingsErrorMessage(cause));
+    }
+  }
+
+  return (
+    <form
+      className="card homepage-weekly-settings"
+      aria-labelledby="homepage-weekly-settings-title"
+      aria-busy={isMutating}
+      onSubmit={(event) => void saveSettings(event)}
+    >
+      <div className="homepage-weekly-settings__intro">
+        <h2 id="homepage-weekly-settings-title">قسم حلقات آخر أسبوع</h2>
+        <p>يعرض الحلقات المنشورة خلال آخر ٧ أيام من جميع برامج إذاعة مختلف.</p>
+      </div>
+      <div className="homepage-weekly-settings__controls">
+        <Field label="عنوان القسم">
+          <Input
+            value={title}
+            maxLength={80}
+            disabled={!canManageShows || isMutating}
+            onChange={(event) => {
+              setTitle(event.target.value);
+              setFeedback('');
+            }}
+            required
+          />
+        </Field>
+        <div className="homepage-weekly-settings__switch">
+          <span>عرض القسم في الصفحة الرئيسية</span>
+          <Switch
+            checked={enabled}
+            disabled={!canManageShows || isMutating}
+            onCheckedChange={(checked) => {
+              setEnabled(checked);
+              setFeedback('');
+            }}
+            label="عرض القسم في الصفحة الرئيسية"
+          />
+        </div>
+      </div>
+      <div className="homepage-weekly-settings__footer">
+        <div aria-live="polite">
+          {feedback ? (
+            <p className={`notice ${hasError ? 'notice--error' : 'notice--success'}`} role={hasError ? 'alert' : 'status'}>
+              {feedback}
+            </p>
+          ) : null}
+        </div>
+        {canManageShows ? (
+          <Button type="submit" variant="primary" disabled={isMutating || !hasChanges}>
+            {isMutating ? 'جارٍ الحفظ…' : 'حفظ إعدادات القسم'}
+          </Button>
+        ) : null}
+      </div>
+    </form>
+  );
+}
+
 export function ShowsView() {
   const { viewer } = useAdminAuth();
   const { data } = useStudioData();
@@ -53,6 +168,8 @@ export function ShowsView() {
           ) : null
         }
       />
+
+      <HomepageWeeklyEpisodesSettings />
 
       <section className="card shows-table" aria-label="البرامج" tabIndex={0}>
         <div className="shows-table__row shows-table__row--header" aria-hidden="true">

@@ -1,4 +1,6 @@
 import {
+  DEFAULT_HOMEPAGE_WEEKLY_EPISODES_TITLE,
+  HOMEPAGE_WEEKLY_EPISODES_WINDOW_DAYS,
   PERMISSION_IDS,
   ROLE_CREATED_AUDIT_ACTION,
   ROLE_PERMISSION_AUDIT_ACTION,
@@ -12,10 +14,17 @@ import {
   type Episode,
   type EpisodeStatus,
   type Follow,
+  type FormSubmission,
+  type FormSubmissionStatus,
   type Guest,
   type GuestAppearance,
   type GuestSocial,
+  type HomepageWeeklyEpisodesSettings,
   type ListQuery,
+  type NewsletterConsentEvent,
+  type NewsletterSubscriberListItem,
+  type NewsletterSubscription,
+  type NewsletterSubscriptionRequestRecord,
   type PageResult,
   type Plan,
   type PlaybackProgress,
@@ -33,7 +42,6 @@ import {
   type StudioMemberAccessAuditLog,
   type StudioMemberAcceptanceAuditLog,
   type StudioMemberInvitationAuditLog,
-  type StudioMemberStatus,
   type Subscription,
   type SubscriberUser,
   type SubscriptionStatus,
@@ -49,6 +57,7 @@ import {
   type UpdateGuestInput,
   type UpdateGuestSocialInput,
   type UpdateShowInput,
+  type UpdateHomepageWeeklyEpisodesSettingsInput,
 } from '@mukhtalif/validation';
 import {
   createArticleRecord,
@@ -63,7 +72,12 @@ import type {
   CreateGuestSocialResult,
   EpisodeFilter,
   LinkGuestAppearanceResult,
+  PublishedGuestProfileRecord,
+  PublishedGuestSummaryRecord,
   Repository,
+  FormSubmissionFilter,
+  NewsletterSubscriberFilter,
+  LegacyRedirectResolution,
   StoredMediaAsset,
   UpdateGuestSocialResult,
 } from './types';
@@ -100,7 +114,6 @@ const users: MemoryUser[] = [
 
 interface MemoryStudioMember extends Omit<StudioMember, 'roleName'> {
   authUserId: string;
-  status: StudioMemberStatus;
   acceptedAt?: string;
 }
 
@@ -171,6 +184,8 @@ const rolePermissionMatrix: RolePermissionMatrix = {
     'guests.manage',
     'articles.view',
     'articles.manage',
+    'forms.view',
+    'forms.manage',
   ],
 };
 
@@ -231,6 +246,14 @@ const shows: Show[] = [
     createdAt: '2026-01-20T08:00:00Z',
   },
 ];
+
+let homepageWeeklyEpisodesSettings: HomepageWeeklyEpisodesSettings = {
+  enabled: true,
+  title: DEFAULT_HOMEPAGE_WEEKLY_EPISODES_TITLE,
+  windowDays: HOMEPAGE_WEEKLY_EPISODES_WINDOW_DAYS,
+  version: 1,
+  updatedAt: '2026-01-01T00:00:00.000Z',
+};
 
 const episodes: Episode[] = [
   {
@@ -350,6 +373,13 @@ const episodes: Episode[] = [
   },
 ];
 
+function compareEpisodesNewest(left: Episode, right: Episode): number {
+  const published = (right.publishAt ?? '').localeCompare(left.publishAt ?? '');
+  if (published !== 0) return published;
+  const created = right.createdAt.localeCompare(left.createdAt);
+  return created !== 0 ? created : left.id.localeCompare(right.id);
+}
+
 const firstArticleBody =
   'الأشهر الثلاثة الأولى تحدد صورتك المهنية لسنوات. في هذا المقال نلخص ما ينصح به ضيوف مختلف: افهم قبل أن تقترح، وابنِ علاقات قبل أن تحتاجها، ووثّق أثرك من الأسبوع الأول.';
 const firstArticle = createArticleRecord(
@@ -383,6 +413,44 @@ const articleNewsletterSyncTokens = new Map<string, string>();
 const articleNewsletterSendLeases = new Map<string, { token: string; startedAt: string }>();
 const mediaAssets: StoredMediaAsset[] = [];
 
+type MemoryLegacyRedirect = LegacyRedirectResolution & {
+  sourcePath: string;
+  isActive: boolean;
+};
+
+const legacyRedirects: MemoryLegacyRedirect[] = [
+  {
+    sourcePath: '/%D9%86%D8%B4%D8%B1%D8%A9-%D8%A3%D9%85%D9%8A%D8%A7%D9%84/',
+    destination: '/articles/first-90-days/',
+    statusCode: 301,
+    isActive: true,
+  },
+  {
+    sourcePath: '/legacy-campaign/',
+    destination: 'https://example.com/landing',
+    statusCode: 302,
+    isActive: true,
+  },
+  {
+    sourcePath: '/inactive-legacy/',
+    destination: '/articles/first-90-days/',
+    statusCode: 301,
+    isActive: false,
+  },
+  {
+    sourcePath: '/self-loop-no-slash/',
+    destination: '/self-loop-no-slash',
+    statusCode: 301,
+    isActive: true,
+  },
+  {
+    sourcePath: '/self-loop-query/',
+    destination: '/self-loop-query/?retry=1',
+    statusCode: 302,
+    isActive: true,
+  },
+];
+
 const guests: Guest[] = [
   {
     id: 'gst-1001',
@@ -411,9 +479,16 @@ const guestSocials: GuestSocial[] = [
   { id: 'gsoc-1002', guestId: 'gst-1002', platform: 'x', handle: 'faisal_pm' },
 ];
 
-const guestAppearances: GuestAppearance[] = [
-  { guestId: 'gst-1001', episodeId: 'ep-1001' },
-];
+const guestAppearances: GuestAppearance[] = [{ guestId: 'gst-1001', episodeId: 'ep-1001' }];
+
+const formSubmissions: FormSubmission[] = [];
+const formSubmissionNotificationClaims = new Map<string, { token: string; startedAt: string }>();
+const formSubmissionRateLimits = new Map<
+  string,
+  { requestCount: number; windowStartedAt: number }
+>();
+const newsletterSubscriptions: NewsletterSubscription[] = [];
+const newsletterConsentEvents: NewsletterConsentEvent[] = [];
 
 const plans: Plan[] = [
   {
@@ -455,6 +530,58 @@ const progress: PlaybackProgress[] = [
 
 function id(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+function cloneFormSubmission(submission: FormSubmission): FormSubmission {
+  return structuredClone(submission);
+}
+
+function cloneNewsletterSubscription(subscription: NewsletterSubscription): NewsletterSubscription {
+  return structuredClone(subscription);
+}
+
+function cloneNewsletterConsentEvent(event: NewsletterConsentEvent): NewsletterConsentEvent {
+  return structuredClone(event);
+}
+
+function toNewsletterSubscriberListItem(
+  subscription: NewsletterSubscription,
+): NewsletterSubscriberListItem {
+  const latestEvent = newsletterConsentEvents.find(
+    (event) => event.id === subscription.latestConsentEventId,
+  );
+  if (!latestEvent) {
+    throw new Error('newsletter: subscription is missing its latest request event');
+  }
+  return {
+    email: subscription.email,
+    ...(subscription.firstName ? { firstName: subscription.firstName } : {}),
+    localStatus: latestEvent.eventKind,
+    mailchimpSyncStatus: subscription.syncStatus,
+    requestedAt: latestEvent.createdAt,
+    updatedAt: subscription.updatedAt,
+  };
+}
+
+function matchesNewsletterSubscriberFilter(
+  subscriber: NewsletterSubscriberListItem,
+  filter: NewsletterSubscriberFilter,
+): boolean {
+  return (
+    (!filter.localStatus || subscriber.localStatus === filter.localStatus) &&
+    (!filter.mailchimpStatus || subscriber.mailchimpSyncStatus === filter.mailchimpStatus)
+  );
+}
+
+function matchesFormSubmissionFilter(
+  submission: FormSubmission,
+  filter: FormSubmissionFilter,
+): boolean {
+  return (
+    (!filter.type || submission.type === filter.type) &&
+    (!filter.status || submission.status === filter.status) &&
+    (!filter.assigneeId || submission.assigneeId === filter.assigneeId)
+  );
 }
 
 function memoryRole(roleId: RoleId): MemoryRole | undefined {
@@ -513,6 +640,7 @@ function toStudioMember(member: MemoryStudioMember): StudioMember {
     role: member.role,
     roleName: memoryRole(member.role)?.name ?? member.role,
     locale: member.locale,
+    status: member.status,
     createdAt: member.createdAt,
   };
 }
@@ -540,13 +668,20 @@ function toSubscriberUser(user: MemoryUser): SubscriberUser {
  */
 function findMemberByAuthId(authUserId: string): MemoryStudioMember | undefined {
   return studioMembers.find(
-    (candidate) =>
-      candidate.authUserId === authUserId || `dev:${candidate.id}` === authUserId,
+    (candidate) => candidate.authUserId === authUserId || `dev:${candidate.id}` === authUserId,
   );
 }
 
 export function createMemoryRepository(): Repository {
   return {
+    async resolveLegacyRedirect(sourcePath) {
+      const redirect = legacyRedirects.find(
+        (candidate) => candidate.isActive && candidate.sourcePath === sourcePath,
+      );
+      return redirect
+        ? { destination: redirect.destination, statusCode: redirect.statusCode }
+        : null;
+    },
     async getUser(userId) {
       const user = users.find((candidate) => candidate.id === userId);
       return user ? toUser(user) : null;
@@ -569,17 +704,16 @@ export function createMemoryRepository(): Repository {
       return member ? toStudioMember(member) : null;
     },
     async getStudioMemberByAuthId(authUserId) {
-      const member = studioMembers.find((candidate) => candidate.authUserId === authUserId);
+      const member = studioMembers.find(
+        (candidate) => candidate.authUserId === authUserId && candidate.status === 'active',
+      );
       return member ? toStudioMember(member) : null;
     },
     async getStudioMemberAccessByAuthId(authUserId) {
       const member = findMemberByAuthId(authUserId);
       return member ? toStudioMemberAccess(member) : null;
     },
-    async acceptStudioInvitation(
-      authUserId,
-      requestId,
-    ): Promise<AcceptStudioInvitationResult> {
+    async acceptStudioInvitation(authUserId, requestId): Promise<AcceptStudioInvitationResult> {
       const member = findMemberByAuthId(authUserId);
       if (!member) return { status: 'not_found' };
       // Acceptance is one-time so a replay cannot reopen password setup.
@@ -842,18 +976,47 @@ export function createMemoryRepository(): Repository {
       return show;
     },
 
+    async getHomepageWeeklyEpisodesSettings() {
+      return { ...homepageWeeklyEpisodesSettings };
+    },
+    async updateHomepageWeeklyEpisodesSettings(input: UpdateHomepageWeeklyEpisodesSettingsInput) {
+      if (input.expectedVersion !== homepageWeeklyEpisodesSettings.version) {
+        return { status: 'conflict' as const, settings: { ...homepageWeeklyEpisodesSettings } };
+      }
+      homepageWeeklyEpisodesSettings = {
+        ...homepageWeeklyEpisodesSettings,
+        enabled: input.enabled,
+        title: input.title.trim(),
+        version: homepageWeeklyEpisodesSettings.version + 1,
+        updatedAt: new Date().toISOString(),
+      };
+      return { status: 'updated' as const, settings: { ...homepageWeeklyEpisodesSettings } };
+    },
+
     async listEpisodes(filter: EpisodeFilter) {
       return episodes
         .filter((e) => (filter.showId ? e.showId === filter.showId : true))
         .filter((e) => (filter.status ? e.status === filter.status : true))
-        .sort((a, b) => (b.publishAt ?? b.createdAt).localeCompare(a.publishAt ?? a.createdAt));
+        .filter((e) =>
+          filter.publishedFrom ? Boolean(e.publishAt && e.publishAt >= filter.publishedFrom) : true,
+        )
+        .filter((e) =>
+          filter.publishedTo ? Boolean(e.publishAt && e.publishAt <= filter.publishedTo) : true,
+        )
+        .sort(compareEpisodesNewest);
     },
     async listEpisodesPage(filter: EpisodeFilter, query: ListQuery): Promise<PageResult<Episode>> {
       const matched = episodes
         .filter((e) => (filter.showId ? e.showId === filter.showId : true))
         .filter((e) => (filter.status ? e.status === filter.status : true))
+        .filter((e) =>
+          filter.publishedFrom ? Boolean(e.publishAt && e.publishAt >= filter.publishedFrom) : true,
+        )
+        .filter((e) =>
+          filter.publishedTo ? Boolean(e.publishAt && e.publishAt <= filter.publishedTo) : true,
+        )
         .filter((e) => matchesSearch(query.search, e.titleAr, e.titleEn, e.showNotesAr))
-        .sort((a, b) => (b.publishAt ?? b.createdAt).localeCompare(a.publishAt ?? a.createdAt));
+        .sort(compareEpisodesNewest);
       return paginate(matched, query);
     },
     async getEpisode(episodeId) {
@@ -958,6 +1121,58 @@ export function createMemoryRepository(): Repository {
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       return paginate(matched, query);
     },
+    async listPublishedGuestsPage(
+      query: ListQuery,
+    ): Promise<PageResult<PublishedGuestSummaryRecord>> {
+      const publishedEpisodeIds = new Set(
+        episodes.filter((episode) => episode.status === 'published').map((episode) => episode.id),
+      );
+      const counts = new Map<string, number>();
+      for (const appearance of guestAppearances) {
+        if (!publishedEpisodeIds.has(appearance.episodeId)) continue;
+        counts.set(appearance.guestId, (counts.get(appearance.guestId) ?? 0) + 1);
+      }
+      const matched = guests
+        .filter((guest) => guest.name.trim().length > 0 && (counts.get(guest.id) ?? 0) > 0)
+        .filter((guest) =>
+          matchesSearch(query.search, guest.name, guest.role, guest.city, guest.bio, guest.slug),
+        )
+        .slice()
+        .sort(
+          (left, right) =>
+            left.name.localeCompare(right.name, 'ar') || left.id.localeCompare(right.id),
+        )
+        .map((guest) => ({ guest: { ...guest }, episodeCount: counts.get(guest.id) ?? 0 }));
+      return paginate(matched, query);
+    },
+    async getPublishedGuestProfile(idOrSlug: string): Promise<PublishedGuestProfileRecord | null> {
+      const guest = guests.find(
+        (candidate) => candidate.id === idOrSlug || candidate.slug === idOrSlug,
+      );
+      if (!guest || !guest.name.trim()) return null;
+      const linkedEpisodeIds = new Set(
+        guestAppearances
+          .filter((appearance) => appearance.guestId === guest.id)
+          .map((appearance) => appearance.episodeId),
+      );
+      const publishedEpisodes = episodes
+        .filter((episode) => linkedEpisodeIds.has(episode.id) && episode.status === 'published')
+        .slice()
+        .sort(
+          (left, right) =>
+            (right.publishAt ?? right.createdAt).localeCompare(left.publishAt ?? left.createdAt) ||
+            left.id.localeCompare(right.id),
+        )
+        .map((episode) => ({ ...episode }));
+      if (publishedEpisodes.length === 0) return null;
+      return {
+        guest: { ...guest },
+        socials: guestSocials
+          .filter((social) => social.guestId === guest.id)
+          .map((social) => ({ ...social })),
+        episodes: publishedEpisodes,
+      };
+    },
     async getGuest(guestId) {
       return guests.find((guest) => guest.id === guestId) ?? null;
     },
@@ -1029,7 +1244,9 @@ export function createMemoryRepository(): Repository {
         platform !== social.platform &&
         guestSocials.some(
           (other) =>
-            other.id !== socialId && other.guestId === social.guestId && other.platform === platform,
+            other.id !== socialId &&
+            other.guestId === social.guestId &&
+            other.platform === platform,
         )
       ) {
         return { status: 'duplicate_platform' };
@@ -1079,6 +1296,232 @@ export function createMemoryRepository(): Repository {
       return true;
     },
 
+    async listFormSubmissions(filter) {
+      return formSubmissions
+        .filter((submission) => matchesFormSubmissionFilter(submission, filter))
+        .slice()
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map(cloneFormSubmission);
+    },
+    async listFormSubmissionsPage(filter, query) {
+      const matched = formSubmissions
+        .filter((submission) => matchesFormSubmissionFilter(submission, filter))
+        .slice()
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map(cloneFormSubmission);
+      return paginate(matched, query);
+    },
+    async getFormSubmission(submissionId) {
+      const submission = formSubmissions.find((candidate) => candidate.id === submissionId);
+      return submission ? cloneFormSubmission(submission) : null;
+    },
+    async createFormSubmission(input) {
+      const now = new Date().toISOString();
+      const submission = {
+        id: id('frm'),
+        type: input.type,
+        payload: structuredClone(input.payload),
+        status: 'new' as const,
+        internalNotes: '',
+        attachmentRefs: [],
+        sourceMetadata: structuredClone(input.sourceMetadata),
+        notificationStatus: 'pending' as const,
+        notificationAttemptCount: 0,
+        statusUpdatedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      } as FormSubmission;
+      formSubmissions.push(submission);
+      return cloneFormSubmission(submission);
+    },
+    async updateFormSubmission(submissionId, input) {
+      const submission = formSubmissions.find((candidate) => candidate.id === submissionId);
+      if (!submission) return null;
+      const now = new Date().toISOString();
+      if (input.status !== undefined && input.status !== submission.status) {
+        submission.status = input.status as FormSubmissionStatus;
+        submission.statusUpdatedAt = now;
+        submission.resolvedAt = input.status === 'resolved' ? now : undefined;
+      }
+      if (input.assigneeId !== undefined) {
+        submission.assigneeId = input.assigneeId ?? undefined;
+      }
+      if (input.internalNotes !== undefined) submission.internalNotes = input.internalNotes;
+      submission.updatedAt = now;
+      return cloneFormSubmission(submission);
+    },
+    async claimFormSubmissionRateLimit(keyHash, limit, windowSeconds) {
+      const now = Date.now();
+      const current = formSubmissionRateLimits.get(keyHash);
+      if (!current || now - current.windowStartedAt >= windowSeconds * 1000) {
+        formSubmissionRateLimits.set(keyHash, { requestCount: 1, windowStartedAt: now });
+        return { allowed: true, retryAfterSeconds: 0 };
+      }
+      current.requestCount = Math.min(current.requestCount + 1, limit + 1);
+      return {
+        allowed: current.requestCount <= limit,
+        retryAfterSeconds:
+          current.requestCount <= limit
+            ? 0
+            : Math.max(1, Math.ceil((current.windowStartedAt + windowSeconds * 1000 - now) / 1000)),
+      };
+    },
+    async claimFormSubmissionNotification(submissionId, staleBefore) {
+      const submission = formSubmissions.find((candidate) => candidate.id === submissionId);
+      if (!submission || submission.notificationStatus === 'sent') return null;
+      const currentClaim = formSubmissionNotificationClaims.get(submissionId);
+      if (submission.notificationStatus === 'sending' && currentClaim) {
+        if (Date.parse(currentClaim.startedAt) >= Date.parse(staleBefore)) return null;
+      }
+      const startedAt = new Date().toISOString();
+      const claimToken = crypto.randomUUID();
+      formSubmissionNotificationClaims.set(submissionId, { token: claimToken, startedAt });
+      submission.notificationStatus = 'sending';
+      submission.notificationAttemptedAt = startedAt;
+      submission.notificationAttemptCount += 1;
+      submission.notificationError = undefined;
+      submission.notificationProviderMessageId = undefined;
+      submission.updatedAt = startedAt;
+      return { submission: cloneFormSubmission(submission), claimToken };
+    },
+    async completeFormSubmissionNotification(
+      submissionId,
+      claimToken,
+      status,
+      errorCode,
+      providerMessageId,
+    ) {
+      const claim = formSubmissionNotificationClaims.get(submissionId);
+      const submission = formSubmissions.find((candidate) => candidate.id === submissionId);
+      if (!submission || !claim || claim.token !== claimToken) return null;
+      submission.notificationStatus = status;
+      submission.notificationError = errorCode;
+      submission.notificationProviderMessageId = providerMessageId;
+      submission.updatedAt = new Date().toISOString();
+      formSubmissionNotificationClaims.delete(submissionId);
+      return cloneFormSubmission(submission);
+    },
+
+    async recordNewsletterSubscriptionRequest(input): Promise<NewsletterSubscriptionRequestRecord> {
+      const email = input.email.trim().toLowerCase();
+      const replay = newsletterConsentEvents.find(
+        (event) => event.sourceMetadata.requestId === input.sourceMetadata.requestId,
+      );
+      if (replay) {
+        if (
+          replay.email !== email ||
+          replay.eventKind !== 'explicit_consent' ||
+          replay.firstName !== input.firstName ||
+          replay.consentAcceptedAt !== input.consentAcceptedAt ||
+          JSON.stringify(replay.sourceMetadata) !== JSON.stringify(input.sourceMetadata)
+        ) {
+          throw new Error('newsletter: request id was reused with different consent data');
+        }
+        const replayedSubscription = newsletterSubscriptions.find(
+          (candidate) => candidate.id === replay.subscriptionId,
+        );
+        if (!replayedSubscription) {
+          throw new Error('newsletter: consent event references a missing subscription');
+        }
+        return {
+          subscription: cloneNewsletterSubscription(replayedSubscription),
+          consentEvent: cloneNewsletterConsentEvent(replay),
+        };
+      }
+
+      const now = new Date().toISOString();
+      let subscription = newsletterSubscriptions.find((candidate) => candidate.email === email);
+      if (!subscription) {
+        subscription = {
+          id: id('nls'),
+          email,
+          ...(input.firstName ? { firstName: input.firstName } : {}),
+          syncStatus: 'pending',
+          syncAttemptCount: 0,
+          createdAt: now,
+          updatedAt: now,
+        };
+        newsletterSubscriptions.push(subscription);
+      } else {
+        if (input.firstName) subscription.firstName = input.firstName;
+        subscription.syncStatus = 'pending';
+        subscription.syncError = undefined;
+        subscription.updatedAt = now;
+      }
+
+      const consentEvent: NewsletterConsentEvent = {
+        id: id('nce'),
+        subscriptionId: subscription.id,
+        eventKind: 'explicit_consent',
+        email,
+        ...(input.firstName ? { firstName: input.firstName } : {}),
+        consentVersion: 1,
+        consentAcceptedAt: input.consentAcceptedAt,
+        sourceMetadata: structuredClone(input.sourceMetadata),
+        createdAt: now,
+      };
+      newsletterConsentEvents.push(consentEvent);
+      subscription.latestConsentEventId = consentEvent.id;
+      subscription.updatedAt = now;
+      return {
+        subscription: cloneNewsletterSubscription(subscription),
+        consentEvent: cloneNewsletterConsentEvent(consentEvent),
+      };
+    },
+    async getNewsletterSubscriptionByEmail(email) {
+      const normalized = email.trim().toLowerCase();
+      const subscription = newsletterSubscriptions.find(
+        (candidate) => candidate.email === normalized,
+      );
+      return subscription ? cloneNewsletterSubscription(subscription) : null;
+    },
+    async listNewsletterSubscribersPage(filter, query) {
+      const matched = newsletterSubscriptions
+        .map(toNewsletterSubscriberListItem)
+        .filter(
+          (subscriber) =>
+            matchesNewsletterSubscriberFilter(subscriber, filter) &&
+            matchesSearch(query.search, subscriber.email, subscriber.firstName),
+        )
+        .sort(
+          (left, right) =>
+            right.updatedAt.localeCompare(left.updatedAt) || left.email.localeCompare(right.email),
+        );
+      return paginate(matched, query);
+    },
+    async listNewsletterConsentEvents(subscriptionId) {
+      return newsletterConsentEvents
+        .filter((event) => event.subscriptionId === subscriptionId)
+        .slice()
+        .sort(
+          (left, right) =>
+            left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id),
+        )
+        .map(cloneNewsletterConsentEvent);
+    },
+    async completeNewsletterSubscriptionSync(subscriptionId, consentEventId, status, errorCode) {
+      if ((status === 'failed' || status === 'unconfigured') && !errorCode) {
+        throw new Error('newsletter: failed or unconfigured sync requires an error code');
+      }
+      if (status === 'synced' && errorCode) {
+        throw new Error('newsletter: successful sync cannot retain an error code');
+      }
+      const subscription = newsletterSubscriptions.find(
+        (candidate) =>
+          candidate.id === subscriptionId &&
+          candidate.latestConsentEventId === consentEventId &&
+          candidate.syncStatus === 'pending',
+      );
+      if (!subscription) return null;
+      const now = new Date().toISOString();
+      subscription.syncStatus = status;
+      subscription.syncAttemptCount += 1;
+      subscription.syncAttemptedAt = now;
+      subscription.syncError = errorCode;
+      subscription.updatedAt = now;
+      return cloneNewsletterSubscription(subscription);
+    },
+
     async getContentSummary(): Promise<StudioContentSummary> {
       const episodeCounts = { draft: 0, scheduled: 0, published: 0, archived: 0 };
       for (const episode of episodes) episodeCounts[episode.status] += 1;
@@ -1123,9 +1566,7 @@ export function createMemoryRepository(): Repository {
         .filter((a) => (filter.status ? a.status === filter.status : true))
         .filter((a) => matchesSearch(query.search, a.titleAr, a.titleEn, a.slug, a.excerptAr))
         .slice()
-        .sort((a, b) =>
-          (b.publishedAt ?? b.createdAt).localeCompare(a.publishedAt ?? a.createdAt),
-        );
+        .sort((a, b) => (b.publishedAt ?? b.createdAt).localeCompare(a.publishedAt ?? a.createdAt));
       return paginate(matched, query);
     },
     async listArticleAuthorCandidates() {

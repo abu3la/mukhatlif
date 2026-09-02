@@ -70,6 +70,25 @@ describe('invitation state', () => {
     });
   });
 
+  it('does not authenticate an invited member as a Studio operator', async () => {
+    const member = await inviteMember('not-active@mukhtalif.test');
+
+    for (const path of ['/studio/me', '/studio/summary', '/studio/episodes']) {
+      const response = await request(path, member.id);
+      expect(response.status, path).toBe(403);
+      expect(await response.json(), path).toEqual({
+        error: 'Studio membership is not provisioned',
+      });
+    }
+
+    // The verified identity still needs its invitation-only route in order to
+    // accept the invitation and become active.
+    const state = (await (
+      await request('/studio/invitations/me', member.id)
+    ).json()) as StudioInvitationState;
+    expect(state.status).toBe('invited');
+  });
+
   it('reports an established operator as active', async () => {
     const state = (await (
       await request('/studio/invitations/me', 'usr-admin-1')

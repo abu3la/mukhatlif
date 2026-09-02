@@ -1,5 +1,10 @@
 import { Outlet } from 'react-router-dom';
-import { canViewPage, useAdminAuth } from '@/application';
+import {
+  FormSubmissionRepositoryContext,
+  NewsletterRepositoryContext,
+  canViewPage,
+  useAdminAuth,
+} from '@/application';
 import type { AdminRepository } from '@/data';
 import { AdminRouteDeniedView } from './auth-state-views';
 import { StudioMemberDirectoryProvider } from './providers/admin-directory-provider';
@@ -51,5 +56,29 @@ export function SubscriberRouteLayout({ repository }: { repository: AdminReposit
     <SubscriberDirectoryProvider repository={repository} viewer={viewer}>
       <Outlet />
     </SubscriberDirectoryProvider>
+  );
+}
+
+export function FormSubmissionRouteLayout({ repository }: { repository: AdminRepository }) {
+  const { viewer } = useAdminAuth();
+  if (!viewer || !canViewPage(viewer, 'forms')) {
+    return <AdminRouteDeniedView page="forms" />;
+  }
+  return (
+    <FormSubmissionRepositoryContext.Provider value={repository}>
+      <Outlet />
+    </FormSubmissionRepositoryContext.Provider>
+  );
+}
+
+export function NewsletterRouteLayout({ repository }: { repository: AdminRepository }) {
+  const { viewer } = useAdminAuth();
+  if (!viewer || !canViewPage(viewer, 'subscribers')) {
+    return <AdminRouteDeniedView page="subscribers" />;
+  }
+  return (
+    <NewsletterRepositoryContext.Provider value={repository}>
+      <Outlet />
+    </NewsletterRepositoryContext.Provider>
   );
 }

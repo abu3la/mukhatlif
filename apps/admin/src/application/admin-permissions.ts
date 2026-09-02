@@ -12,6 +12,7 @@ export const STUDIO_PAGE_LABELS = {
   guests: 'الضيوف',
   articles: 'المقالات',
   subscribers: 'المشتركون',
+  forms: 'طلبات الموقع',
   access: 'إدارة الوصول',
 } as const satisfies Record<StudioPageId, string>;
 

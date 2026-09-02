@@ -1,0 +1,5 @@
+{
+  "name": "@mukhtalif/notion-guest-import-tool",
+  "private": true,
+  "type": "module"
+}

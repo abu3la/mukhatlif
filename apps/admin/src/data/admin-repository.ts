@@ -1,6 +1,13 @@
 import type {
+  FormSubmission,
+  FormSubmissionStatus,
+  FormSubmissionType,
   ImageMediaMimeType,
   MediaAsset,
+  NewsletterConsentEventKind,
+  NewsletterSubscriberListItem,
+  NewsletterSubscriptionSyncStatus,
+  PaginatedList,
 } from '@mukhtalif/types';
 import type { ArticleAuthorInput } from '@mukhtalif/validation';
 import type {
@@ -25,6 +32,7 @@ import type {
   GuestSocialId,
   IsoDateTime,
   MailchimpCapability,
+  HomepageWeeklyEpisodesSettings,
   NewsletterPreview,
   PlusPlan,
   PermissionId,
@@ -53,9 +61,7 @@ export type AdminRepositoryCapability =
   | 'admin-analytics'
   | 'access-management';
 
-export type AdminRepositoryCapabilities = Readonly<
-  Record<AdminRepositoryCapability, boolean>
->;
+export type AdminRepositoryCapabilities = Readonly<Record<AdminRepositoryCapability, boolean>>;
 
 export type { AdminContentWorkspace, AdminGuestDirectory, AdminSubscriberDirectory } from '@/lib';
 
@@ -89,6 +95,12 @@ export interface CreateShowCommand {
 }
 
 export type UpdateShowCommand = Partial<CreateShowCommand>;
+
+export interface UpdateHomepageWeeklyEpisodesSettingsCommand {
+  readonly enabled: boolean;
+  readonly title: string;
+  readonly expectedVersion: number;
+}
 
 export interface CreateEpisodeCommand {
   readonly showId: ShowId;
@@ -188,6 +200,28 @@ export interface CreateRoleCommand {
   readonly permissions: readonly PermissionId[];
 }
 
+export interface AdminFormSubmissionListQuery {
+  readonly page: number;
+  readonly perPage: number;
+  readonly type?: FormSubmissionType;
+  readonly status?: FormSubmissionStatus;
+  readonly assigneeId?: string;
+}
+
+export interface AdminNewsletterSubscriberListQuery {
+  readonly page: number;
+  readonly perPage: number;
+  readonly search?: string;
+  readonly localStatus?: NewsletterConsentEventKind;
+  readonly mailchimpStatus?: NewsletterSubscriptionSyncStatus;
+}
+
+export interface UpdateFormSubmissionCommand {
+  readonly status?: FormSubmissionStatus;
+  readonly assigneeId?: string | null;
+  readonly internalNotes?: string;
+}
+
 export interface CreateGuestCommand {
   readonly name?: string;
   readonly role?: string;
@@ -231,8 +265,20 @@ export interface AdminRepository {
   readAnalytics(): Promise<AdminAnalyticsSnapshot>;
   readDashboard(): Promise<AdminStudioData>;
 
+  listFormSubmissions(query: AdminFormSubmissionListQuery): Promise<PaginatedList<FormSubmission>>;
+  getFormSubmission(id: string): Promise<FormSubmission>;
+  updateFormSubmission(id: string, command: UpdateFormSubmissionCommand): Promise<FormSubmission>;
+  retryFormSubmissionNotification(id: string): Promise<FormSubmission>;
+
+  listNewsletterSubscribers(
+    query: AdminNewsletterSubscriberListQuery,
+  ): Promise<PaginatedList<NewsletterSubscriberListItem>>;
+
   createShow(command: CreateShowCommand): Promise<Show>;
   updateShow(id: ShowId, command: UpdateShowCommand): Promise<Show>;
+  updateHomepageWeeklyEpisodesSettings(
+    command: UpdateHomepageWeeklyEpisodesSettingsCommand,
+  ): Promise<HomepageWeeklyEpisodesSettings>;
 
   createEpisode(command: CreateEpisodeCommand): Promise<Episode>;
   updateEpisode(id: EpisodeId, command: UpdateEpisodeCommand): Promise<Episode>;
@@ -265,10 +311,7 @@ export interface AdminRepository {
   reconcileArticleNewsletter(id: ArticleId): Promise<AdminNewsletterSendResult>;
 
   createSubscription(command: CreateSubscriptionCommand): Promise<Subscription>;
-  transitionSubscription(
-    id: SubscriptionId,
-    status: SubscriptionStatus,
-  ): Promise<Subscription>;
+  transitionSubscription(id: SubscriptionId, status: SubscriptionStatus): Promise<Subscription>;
 
   /**
    * Invitation acceptance. Both reads authenticate on the verified Auth
@@ -281,18 +324,12 @@ export interface AdminRepository {
   createStudioMember(command: CreateStudioMemberCommand): Promise<StudioMember>;
   updateStudioMemberRole(id: StudioMemberId, role: RoleId): Promise<StudioMember>;
   createRole(command: CreateRoleCommand): Promise<StudioRole>;
-  updateRolePermissions(
-    role: RoleId,
-    permissions: readonly PermissionId[],
-  ): Promise<StudioRole>;
+  updateRolePermissions(role: RoleId, permissions: readonly PermissionId[]): Promise<StudioRole>;
 
   createGuest(command?: CreateGuestCommand): Promise<Guest>;
   updateGuest(id: GuestId, command: UpdateGuestCommand): Promise<Guest>;
   createGuestSocial(command: CreateGuestSocialCommand): Promise<GuestSocial>;
-  updateGuestSocial(
-    id: GuestSocialId,
-    command: UpdateGuestSocialCommand,
-  ): Promise<GuestSocial>;
+  updateGuestSocial(id: GuestSocialId, command: UpdateGuestSocialCommand): Promise<GuestSocial>;
   removeGuestSocial(id: GuestSocialId): Promise<void>;
   linkGuestAppearance(guestId: GuestId, episodeId: EpisodeId): Promise<GuestAppearance>;
   unlinkGuestAppearance(guestId: GuestId, episodeId: EpisodeId): Promise<void>;

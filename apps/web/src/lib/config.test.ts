@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { absoluteUrl, apiOrigin, publicWebUrl } from './config';
+import { absoluteUrl, apiOrigin, isSearchIndexingEnabled, publicWebUrl } from './config';
 
 const original = { ...process.env };
 
@@ -47,5 +47,13 @@ describe('publicWebUrl', () => {
   it('falls back to the local origin when unset', () => {
     delete process.env.PUBLIC_WEB_URL;
     expect(publicWebUrl()).toBe('http://localhost:3000');
+  });
+
+  it('allows indexing only on the final public hostname', () => {
+    process.env.PUBLIC_WEB_URL = 'https://staging.mukhtalif.net';
+    expect(isSearchIndexingEnabled()).toBe(false);
+
+    process.env.PUBLIC_WEB_URL = 'https://mukhtalif.net';
+    expect(isSearchIndexingEnabled()).toBe(true);
   });
 });
