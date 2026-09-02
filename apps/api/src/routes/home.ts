@@ -9,6 +9,8 @@ import type {
 } from '@mukhtalif/types';
 import { HOMEPAGE_WEEKLY_EPISODES_WINDOW_DAYS } from '@mukhtalif/types';
 import type { AppEnv } from '../auth';
+import { getMediaPublicOrigin } from '../env';
+import { rebaseTrustedMediaUrl } from '../publishing/media-public-url';
 import { getRepository } from '../repo';
 
 const SHOW_LIMIT = 12;
@@ -40,14 +42,14 @@ function toHomepageWeeklyEpisode(
 }
 
 /** Listing projection: no editor JSON, rendered HTML, or newsletter state. */
-function toArticleSummary(article: Article): PublishedArticleSummary {
+function toArticleSummary(article: Article, mediaOrigin: string | null): PublishedArticleSummary {
   return {
     id: article.id,
     slug: article.slug,
     titleAr: article.titleAr,
     titleEn: article.titleEn,
     excerptAr: article.excerptAr,
-    coverUrl: article.coverUrl,
+    coverUrl: rebaseTrustedMediaUrl(article.coverUrl, mediaOrigin),
     coverAlt: article.coverAlt,
     publishedAt: article.publishedAt,
     author: { displayName: article.author.displayName },
@@ -63,6 +65,7 @@ function toArticleSummary(article: Article): PublishedArticleSummary {
  */
 export const publicHomeRoute = new Hono<AppEnv>().get('/', async (c) => {
   const repo = getRepository(c.env);
+  const mediaOrigin = getMediaPublicOrigin(c.env, new URL(c.req.url).origin);
   const asOf = new Date();
   const publishedFrom = new Date(
     asOf.getTime() - HOMEPAGE_WEEKLY_EPISODES_WINDOW_DAYS * 24 * 60 * 60 * 1_000,
@@ -94,7 +97,7 @@ export const publicHomeRoute = new Hono<AppEnv>().get('/', async (c) => {
             episodes: publicWeeklyEpisodes,
           }
         : null,
-    latestArticles: articles.items.map(toArticleSummary),
+    latestArticles: articles.items.map((article) => toArticleSummary(article, mediaOrigin)),
   };
   return c.json(summary);
 });

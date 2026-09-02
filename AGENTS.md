@@ -138,7 +138,7 @@ Production Hostinger policy:
 APP_ENV=production
 DEPLOYMENT_PLATFORM=hostinger
 ALLOW_DEV_AUTH=false
-PRODUCTION_SUPABASE_PROJECT_REF=<exact 20-character production project ref>
+PRODUCTION_SUPABASE_PROJECT_REF=pacpdxvujkjvnaeeuute
 RESEND_ENVIRONMENT=production
 FORMS_FROM_EMAIL=forms@notify.mukhtalif.net
 MEDIA_PUBLIC_ORIGIN=https://api.mukhtalif.net
@@ -247,8 +247,10 @@ Status recorded 2026-09-03:
 - Hostinger Web, Studio, and API production applications are not deployed yet.
 - The user explicitly selected the existing Supabase project
   `pacpdxvujkjvnaeeuute` for this release. It already contains migrations
-  `0001` through `0022` and the imported content; a fresh pre-release backup and
-  authenticated verification remain required because the database is shared.
+  `0001` through `0022` and the imported content. The read-only pre-release
+  snapshot at `2026-09-02T21:11:39.842516Z` passed `pg_restore --list`, all 22
+  ledger checks, and 23 deployment checks with no failures. Authenticated live
+  verification remains required because the database is shared.
 - The reviewed WordPress plan is applied to the canonical development Supabase
   project `pacpdxvujkjvnaeeuute`: 56 articles, 238 ready media rows, 17 people,
   56 bylines, 5 books, 378 source records, and 82 redirects. The post-apply
