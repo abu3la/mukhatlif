@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "next build",
-    "build:hostinger": "node ../../scripts/assert-hostinger-web-env.mjs && pnpm run build",
+    "build:hostinger": "node ../../scripts/assert-hostinger-web-env.mjs && npm run build",
     "build:worker": "node scripts/build-worker.mjs && node scripts/sanitize-open-next-env.mjs",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "deploy": "pnpm run build:worker && opennextjs-cloudflare deploy",
@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "preview": "pnpm run build:worker && opennextjs-cloudflare preview",
     "start": "next start --port ${PORT:-3000}",
-    "start:hostinger": "node ../../scripts/assert-hostinger-web-env.mjs && pnpm run start",
+    "start:hostinger": "node ../../scripts/assert-hostinger-web-env.mjs && npm run start",
     "test": "vitest run",
     "type-check": "tsc --noEmit"
   },
