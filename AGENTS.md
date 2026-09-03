@@ -29,8 +29,9 @@ files.
 
 - The active integration branch is `dev` at `9ce7df3140b5`. `origin/dev` and
   `abu3la/dev` point to the same commit. `origin/main` and `abu3la/main` remain
-  at `9eb60da7f7dd`; `dev` is four commits ahead. Do not merge or deploy those
-  commits to production without a new explicit release instruction.
+  at `9eb60da7f7dd`; `dev` is ahead with the current development work. Do not
+  merge or deploy those commits to production without a new explicit release
+  instruction.
 - Cloudflare is the isolated development runtime. The deployed API, Studio,
   and Web origins are the three `*.mukhtalif-development.workers.dev` origins
   listed below. Development API and Studio use Supabase project
@@ -72,9 +73,10 @@ Saturday resume checklist:
 3. Verify the Cloudflare API and Studio still resolve to
    `acomtixjibgkauzeltsn`; verify staging and Hostinger still resolve to the
    production API and `pacpdxvujkjvnaeeuute` before any write.
-4. Run the full repository verification workflow. Review the four commits ahead
-   of `main`, then merge `dev` to `main` only after explicit approval. A merge
-   remains verification eligibility, not deployment authorization.
+4. Run the full repository verification workflow. Review every commit in
+   `origin/main..origin/dev`, then merge `dev` to `main` only after explicit
+   approval. A merge remains verification eligibility, not deployment
+   authorization.
 5. Keep all deploys manual. Do not enable automatic GitHub deployment, do not
    change DNS, and do not cut over `mukhtalif.net` until the user explicitly
    authorizes the final production Web release.
