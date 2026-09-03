@@ -10,12 +10,7 @@ import {
   type StudioMemberDirectoryContextValue,
 } from '@/application';
 import { AdminRepositoryError, type CreateStudioMemberCommand } from '@/data';
-import {
-  demoData,
-  type PermissionId,
-  type StudioMember,
-  type StudioRole,
-} from '@/lib';
+import { demoData, type PermissionId, type StudioMember, type StudioRole } from '@/lib';
 import {
   CreateStudioMemberView,
   StudioMembersView,
@@ -86,6 +81,7 @@ function createAuthValue(permissions: PermissionId[]): AdminAuthContextValue {
     isSubmitting: false,
     demoAccounts: [],
     signIn: vi.fn(async () => undefined),
+    changePassword: vi.fn(async () => undefined),
     signOut: vi.fn(async () => undefined),
     retry: vi.fn(async () => undefined),
   };
@@ -100,9 +96,7 @@ function TestProviders({
   permissions?: PermissionId[];
   onCreate?(command: CreateStudioMemberCommand): Promise<StudioMember>;
 }) {
-  const [members, setMembers] = useState<StudioMember[]>([
-    ...demoData.studioMembers,
-  ]);
+  const [members, setMembers] = useState<StudioMember[]>([...demoData.studioMembers]);
   const directory = useMemo<StudioMemberDirectoryContextValue>(
     () => ({
       data: { studioMembers: members },
@@ -125,9 +119,7 @@ function TestProviders({
           role,
           roleName: ROLES.find((candidate) => candidate.id === role)?.name ?? role,
         };
-        setMembers((items) =>
-          items.map((member) => (member.id === memberId ? updated : member)),
-        );
+        setMembers((items) => items.map((member) => (member.id === memberId ? updated : member)));
         return updated;
       },
       createRole: vi.fn(),
@@ -172,10 +164,7 @@ describe('Studio account pages', () => {
       </TestProviders>,
     );
 
-    expect(screen.getByRole('link', { name: 'إضافة حساب' })).toHaveAttribute(
-      'href',
-      '/users/new',
-    );
+    expect(screen.getByRole('link', { name: 'إضافة حساب' })).toHaveAttribute('href', '/users/new');
   });
 
   it('renders a semantic breadcrumb for the new Studio account', () => {
@@ -186,9 +175,10 @@ describe('Studio account pages', () => {
     );
 
     const breadcrumb = screen.getByRole('navigation', { name: 'مسار الصفحة' });
-    expect(
-      within(breadcrumb).getByRole('link', { name: 'حسابات الاستوديو' }),
-    ).toHaveAttribute('href', '/users');
+    expect(within(breadcrumb).getByRole('link', { name: 'حسابات الاستوديو' })).toHaveAttribute(
+      'href',
+      '/users',
+    );
     expect(screen.getByRole('heading', { name: 'إضافة حساب إداري' })).toHaveFocus();
   });
 

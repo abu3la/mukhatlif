@@ -156,6 +156,74 @@
   border-radius: var(--radius-control);
 }
 
+.studio-account-link {
+  display: flex;
+  align-items: center;
+  min-block-size: 38px;
+  margin-block-start: 8px;
+  padding: 7px 12px;
+  color: var(--ink-soft);
+  border-radius: var(--radius-control);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.studio-account-link:hover,
+.studio-account-link--active {
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+.account-security {
+  max-inline-size: 640px;
+}
+
+.account-security__header {
+  padding: 24px 28px;
+  border-block-end: 1px solid var(--line);
+}
+
+.account-security__header h2 {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.account-security__header p {
+  margin-block-start: 4px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.account-security__email {
+  display: block;
+  margin-block-start: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.account-security__form {
+  display: grid;
+  gap: 18px;
+  max-inline-size: 520px;
+  padding: 28px;
+}
+
+.account-security__form .notice {
+  margin-block-end: 0;
+}
+
+.account-security__submit {
+  justify-self: start;
+}
+
 .studio-sign-out-error {
   margin-block-start: 6px;
   color: var(--danger);
@@ -349,7 +417,9 @@
   line-height: 1.45;
   text-align: center;
   white-space: nowrap;
-  transition: background-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
 .permission-choice:hover span {

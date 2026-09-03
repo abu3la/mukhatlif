@@ -4,6 +4,7 @@ import { adminPaths, useAdminAuth } from '@/application';
 import {
   AdminAuthError,
   AdminRepositoryError,
+  MIN_ADMIN_PASSWORD_LENGTH,
   type AdminAuthGateway,
   type AdminInvitationState,
   type AdminRepository,
@@ -24,8 +25,6 @@ import { Button, Field, Input } from '@/shared/ui/primitives';
  * half-finished acceptance leaves a retryable pending invitation rather than an
  * active member who cannot sign in.
  */
-const MIN_PASSWORD_LENGTH = 12;
-
 function linkErrorMessage(error: unknown): string {
   if (error instanceof AdminAuthError) {
     if (error.code === 'EXPIRED_LINK') {
@@ -59,7 +58,7 @@ function acceptErrorMessage(error: unknown): string {
     if (error.code === 'CONFLICT') return 'قُبلت هذه الدعوة من قبل. سجّل الدخول بكلمة مرورك.';
     if (error.code === 'FORBIDDEN') return 'لا توجد دعوة مرتبطة بهذا الحساب.';
     if (error.code === 'VALIDATION') {
-      return `كلمة المرور لا تحقق الحد الأدنى: ${MIN_PASSWORD_LENGTH} محرفًا على الأقل.`;
+      return `كلمة المرور لا تحقق الحد الأدنى: ${MIN_ADMIN_PASSWORD_LENGTH} محرفًا على الأقل.`;
     }
   }
   return 'تعذّر إكمال الدعوة. حاول مرة أخرى.';
@@ -202,8 +201,7 @@ export function InviteView({
             ) : null}
             <div className="auth-form">
               <p className="invite-hint">
-                إذا لم يصلك الرابط أو انتهت صلاحيته، اطلب من مسؤول الاستوديو إرسال دعوة
-                جديدة.
+                إذا لم يصلك الرابط أو انتهت صلاحيته، اطلب من مسؤول الاستوديو إرسال دعوة جديدة.
               </p>
               <Link className="back-link invite-return-link" to={adminPaths.login}>
                 العودة إلى تسجيل الدخول
@@ -225,7 +223,7 @@ export function InviteView({
                 ) : null}
               </p>
             ) : null}
-            <Field label={`كلمة المرور (${MIN_PASSWORD_LENGTH} محرفًا على الأقل)`}>
+            <Field label={`كلمة المرور (${MIN_ADMIN_PASSWORD_LENGTH} محرفًا على الأقل)`}>
               <Input
                 type="password"
                 name="new-password"
@@ -233,7 +231,7 @@ export function InviteView({
                 dir="ltr"
                 lang="en"
                 autoComplete="new-password"
-                minLength={MIN_PASSWORD_LENGTH}
+                minLength={MIN_ADMIN_PASSWORD_LENGTH}
                 required
                 disabled={busy}
                 onChange={(event) => setPassword(event.target.value)}
@@ -261,7 +259,7 @@ export function InviteView({
               className="auth-form__submit"
               type="submit"
               variant="primary"
-              disabled={busy || password.length < MIN_PASSWORD_LENGTH}
+              disabled={busy || password.length < MIN_ADMIN_PASSWORD_LENGTH}
               aria-busy={busy}
             >
               {busy ? 'جارٍ الحفظ…' : 'حفظ كلمة المرور والدخول'}

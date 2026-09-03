@@ -129,6 +129,7 @@ function TestProviders({
       isSubmitting: false,
       demoAccounts: [],
       signIn: vi.fn(),
+      changePassword: vi.fn(),
       signOut: vi.fn(),
       retry: vi.fn(),
     }),
@@ -149,14 +150,22 @@ describe('dynamic role pages', () => {
   it('shows a role directory with one link per role instead of a matrix', () => {
     const { container } = render(
       <TestProviders>
-        <MemoryRouter><RolesView /></MemoryRouter>
+        <MemoryRouter>
+          <RolesView />
+        </MemoryRouter>
       </TestProviders>,
     );
 
     expect(screen.getByRole('heading', { name: 'الأدوار والصلاحيات' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'دور جديد' })).toHaveAttribute('href', '/roles/new');
-    expect(screen.getByRole('link', { name: 'المشرف العام' })).toHaveAttribute('href', '/roles/admin');
-    expect(screen.getByRole('link', { name: 'مراجع المحتوى' })).toHaveAttribute('href', '/roles/reviewer');
+    expect(screen.getByRole('link', { name: 'المشرف العام' })).toHaveAttribute(
+      'href',
+      '/roles/admin',
+    );
+    expect(screen.getByRole('link', { name: 'مراجع المحتوى' })).toHaveAttribute(
+      'href',
+      '/roles/reviewer',
+    );
     expect(screen.getByText('عدد حسابات الاستوديو: 3')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(container.textContent).not.toMatch(/[٠-٩۰-۹]/);
@@ -188,18 +197,23 @@ describe('dynamic role pages', () => {
 
     expect(screen.getByRole('heading', { name: 'دور جديد' })).toHaveFocus();
     const breadcrumb = screen.getByRole('navigation', { name: 'مسار الصفحة' });
-    expect(within(breadcrumb).getByRole('link', { name: 'الأدوار والصلاحيات' })).toHaveAttribute('href', '/roles');
+    expect(within(breadcrumb).getByRole('link', { name: 'الأدوار والصلاحيات' })).toHaveAttribute(
+      'href',
+      '/roles',
+    );
     await user.type(screen.getByRole('textbox', { name: 'اسم الدور' }), 'مراجع البرامج');
     await user.type(screen.getByRole('textbox', { name: /الوصف/ }), 'يراجع البرامج قبل نشرها.');
     const shows = screen.getByRole('group', { name: 'البرامج' });
     await user.click(within(shows).getByRole('radio', { name: 'إدارة' }));
     await user.click(screen.getByRole('button', { name: 'إنشاء الدور' }));
 
-    await waitFor(() => expect(onCreate).toHaveBeenCalledWith({
-      name: 'مراجع البرامج',
-      description: 'يراجع البرامج قبل نشرها.',
-      permissions: ['shows.view', 'shows.manage'],
-    }));
+    await waitFor(() =>
+      expect(onCreate).toHaveBeenCalledWith({
+        name: 'مراجع البرامج',
+        description: 'يراجع البرامج قبل نشرها.',
+        permissions: ['shows.view', 'shows.manage'],
+      }),
+    );
     expect(await screen.findByText('صفحة الدور المنشأ')).toBeInTheDocument();
   });
 
@@ -212,7 +226,9 @@ describe('dynamic role pages', () => {
     const view = render(
       <TestProviders onUpdate={onUpdate}>
         <MemoryRouter initialEntries={['/roles/reviewer']}>
-          <Routes><Route path="/roles/:roleId" element={<RoleDetailsView />} /></Routes>
+          <Routes>
+            <Route path="/roles/:roleId" element={<RoleDetailsView />} />
+          </Routes>
         </MemoryRouter>
       </TestProviders>,
     );
@@ -221,17 +237,21 @@ describe('dynamic role pages', () => {
     const articles = screen.getByRole('group', { name: 'المقالات' });
     await user.click(within(articles).getByRole('radio', { name: 'عرض فقط' }));
     await user.click(screen.getByRole('button', { name: 'حفظ الصلاحيات' }));
-    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith('reviewer', [
-      'episodes.view',
-      'articles.view',
-    ]));
-    expect(await screen.findByText('حُفظت صلاحيات مراجع المحتوى.')).toHaveAttribute('role', 'status');
+    await waitFor(() =>
+      expect(onUpdate).toHaveBeenCalledWith('reviewer', ['episodes.view', 'articles.view']),
+    );
+    expect(await screen.findByText('حُفظت صلاحيات مراجع المحتوى.')).toHaveAttribute(
+      'role',
+      'status',
+    );
 
     view.unmount();
     render(
       <TestProviders>
         <MemoryRouter initialEntries={['/roles/admin']}>
-          <Routes><Route path="/roles/:roleId" element={<RoleDetailsView />} /></Routes>
+          <Routes>
+            <Route path="/roles/:roleId" element={<RoleDetailsView />} />
+          </Routes>
         </MemoryRouter>
       </TestProviders>,
     );
@@ -244,11 +264,16 @@ describe('dynamic role pages', () => {
     render(
       <TestProviders>
         <MemoryRouter initialEntries={['/roles/missing']}>
-          <Routes><Route path="/roles/:roleId" element={<RoleDetailsView />} /></Routes>
+          <Routes>
+            <Route path="/roles/:roleId" element={<RoleDetailsView />} />
+          </Routes>
         </MemoryRouter>
       </TestProviders>,
     );
     expect(screen.getByRole('heading', { name: 'الدور غير موجود' })).toHaveFocus();
-    expect(screen.getByRole('link', { name: 'العودة إلى الأدوار' })).toHaveAttribute('href', '/roles');
+    expect(screen.getByRole('link', { name: 'العودة إلى الأدوار' })).toHaveAttribute(
+      'href',
+      '/roles',
+    );
   });
 });

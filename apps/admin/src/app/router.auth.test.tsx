@@ -128,6 +128,42 @@ describe('admin auth routing', () => {
     expect(screen.queryByRole('link', { name: 'المقالات' })).not.toBeInTheDocument();
   });
 
+  it('lets an authenticated member choose a new password from account security', async () => {
+    const user = userEvent.setup();
+    const { gateway } = await renderRoute('/account', 0);
+    const account = FIXTURE_ADMIN_ACCOUNTS[0];
+    const nextPassword = 'A-new-secure-password-2026!';
+
+    expect(await screen.findByRole('heading', { name: 'أمان الحساب' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'أمان الحساب' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.queryByLabelText('كلمة المرور الحالية')).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/كلمة المرور الجديدة/), nextPassword);
+    await user.type(screen.getByLabelText('تأكيد كلمة المرور'), `${nextPassword}x`);
+    await user.click(screen.getByRole('button', { name: 'حفظ كلمة المرور' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('كلمتا المرور غير متطابقتين.');
+
+    await user.clear(screen.getByLabelText('تأكيد كلمة المرور'));
+    await user.type(screen.getByLabelText('تأكيد كلمة المرور'), nextPassword);
+    await user.click(screen.getByRole('button', { name: 'حفظ كلمة المرور' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'حُفظت كلمة المرور. استخدمها عند تسجيل الدخول القادم.',
+    );
+    expect(screen.getByLabelText(/كلمة المرور الجديدة/)).toHaveValue('');
+    expect(screen.getByLabelText('تأكيد كلمة المرور')).toHaveValue('');
+
+    await gateway.signOut();
+    await expect(gateway.signInWithPassword(account.email, account.password)).rejects.toMatchObject(
+      {
+        code: 'INVALID_CREDENTIALS',
+      },
+    );
+    await expect(gateway.signInWithPassword(account.email, nextPassword)).resolves.toBeTruthy();
+  });
+
   it('lets a subscriber viewer open the newsletter directory as a separate Studio page', async () => {
     const permissions = createDefaultRolePermissionMatrix();
     permissions.editor = ['subscribers.view'];

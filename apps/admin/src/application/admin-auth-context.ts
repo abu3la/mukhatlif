@@ -2,12 +2,7 @@ import { createContext, useContext } from 'react';
 import type { DemoAdminAccount } from '@/data';
 import type { AdminViewer } from '@/lib';
 
-export type AdminAuthStatus =
-  | 'restoring'
-  | 'signed-out'
-  | 'authenticated'
-  | 'denied'
-  | 'error';
+export type AdminAuthStatus = 'restoring' | 'signed-out' | 'authenticated' | 'denied' | 'error';
 
 export interface AdminAuthContextValue {
   readonly status: AdminAuthStatus;
@@ -17,6 +12,7 @@ export interface AdminAuthContextValue {
   readonly isSubmitting: boolean;
   readonly demoAccounts: readonly DemoAdminAccount[];
   signIn(email: string, password: string): Promise<void>;
+  changePassword(password: string): Promise<void>;
   signOut(): Promise<void>;
   retry(): Promise<void>;
 }

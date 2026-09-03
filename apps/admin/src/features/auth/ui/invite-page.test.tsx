@@ -51,6 +51,7 @@ function authStub(overrides: Partial<AdminAuthContextValue> = {}): AdminAuthCont
     isSubmitting: false,
     demoAccounts: [],
     signIn: async () => undefined,
+    changePassword: async () => undefined,
     signOut: async () => undefined,
     retry: vi.fn(async () => undefined),
     ...overrides,
@@ -161,9 +162,7 @@ describe('invitation acceptance', () => {
     const repository = repositoryStub(INVITED);
     renderInvite(gateway, repository);
 
-    expect(
-      await screen.findByText('تُرسل الدعوات من داخل الاستوديو فقط.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('تُرسل الدعوات من داخل الاستوديو فقط.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'العودة إلى تسجيل الدخول' })).toHaveAttribute(
       'href',
       '/login',

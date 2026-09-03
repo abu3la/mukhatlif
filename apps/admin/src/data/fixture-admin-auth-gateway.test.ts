@@ -46,6 +46,24 @@ describe('FixtureAdminAuthGateway', () => {
     expect(gateway.getCurrentSession()).toBeNull();
   });
 
+  it('changes only the authenticated fixture account password', async () => {
+    const gateway = new FixtureAdminAuthGateway({ storage });
+    const account = FIXTURE_ADMIN_ACCOUNTS[0];
+    const nextPassword = 'A-new-secure-password-2026!';
+    await gateway.signInWithPassword(account.email, account.password);
+
+    await gateway.changePassword(nextPassword);
+    await gateway.signOut();
+
+    await expect(gateway.signInWithPassword(account.email, account.password)).rejects.toMatchObject(
+      { code: 'INVALID_CREDENTIALS' } satisfies Partial<AdminAuthError>,
+    );
+    await expect(gateway.signInWithPassword(account.email, nextPassword)).resolves.toMatchObject({
+      subject: { id: account.id },
+    });
+    expect(gateway.demoAccounts[1]?.password).toBe(FIXTURE_ADMIN_ACCOUNTS[1].password);
+  });
+
   it('registers and authenticates a created local account without changing seed accounts', async () => {
     const gateway = new FixtureAdminAuthGateway({ storage });
     const seedCount = gateway.demoAccounts.length;
@@ -67,10 +85,7 @@ describe('FixtureAdminAuthGateway', () => {
     });
     expect(gateway.demoAccounts).toHaveLength(seedCount + 1);
     await expect(
-      gateway.signInWithPassword(
-        'MAHA.SALEM@EXAMPLE.COM',
-        FIXTURE_CREATED_ACCOUNT_PASSWORD,
-      ),
+      gateway.signInWithPassword('MAHA.SALEM@EXAMPLE.COM', FIXTURE_CREATED_ACCOUNT_PASSWORD),
     ).resolves.toMatchObject({
       subject: {
         id: 'user_created_local',
@@ -117,12 +132,13 @@ describe('FixtureAdminAuthGateway', () => {
     );
     await gateway.signOut();
 
-    expect(listener).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      subject: expect.objectContaining({ id: FIXTURE_ADMIN_ACCOUNTS[1].id }),
-    }));
+    expect(listener).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        subject: expect.objectContaining({ id: FIXTURE_ADMIN_ACCOUNTS[1].id }),
+      }),
+    );
     expect(listener).toHaveBeenLastCalledWith(null);
-    await expect(
-      new FixtureAdminAuthGateway({ storage }).restoreSession(),
-    ).resolves.toBeNull();
+    await expect(new FixtureAdminAuthGateway({ storage }).restoreSession()).resolves.toBeNull();
   });
 });

@@ -162,6 +162,13 @@ export function StudioShell({
                 <span>{viewer.roleName}</span>
               </div>
             </div>
+            <Link
+              to={adminPaths.account}
+              className={`studio-account-link ${pathname === adminPaths.account ? 'studio-account-link--active' : ''}`}
+              aria-current={pathname === adminPaths.account ? 'page' : undefined}
+            >
+              أمان الحساب
+            </Link>
             <Button
               className="studio-sign-out"
               type="button"

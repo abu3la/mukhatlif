@@ -1,9 +1,5 @@
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
-import {
-  AdminAuthError,
-  type AdminAuthGateway,
-  type AdminAuthSession,
-} from './admin-auth-gateway';
+import { AdminAuthError, type AdminAuthGateway, type AdminAuthSession } from './admin-auth-gateway';
 
 export interface SupabaseAdminAuthGatewayConfig {
   readonly url: string;
@@ -19,9 +15,9 @@ function hasSupabaseInvitationSessionInUrl(): boolean {
     type === 'invite' &&
     Boolean(
       fragment.get('access_token') &&
-        fragment.get('refresh_token') &&
-        fragment.get('expires_in') &&
-        fragment.get('token_type'),
+      fragment.get('refresh_token') &&
+      fragment.get('expires_in') &&
+      fragment.get('token_type'),
     )
   );
 }
@@ -47,6 +43,15 @@ function mapAuthError(error: { message: string; status?: number; code?: string }
   }
   if (normalized.includes('otp') || normalized.includes('token')) {
     return new AdminAuthError('INVALID_LINK', error.message);
+  }
+  if (
+    normalized.includes('weak_password') ||
+    (normalized.includes('password') &&
+      (normalized.includes('weak') ||
+        normalized.includes('characters') ||
+        normalized.includes('guessable')))
+  ) {
+    return new AdminAuthError('WEAK_PASSWORD', error.message);
   }
   if (
     error.status === 400 ||
@@ -136,6 +141,11 @@ export class SupabaseAdminAuthGateway implements AdminAuthGateway {
     }
     this.session = session;
     return session;
+  }
+
+  async changePassword(password: string): Promise<void> {
+    const { error } = await this.client.auth.updateUser({ password });
+    if (error) throw mapAuthError(error);
   }
 
   async verifyEmailLink(tokenHash: string): Promise<AdminAuthSession> {

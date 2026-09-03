@@ -88,10 +88,7 @@ export class FixtureAdminAuthGateway implements AdminAuthGateway {
     return { ...registered };
   }
 
-  updateAccountRole(
-    id: string,
-    role: DemoAdminAccount['role'],
-  ): DemoAdminAccount | null {
+  updateAccountRole(id: string, role: DemoAdminAccount['role']): DemoAdminAccount | null {
     const index = this.accounts.findIndex((account) => account.id === id);
     if (index < 0) return null;
     const updated: DemoAdminAccount = { ...this.accounts[index], role };
@@ -140,6 +137,15 @@ export class FixtureAdminAuthGateway implements AdminAuthGateway {
     this.writeStoredId(account.id);
     this.emit();
     return this.session;
+  }
+
+  async changePassword(password: string): Promise<void> {
+    const subjectId = this.session?.subject.id;
+    const index = this.accounts.findIndex((account) => account.id === subjectId);
+    if (index < 0) {
+      throw new AdminAuthError('INVALID_CREDENTIALS', 'No authenticated fixture account.');
+    }
+    this.accounts[index] = { ...this.accounts[index], password };
   }
 
   /**

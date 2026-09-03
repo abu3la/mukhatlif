@@ -9,6 +9,10 @@ import { SupabaseAdminAuthGateway } from './supabase-admin-auth-gateway';
 
 function createSupabaseClientMock(
   getSession: () => Promise<unknown> = async () => ({ data: { session: null }, error: null }),
+  updateUser: (attributes: { password: string }) => Promise<unknown> = async () => ({
+    data: { user: null },
+    error: null,
+  }),
 ) {
   const onAuthStateChange = vi.fn(() => ({
     data: { subscription: { unsubscribe: vi.fn() } },
@@ -18,10 +22,12 @@ function createSupabaseClientMock(
     client: {
       auth: {
         getSession,
+        updateUser,
         onAuthStateChange,
       },
     } as unknown as SupabaseClient,
     getSession,
+    updateUser,
   };
 }
 
@@ -49,17 +55,13 @@ describe('SupabaseAdminAuthGateway', () => {
       anonKey: 'anon-key',
     });
 
-    expect(createClientMock).toHaveBeenCalledWith(
-      'https://project.supabase.co',
-      'anon-key',
-      {
-        auth: {
-          autoRefreshToken: true,
-          detectSessionInUrl: true,
-          persistSession: true,
-        },
+    expect(createClientMock).toHaveBeenCalledWith('https://project.supabase.co', 'anon-key', {
+      auth: {
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        persistSession: true,
       },
-    );
+    });
   });
 
   it('does not detect a session when /invite is opened normally', async () => {
@@ -152,5 +154,33 @@ describe('SupabaseAdminAuthGateway', () => {
     );
 
     await expect(gateway.restoreInvitationSession()).resolves.toBeNull();
+  });
+
+  it('changes the password through the current Supabase Auth session', async () => {
+    const updateUser = vi.fn(async () => ({ data: { user: { id: 'auth-1' } }, error: null }));
+    const { client } = createSupabaseClientMock(undefined, updateUser);
+    const gateway = new SupabaseAdminAuthGateway(
+      { url: 'https://project.supabase.co', anonKey: 'anon-key' },
+      client,
+    );
+
+    await expect(gateway.changePassword('A-new-secure-password-2026!')).resolves.toBeUndefined();
+    expect(updateUser).toHaveBeenCalledWith({ password: 'A-new-secure-password-2026!' });
+  });
+
+  it('maps a rejected password to a recoverable weak-password error', async () => {
+    const updateUser = vi.fn(async () => ({
+      data: { user: null },
+      error: { code: 'weak_password', message: 'Password is too weak', status: 422 },
+    }));
+    const { client } = createSupabaseClientMock(undefined, updateUser);
+    const gateway = new SupabaseAdminAuthGateway(
+      { url: 'https://project.supabase.co', anonKey: 'anon-key' },
+      client,
+    );
+
+    await expect(gateway.changePassword('weak-password')).rejects.toMatchObject({
+      code: 'WEAK_PASSWORD',
+    });
   });
 });
