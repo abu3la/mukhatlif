@@ -12,7 +12,7 @@ const STORAGE_KEY = 'mukhtalif-admin.fixture-session.v1';
  * used by the Hono or Supabase authentication paths.
  */
 export const FIXTURE_CREATED_ACCOUNT_PASSWORD = 'MukhtalifDemo2026!';
-export const FIXTURE_PASSWORD_VERIFICATION_CODE = '246810';
+export const FIXTURE_PASSWORD_VERIFICATION_CODE = '24681012';
 
 export const FIXTURE_ADMIN_ACCOUNTS = [
   {

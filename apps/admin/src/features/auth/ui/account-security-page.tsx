@@ -3,7 +3,8 @@ import { useAdminAuth } from '@/application';
 import { AdminAuthError, MIN_ADMIN_PASSWORD_LENGTH } from '@/data';
 import { Button, Field, Input, PageHeader } from '@/shared/ui/primitives';
 
-const VERIFICATION_CODE_LENGTH = 6;
+const MIN_VERIFICATION_CODE_LENGTH = 6;
+const MAX_VERIFICATION_CODE_LENGTH = 10;
 
 function passwordErrorMessage(error: unknown, action: 'send' | 'save'): string {
   if (error instanceof AdminAuthError) {
@@ -35,7 +36,11 @@ function normalizeVerificationCode(value: string): string {
     .replace(/[٠-٩]/g, (digit) => String(arabicDigits.indexOf(digit)))
     .replace(/[۰-۹]/g, (digit) => String(persianDigits.indexOf(digit)))
     .replace(/\D/g, '')
-    .slice(0, VERIFICATION_CODE_LENGTH);
+    .slice(0, MAX_VERIFICATION_CODE_LENGTH);
+}
+
+function isCompleteVerificationCode(value: string): boolean {
+  return /^\d{6,10}$/.test(value);
 }
 
 export function AccountSecurityView() {
@@ -66,8 +71,8 @@ export function AccountSecurityView() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     clearFeedback();
-    if (!/^\d{6}$/.test(verificationCode)) {
-      setError('أدخل رمز التحقق المكوّن من 6 أرقام.');
+    if (!isCompleteVerificationCode(verificationCode)) {
+      setError('أدخل رمز التحقق كاملًا كما ورد في البريد.');
       return;
     }
     if (password.length < MIN_ADMIN_PASSWORD_LENGTH) {
@@ -139,10 +144,10 @@ export function AccountSecurityView() {
             onSubmit={(event) => void submit(event)}
           >
             <p className="notice notice--success" role="status">
-              أرسلنا رمزًا من 6 أرقام إلى بريدك.
+              أرسلنا رمز تحقق إلى بريدك.
             </p>
 
-            <Field label="رمز التحقق" hint="أدخل الرمز المكوّن من 6 أرقام.">
+            <Field label="رمز التحقق" hint="أدخل الرمز كما ورد في البريد.">
               <Input
                 className="account-security__code"
                 type="text"
@@ -152,8 +157,9 @@ export function AccountSecurityView() {
                 lang="en"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                pattern="[0-9]{6}"
-                maxLength={VERIFICATION_CODE_LENGTH}
+                pattern="[0-9]{6,10}"
+                minLength={MIN_VERIFICATION_CODE_LENGTH}
+                maxLength={MAX_VERIFICATION_CODE_LENGTH}
                 required
                 disabled={auth.isSubmitting}
                 onChange={updateVerificationCode}
@@ -210,7 +216,7 @@ export function AccountSecurityView() {
                 variant="primary"
                 disabled={
                   auth.isSubmitting ||
-                  verificationCode.length !== VERIFICATION_CODE_LENGTH ||
+                  !isCompleteVerificationCode(verificationCode) ||
                   password.length < MIN_ADMIN_PASSWORD_LENGTH ||
                   confirmation.length < MIN_ADMIN_PASSWORD_LENGTH
                 }

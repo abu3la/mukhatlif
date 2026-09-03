@@ -144,10 +144,8 @@ describe('admin auth routing', () => {
     expect(screen.queryByLabelText(/كلمة المرور الجديدة/)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'إرسال رمز التحقق' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'أرسلنا رمزًا من 6 أرقام إلى بريدك.',
-    );
-    await user.type(screen.getByLabelText(/رمز التحقق/), '٢٤٦٨١٠');
+    expect(await screen.findByRole('status')).toHaveTextContent('أرسلنا رمز تحقق إلى بريدك.');
+    await user.type(screen.getByLabelText(/رمز التحقق/), '٢٤٦٨١٠١٢');
     expect(screen.getByLabelText(/رمز التحقق/)).toHaveValue(FIXTURE_PASSWORD_VERIFICATION_CODE);
 
     await user.type(screen.getByLabelText(/كلمة المرور الجديدة/), nextPassword);
