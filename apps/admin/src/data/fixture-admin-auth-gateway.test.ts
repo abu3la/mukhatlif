@@ -4,6 +4,7 @@ import type { AdminAuthError } from './admin-auth-gateway';
 import {
   FIXTURE_ADMIN_ACCOUNTS,
   FIXTURE_CREATED_ACCOUNT_PASSWORD,
+  FIXTURE_PASSWORD_VERIFICATION_CODE,
   FixtureAdminAuthGateway,
 } from './fixture-admin-auth-gateway';
 
@@ -52,7 +53,11 @@ describe('FixtureAdminAuthGateway', () => {
     const nextPassword = 'A-new-secure-password-2026!';
     await gateway.signInWithPassword(account.email, account.password);
 
-    await gateway.changePassword(nextPassword);
+    await gateway.requestPasswordChangeVerification();
+    await expect(gateway.changePassword(nextPassword, '000000')).rejects.toMatchObject({
+      code: 'INVALID_VERIFICATION_CODE',
+    } satisfies Partial<AdminAuthError>);
+    await gateway.changePassword(nextPassword, FIXTURE_PASSWORD_VERIFICATION_CODE);
     await gateway.signOut();
 
     await expect(gateway.signInWithPassword(account.email, account.password)).rejects.toMatchObject(

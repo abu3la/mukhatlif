@@ -30,6 +30,7 @@ function createAuthValue(permissions: PermissionId[]): AdminAuthContextValue {
     demoAccounts: [],
     signIn: vi.fn(async () => undefined),
     changePassword: vi.fn(async () => undefined),
+    requestPasswordChangeVerification: vi.fn(async () => undefined),
     signOut: vi.fn(async () => undefined),
     retry: vi.fn(async () => undefined),
   };

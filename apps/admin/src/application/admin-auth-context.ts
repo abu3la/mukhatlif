@@ -12,7 +12,8 @@ export interface AdminAuthContextValue {
   readonly isSubmitting: boolean;
   readonly demoAccounts: readonly DemoAdminAccount[];
   signIn(email: string, password: string): Promise<void>;
-  changePassword(password: string): Promise<void>;
+  requestPasswordChangeVerification(): Promise<void>;
+  changePassword(password: string, verificationCode: string): Promise<void>;
   signOut(): Promise<void>;
   retry(): Promise<void>;
 }

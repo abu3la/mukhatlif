@@ -7,6 +7,7 @@ import { createDefaultRolePermissionMatrix, type RolePermissionMatrix } from '@m
 import {
   FIXTURE_ADMIN_ACCOUNTS,
   FIXTURE_CREATED_ACCOUNT_PASSWORD,
+  FIXTURE_PASSWORD_VERIFICATION_CODE,
   FixtureAdminAuthGateway,
   createFixtureAdminRepository,
   type AdminRepository,
@@ -140,6 +141,14 @@ describe('admin auth routing', () => {
       'page',
     );
     expect(screen.queryByLabelText('كلمة المرور الحالية')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/كلمة المرور الجديدة/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'إرسال رمز التحقق' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'أرسلنا رمزًا من 6 أرقام إلى بريدك.',
+    );
+    await user.type(screen.getByLabelText(/رمز التحقق/), '٢٤٦٨١٠');
+    expect(screen.getByLabelText(/رمز التحقق/)).toHaveValue(FIXTURE_PASSWORD_VERIFICATION_CODE);
 
     await user.type(screen.getByLabelText(/كلمة المرور الجديدة/), nextPassword);
     await user.type(screen.getByLabelText('تأكيد كلمة المرور'), `${nextPassword}x`);
@@ -153,8 +162,9 @@ describe('admin auth routing', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'حُفظت كلمة المرور. استخدمها عند تسجيل الدخول القادم.',
     );
-    expect(screen.getByLabelText(/كلمة المرور الجديدة/)).toHaveValue('');
-    expect(screen.getByLabelText('تأكيد كلمة المرور')).toHaveValue('');
+    expect(screen.queryByLabelText(/رمز التحقق/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/كلمة المرور الجديدة/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('تأكيد كلمة المرور')).not.toBeInTheDocument();
 
     await gateway.signOut();
     await expect(gateway.signInWithPassword(account.email, account.password)).rejects.toMatchObject(

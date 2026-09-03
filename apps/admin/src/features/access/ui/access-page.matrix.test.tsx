@@ -130,6 +130,7 @@ function TestProviders({
       demoAccounts: [],
       signIn: vi.fn(),
       changePassword: vi.fn(),
+      requestPasswordChangeVerification: vi.fn(),
       signOut: vi.fn(),
       retry: vi.fn(),
     }),

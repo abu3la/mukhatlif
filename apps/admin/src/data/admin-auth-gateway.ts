@@ -23,6 +23,7 @@ export interface DemoAdminAccount extends AdminAuthSubject {
 
 export type AdminAuthErrorCode =
   | 'INVALID_CREDENTIALS'
+  | 'INVALID_VERIFICATION_CODE'
   | 'INVALID_LINK'
   | 'EXPIRED_LINK'
   | 'WEAK_PASSWORD'
@@ -54,7 +55,8 @@ export interface AdminAuthGateway {
    */
   restoreInvitationSession(): Promise<AdminAuthSession | null>;
   signInWithPassword(email: string, password: string): Promise<AdminAuthSession>;
-  changePassword(password: string): Promise<void>;
+  requestPasswordChangeVerification(): Promise<void>;
+  changePassword(password: string, verificationCode: string): Promise<void>;
   /**
    * Exchanges the token an invitation link carries for a session. This is the
    * only way an invited person can authenticate: they have no password until

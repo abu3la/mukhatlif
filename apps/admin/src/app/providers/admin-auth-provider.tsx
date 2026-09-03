@@ -121,11 +121,20 @@ export function AdminAuthProvider({
     }
   }, [authGateway, resolveSession]);
 
+  const requestPasswordChangeVerification = useCallback(async (): Promise<void> => {
+    setIsSubmitting(true);
+    try {
+      await authGateway.requestPasswordChangeVerification();
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [authGateway]);
+
   const changePassword = useCallback(
-    async (password: string): Promise<void> => {
+    async (password: string, verificationCode: string): Promise<void> => {
       setIsSubmitting(true);
       try {
-        await authGateway.changePassword(password);
+        await authGateway.changePassword(password, verificationCode);
       } finally {
         setIsSubmitting(false);
       }
@@ -150,11 +159,21 @@ export function AdminAuthProvider({
       isSubmitting,
       demoAccounts: authGateway.demoAccounts,
       signIn,
+      requestPasswordChangeVerification,
       changePassword,
       signOut,
       retry,
     }),
-    [authGateway.demoAccounts, changePassword, isSubmitting, retry, signIn, signOut, state],
+    [
+      authGateway.demoAccounts,
+      changePassword,
+      isSubmitting,
+      requestPasswordChangeVerification,
+      retry,
+      signIn,
+      signOut,
+      state,
+    ],
   );
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;

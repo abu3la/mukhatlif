@@ -52,6 +52,7 @@ function authStub(overrides: Partial<AdminAuthContextValue> = {}): AdminAuthCont
     demoAccounts: [],
     signIn: async () => undefined,
     changePassword: async () => undefined,
+    requestPasswordChangeVerification: async () => undefined,
     signOut: async () => undefined,
     retry: vi.fn(async () => undefined),
     ...overrides,

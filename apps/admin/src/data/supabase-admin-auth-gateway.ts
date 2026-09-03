@@ -66,6 +66,23 @@ function mapAuthError(error: { message: string; status?: number; code?: string }
   return new AdminAuthError('UNKNOWN', error.message);
 }
 
+function mapPasswordVerificationError(error: {
+  message: string;
+  status?: number;
+  code?: string;
+}): AdminAuthError {
+  const normalized = `${error.code ?? ''} ${error.message}`.toLowerCase();
+  if (
+    normalized.includes('reauthenticat') ||
+    normalized.includes('nonce') ||
+    normalized.includes('otp') ||
+    normalized.includes('token')
+  ) {
+    return new AdminAuthError('INVALID_VERIFICATION_CODE', error.message);
+  }
+  return mapAuthError(error);
+}
+
 export class SupabaseAdminAuthGateway implements AdminAuthGateway {
   readonly kind = 'supabase' as const;
   readonly demoAccounts = [] as const;
@@ -143,9 +160,17 @@ export class SupabaseAdminAuthGateway implements AdminAuthGateway {
     return session;
   }
 
-  async changePassword(password: string): Promise<void> {
-    const { error } = await this.client.auth.updateUser({ password });
+  async requestPasswordChangeVerification(): Promise<void> {
+    const { error } = await this.client.auth.reauthenticate();
     if (error) throw mapAuthError(error);
+  }
+
+  async changePassword(password: string, verificationCode: string): Promise<void> {
+    const { error } = await this.client.auth.updateUser({
+      password,
+      nonce: verificationCode.trim(),
+    });
+    if (error) throw mapPasswordVerificationError(error);
   }
 
   async verifyEmailLink(tokenHash: string): Promise<AdminAuthSession> {
