@@ -7,6 +7,9 @@
   },
   "scripts": {
     "build": "turbo build",
+    "build:hostinger:api": "pnpm --filter @mukhtalif/api build:hostinger",
+    "build:hostinger:studio": "pnpm --filter @mukhtalif/admin build:hostinger",
+    "build:hostinger:web": "pnpm --filter @mukhtalif/web build:hostinger",
     "dev": "turbo dev",
     "env:sync": "node scripts/sync-local-env.mjs",
     "format": "prettier --write .",
