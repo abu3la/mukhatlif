@@ -85,6 +85,7 @@ export function AccountSecurityView() {
               disabled={auth.isSubmitting}
               onChange={(event) => {
                 setPassword(event.target.value);
+                setError('');
                 setSaved(false);
               }}
             />
@@ -102,6 +103,7 @@ export function AccountSecurityView() {
               disabled={auth.isSubmitting}
               onChange={(event) => {
                 setConfirmation(event.target.value);
+                setError('');
                 setSaved(false);
               }}
             />

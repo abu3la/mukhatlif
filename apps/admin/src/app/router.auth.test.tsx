@@ -147,6 +147,7 @@ describe('admin auth routing', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('كلمتا المرور غير متطابقتين.');
 
     await user.clear(screen.getByLabelText('تأكيد كلمة المرور'));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     await user.type(screen.getByLabelText('تأكيد كلمة المرور'), nextPassword);
     await user.click(screen.getByRole('button', { name: 'حفظ كلمة المرور' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
