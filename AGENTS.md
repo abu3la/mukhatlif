@@ -21,6 +21,64 @@ project, pass schema/data/Auth verification, and
 smoke-test API before Studio and Web. Stop instead of substituting development
 credentials or enabling automatic deployment.
 
+## Current working state and Saturday handoff
+
+Status saved on 2026-09-03. Resume this work on Saturday, 2026-09-05, from
+this section instead of reconstructing state from browser history or local env
+files.
+
+- The active integration branch is `dev` at `9ce7df3140b5`. `origin/dev` and
+  `abu3la/dev` point to the same commit. `origin/main` and `abu3la/main` remain
+  at `9eb60da7f7dd`; `dev` is four commits ahead. Do not merge or deploy those
+  commits to production without a new explicit release instruction.
+- Cloudflare is the isolated development runtime. The deployed API, Studio,
+  and Web origins are the three `*.mukhtalif-development.workers.dev` origins
+  listed below. Development API and Studio use Supabase project
+  `acomtixjibgkauzeltsn`, never the production project.
+- The development Studio account `aaahashmi95@gmail.com` is active. Studio's
+  account-security page now sends a Supabase reauthentication code before it
+  reveals the password fields and submits that code as the password-change
+  nonce. It accepts configured email OTP lengths from 6 through 10 digits and
+  normalizes Arabic and Persian numerals. The deployed Studio version is
+  `ea27aa35-a684-459a-8b46-1732f7473e24`.
+- Supabase `Mukhtalif-Dev` has **Secure password change** enabled and currently
+  has an email OTP length of 8 digits. No password or OTP is stored in this
+  repository. A browser operator must always perform the final password-change
+  submission personally.
+- Hostinger is the production runtime. `https://api.mukhtalif.net/health/live`,
+  `https://studio.mukhtalif.net/`, and the acceptance Web at
+  `https://staging.mukhtalif.net/` return HTTP 200. Staging intentionally tests
+  the production API, production Supabase project, and shared R2 before the
+  root Web cutover. `https://mukhtalif.net` remains outside the current cutover.
+- The production Supabase project is `pacpdxvujkjvnaeeuute`. Do not run a
+  development migration, importer, smoke write, or Studio build against it.
+  New schema work is written as a versioned migration, proved on
+  `acomtixjibgkauzeltsn`, reviewed, backed up, and only then applied manually to
+  production as part of an approved release.
+- Mailchimp subscriber sync and campaign sending remain paused. Keep
+  `NEWSLETTER_MAILCHIMP_SYNC_ENABLED=false` and
+  `MAILCHIMP_CAMPAIGNS_ENABLED=false` until the account subscription is renewed
+  and a separate enablement is approved.
+
+Saturday resume checklist:
+
+1. Let the user test the complete Studio password flow: request the email code,
+   enter the received 8-digit code and a new password, and personally submit the
+   final change. Never read, type, store, or submit the password or OTP for them.
+2. Create one uniquely named, no-index, newsletter-disabled draft article
+   through the Cloudflare development Studio. Prove it exists in development
+   only and that the production database fingerprint and matching slug remain
+   unchanged.
+3. Verify the Cloudflare API and Studio still resolve to
+   `acomtixjibgkauzeltsn`; verify staging and Hostinger still resolve to the
+   production API and `pacpdxvujkjvnaeeuute` before any write.
+4. Run the full repository verification workflow. Review the four commits ahead
+   of `main`, then merge `dev` to `main` only after explicit approval. A merge
+   remains verification eligibility, not deployment authorization.
+5. Keep all deploys manual. Do not enable automatic GitHub deployment, do not
+   change DNS, and do not cut over `mukhtalif.net` until the user explicitly
+   authorizes the final production Web release.
+
 ## GitHub source with manual deployment
 
 This monorepo is the only application source. Do not maintain a Hostinger copy,
@@ -60,7 +118,7 @@ Cloudflare production dependency is private R2 object storage.
 | Public web            | Cloudflare Worker: `web.mukhtalif-development.workers.dev`           | Hostinger acceptance: `https://staging.mukhtalif.net`; final cutover later: `https://mukhtalif.net` |
 | Studio                | Cloudflare Worker: `studio.mukhtalif-development.workers.dev`        | Hostinger: `https://studio.mukhtalif.net`                                                           |
 | API                   | Cloudflare Worker: `mukhtalif-api.mukhtalif-development.workers.dev` | Hostinger Node.js: `https://api.mukhtalif.net`                                                      |
-| Database and Auth     | Supabase project `pacpdxvujkjvnaeeuute`                              | Temporarily the same pinned project `pacpdxvujkjvnaeeuute` by explicit user decision                 |
+| Database and Auth     | Supabase project `acomtixjibgkauzeltsn`                              | Supabase project `pacpdxvujkjvnaeeuute`                                                             |
 | Audio and media bytes | Private Cloudflare R2 buckets                                        | The same R2 service, accessed from Hostinger through its S3-compatible API                          |
 | Form email            | Resend development key/domain                                        | Separate Resend production key/domain                                                               |
 | DNS authority         | Hostinger DNS for `mukhtalif.net`                                    | Hostinger DNS for `mukhtalif.net`                                                                   |
@@ -70,15 +128,13 @@ Cloudflare Workers are not a production fallback. Never point `mukhtalif.net`,
 Never persist a `workers.dev` URL in production article media, canonical URLs,
 email templates, redirects, or database rows.
 
-Temporary database exception, explicitly approved on 2026-09-03: do not create
-or purchase another Supabase project for this acceptance release. Hostinger API
-and Studio must pin `PRODUCTION_SUPABASE_PROJECT_REF=pacpdxvujkjvnaeeuute` and
-use that project's matching server/browser credentials. This means Cloudflare
-development and Hostinger share data and Auth: a write through either runtime is
-visible to both. Treat the database as production data from this point, take a
-verified backup before schema/data changes, and do not describe it as an
-isolated production database. A later split requires a separately approved
-clone/cutover plan.
+The earlier temporary shared-database decision was superseded on 2026-09-03.
+Cloudflare development must pin `acomtixjibgkauzeltsn`; Hostinger API and Studio
+must pin `PRODUCTION_SUPABASE_PROJECT_REF=pacpdxvujkjvnaeeuute` and use that
+project's matching server/browser credentials. Never copy live keys into Git or
+between the two environments. Staging Web is an acceptance surface over the
+production API and production data by design; it is not the Cloudflare
+development database.
 
 During the acceptance phase, Web uses `https://staging.mukhtalif.net` as its
 canonical origin and must emit both HTML robots metadata and an `X-Robots-Tag`
@@ -240,23 +296,29 @@ Status recorded 2026-09-03:
 - Resend DNS records for `devmail.mukhtalif.net` and `notify.mukhtalif.net` are
   present in Hostinger DNS and both domains are verified in Resend. Restricted,
   environment-specific API key creation still requires completion.
-- The Hostinger Node entry point and R2 S3 adapter are implemented and pass the
-  local API contract, build, startup, health, CORS, auth-boundary, and shutdown
-  checks. Live R2 credential/read/write verification on a Hostinger preview
-  remains required before the authorized release can complete.
-- Hostinger Web, Studio, and API production applications are not deployed yet.
-- The user explicitly selected the existing Supabase project
-  `pacpdxvujkjvnaeeuute` for this release. It already contains migrations
-  `0001` through `0022` and the imported content. The read-only pre-release
-  snapshot at `2026-09-02T21:11:39.842516Z` passed `pg_restore --list`, all 22
-  ledger checks, and 23 deployment checks with no failures. Authenticated live
-  verification remains required because the database is shared.
+- Hostinger API, Studio, and acceptance Web are deployed and return HTTP 200 on
+  their expected public origins. Production R2 media reads, authenticated
+  Studio actions, form routing, redirects, and rollback behavior still need one
+  recorded end-to-end acceptance pass before the root Web cutover.
+- Production remains on Supabase `pacpdxvujkjvnaeeuute`. Development now uses
+  the separate project `acomtixjibgkauzeltsn`; the old shared-database warning
+  is no longer current. Verify both refs immediately before every migration,
+  importer, build, or smoke write.
+- The production project contains migrations `0001` through `0022` and the
+  imported content. The read-only pre-release snapshot at
+  `2026-09-02T21:11:39.842516Z` passed `pg_restore --list`, all 22 ledger checks,
+  and 23 deployment checks with no failures. Take a new verified backup before
+  applying any migration created after `0022`.
+- Development password reauthentication is implemented, deployed, and enabled
+  in Supabase. The remaining check is a user-performed live password change with
+  the emailed OTP; agents must not perform the final submission.
 - The reviewed WordPress plan is applied to the canonical development Supabase
-  project `pacpdxvujkjvnaeeuute`: 56 articles, 238 ready media rows, 17 people,
-  56 bylines, 5 books, 378 source records, and 82 redirects. The post-apply
+  source that became production project `pacpdxvujkjvnaeeuute`: 56 articles,
+  238 ready media rows, 17 people, 56 bylines, 5 books, 378 source records, and
+  82 redirects. The post-apply
   database dry run reports zero mutations and all media references resolve.
   No second content import is required. The authorized Hostinger subdomain
-  cutover is incomplete. The root-domain cutover remains out of scope.
+  acceptance release is live; the root-domain cutover remains out of scope.
 
 Any agent completing one of these items must update this section and the linked
 runbook in the same change.
