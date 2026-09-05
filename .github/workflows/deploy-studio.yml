@@ -23,7 +23,7 @@ jobs:
     environment: production-studio
     env:
       RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-      RELEASE_DIR: ${{ runner.temp }}/studio-release
+      RELEASE_DIR: /tmp/studio-release-${{ github.run_id }}-${{ github.run_attempt }}
       VITE_ADMIN_DATA_SOURCE: hono
       VITE_API_URL: https://api.mukhtalif.net
       VITE_SUPABASE_URL: https://pacpdxvujkjvnaeeuute.supabase.co
