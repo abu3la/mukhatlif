@@ -148,10 +148,6 @@ export default async function HomePage() {
           </section>
         ) : null}
 
-        <div className="home-newsletter">
-          <NewsletterSignup apiOrigin={apiOrigin()} />
-        </div>
-
         {summary.latestArticles.length > 0 ? (
           <section className="content-section home-articles" aria-labelledby="home-articles">
             <div className="content-section__header">
@@ -169,6 +165,9 @@ export default async function HomePage() {
             </div>
           </section>
         ) : null}
+        <div className="home-newsletter">
+          <NewsletterSignup apiOrigin={apiOrigin()} />
+        </div>
       </div>
     </div>
   );
