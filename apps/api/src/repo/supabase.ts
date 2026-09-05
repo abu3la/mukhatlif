@@ -307,6 +307,7 @@ interface EpisodeRow {
   show_notes_en: string | null;
   audio_key: string | null;
   audio_url: string | null;
+  youtube_video_id?: string | null;
   duration_sec: number;
   episode_number: number;
   premium: boolean;
@@ -933,6 +934,7 @@ function toEpisode(row: EpisodeRow): Episode {
     showNotesEn: row.show_notes_en ?? undefined,
     audioKey: row.audio_key ?? undefined,
     audioUrl: row.audio_url ?? undefined,
+    youtubeVideoId: row.youtube_video_id ?? undefined,
     durationSec: row.duration_sec,
     episodeNumber: row.episode_number,
     premium: row.premium,
@@ -1086,6 +1088,7 @@ function episodePatch(input: Record<string, unknown>): Record<string, unknown> {
     showNotesAr: 'show_notes_ar',
     showNotesEn: 'show_notes_en',
     audioUrl: 'audio_url',
+    youtubeVideoId: 'youtube_video_id',
     durationSec: 'duration_sec',
     episodeNumber: 'episode_number',
     premium: 'premium',
@@ -1777,11 +1780,15 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
         toEpisode,
       );
     },
-    async setEpisodeAudioKey(id, audioKey) {
-      return single<EpisodeRow, Episode>(
-        db.from('episodes').update({ audio_key: audioKey }).eq('id', id).select().maybeSingle(),
-        toEpisode,
-      );
+    async setEpisodeAudioKey(id, audioKey, expectedAudioKey) {
+      let query = db.from('episodes').update({ audio_key: audioKey }).eq('id', id);
+      if (expectedAudioKey !== undefined) {
+        query =
+          expectedAudioKey === null
+            ? query.is('audio_key', null)
+            : query.eq('audio_key', expectedAudioKey);
+      }
+      return single<EpisodeRow, Episode>(query.select().maybeSingle(), toEpisode);
     },
 
     async listReadyMediaAssets() {

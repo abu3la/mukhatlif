@@ -113,10 +113,14 @@ export function resolveAudioMediaMimeType(
 }
 
 /**
- * Media type used when serving. A stored value outside the allowlist is
- * downgraded rather than echoed back, so rows written before this contract
- * existed still cannot be re-interpreted by a browser.
+ * Media type used when serving. Canonicalize the known legacy podcast aliases
+ * without rewriting their stored metadata or widening the upload allowlist.
+ * Other unrecognized values stay clamped so old objects cannot be served as
+ * active content.
  */
 export function safeAudioMediaContentType(stored: string | undefined): AudioMediaMimeType {
+  const base = stored?.split(';')[0]?.trim().toLowerCase();
+  if (base === 'audio/x-m4a') return 'audio/mp4';
+  if (base === 'audio/mp3') return 'audio/mpeg';
   return parseAudioMediaMimeType(stored) ?? 'audio/mpeg';
 }

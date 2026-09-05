@@ -60,7 +60,7 @@ function isPublicIp(value: string): boolean {
   return false;
 }
 
-function safeHttpsUrl(value: string): URL {
+export function safeHttpsUrl(value: string): URL {
   const url = new URL(value);
   if (url.protocol !== 'https:' || url.username || url.password || url.hash) {
     throw new Error('Redirect is not a credential-free HTTPS URL without a fragment');
@@ -68,7 +68,9 @@ function safeHttpsUrl(value: string): URL {
   return url;
 }
 
-async function publicAddress(hostnameValue: string): Promise<{ address: string; family: 4 | 6 }> {
+export async function publicAddress(
+  hostnameValue: string,
+): Promise<{ address: string; family: 4 | 6 }> {
   const hostname = hostnameValue.replace(/^\[|\]$/g, '').toLowerCase();
   if (
     !hostname ||

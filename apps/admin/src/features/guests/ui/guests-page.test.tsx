@@ -68,6 +68,7 @@ function createStudioValue(
     updateArticle: vi.fn(async () => demoData.articles[0]!),
     transitionEpisodeStatus: vi.fn(async () => undefined),
     saveEpisode: vi.fn(async () => demoData.episodes[0]!.id),
+    uploadEpisodeAudio: vi.fn(async () => demoData.episodes[0]!.id),
     transitionArticleStatus: vi.fn(async () => demoData.articles[0]!),
     getMailchimpCapability: vi.fn(async () => ({ mode: 'simulation' as const, configured: true })),
     previewArticleNewsletter: vi.fn(async () => ({ subject: 'نشرة', html: '', text: '' })),

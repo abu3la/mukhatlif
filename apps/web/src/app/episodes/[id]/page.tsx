@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Episode, Show } from '@mukhtalif/types';
 import { EpisodeRow } from '@/components/cards';
+import { EpisodeVideo } from '@/components/episode-video';
 import {
   dateTimeAttribute,
   formatDate,
@@ -76,16 +77,17 @@ export default async function EpisodePage({ params }: Params) {
   const standfirst = paragraphs.length > 1 ? paragraphs[0] : '';
   const noteParagraphs = paragraphs.length > 1 ? paragraphs.slice(1) : paragraphs;
   const audioSrc = publicEpisodeAudioSrc(episode.id);
-  const playerEpisode: PlayerEpisode | null = audioSrc && !episode.premium
-    ? {
-        id: episode.id,
-        title: episode.titleAr,
-        showTitle: show?.titleAr,
-        href: `/episodes/${encodeURIComponent(episode.id)}`,
-        durationSec: episode.durationSec,
-        audioSrc,
-      }
-    : null;
+  const playerEpisode: PlayerEpisode | null =
+    audioSrc && !episode.premium
+      ? {
+          id: episode.id,
+          title: episode.titleAr,
+          showTitle: show?.titleAr,
+          href: `/episodes/${encodeURIComponent(episode.id)}`,
+          durationSec: episode.durationSec,
+          audioSrc,
+        }
+      : null;
 
   return (
     <div className="content-page">
@@ -112,7 +114,17 @@ export default async function EpisodePage({ params }: Params) {
           {standfirst ? <p className="episode-detail__standfirst">{standfirst}</p> : null}
         </header>
 
-        {playerEpisode ? <InlineEpisodePlayer episode={playerEpisode} /> : null}
+        {playerEpisode ? (
+          <section className="episode-audio-section" aria-labelledby="episode-audio-heading">
+            <h2 id="episode-audio-heading" className="episode-notes__title">
+              الاستماع للحلقة
+            </h2>
+            <InlineEpisodePlayer episode={playerEpisode} />
+          </section>
+        ) : null}
+        {!episode.premium ? (
+          <EpisodeVideo videoId={episode.youtubeVideoId} title={episode.titleAr} />
+        ) : null}
         {episode.premium ? (
           <p className="episode-detail__premium-note">
             هذه الحلقة حصرية للمشتركين، والاستماع غير متاح عبر النسخة العامة حاليًا.
@@ -140,7 +152,10 @@ export default async function EpisodePage({ params }: Params) {
               <h2 className="content-section__title" id="related-title">
                 المزيد من {show.titleAr}
               </h2>
-              <Link className="content-section__more" href={`/shows/${encodeURIComponent(show.slug)}`}>
+              <Link
+                className="content-section__more"
+                href={`/shows/${encodeURIComponent(show.slug)}`}
+              >
                 كل الحلقات
               </Link>
             </div>

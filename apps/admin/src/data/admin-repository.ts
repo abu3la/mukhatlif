@@ -1,3 +1,4 @@
+import type { EpisodeAudioTransfer } from './episode-audio-transfer';
 import type {
   FormSubmission,
   FormSubmissionStatus,
@@ -110,6 +111,7 @@ export interface CreateEpisodeCommand {
   readonly durationMinutes: number;
   readonly premium: boolean;
   readonly audioUrl?: string;
+  readonly youtubeVideoId?: string | null;
 }
 
 export type UpdateEpisodeCommand = Partial<Omit<CreateEpisodeCommand, 'showId'>>;
@@ -123,6 +125,7 @@ export interface EpisodeAudioCommand {
   readonly body: Blob;
   readonly fileName: string;
   readonly contentType?: string;
+  readonly transfer?: EpisodeAudioTransfer;
 }
 
 export type ArticleImageMimeType = ImageMediaMimeType;

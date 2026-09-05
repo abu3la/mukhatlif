@@ -84,6 +84,7 @@ function createStudioValue(
     updateArticle: vi.fn(async () => demoData.articles[0]!),
     transitionEpisodeStatus: vi.fn(async () => undefined),
     saveEpisode: vi.fn(async () => demoData.episodes[0]!.id),
+    uploadEpisodeAudio: vi.fn(async () => demoData.episodes[0]!.id),
     transitionArticleStatus: vi.fn(async () => demoData.articles[0]!),
     getMailchimpCapability: vi.fn(async () => ({
       mode: 'simulation' as const,
@@ -159,14 +160,19 @@ function renderPage(
   );
 }
 
-function renderEpisodeEditor(permissions: PermissionId[], path = '/episodes/episode_9') {
+function renderEpisodeEditor(
+  permissions: PermissionId[],
+  path = '/episodes/episode_9',
+  studio = createStudioValue(),
+) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <AdminAuthContext.Provider value={createAuthValue(permissions)}>
-        <StudioDataContext.Provider value={createStudioValue()}>
+        <StudioDataContext.Provider value={studio}>
           <Routes>
             <Route path="/episodes/new" element={<EpisodeEditorView />} />
             <Route path="/episodes/:episodeId" element={<EpisodeEditorView />} />
+            <Route path="/episodes" element={<LocationProbe />} />
           </Routes>
         </StudioDataContext.Provider>
       </AdminAuthContext.Provider>
@@ -216,8 +222,153 @@ const MANAGE_PERMISSIONS: PermissionId[] = [
   'subscribers.manage',
 ];
 
+describe('episode YouTube editor controls', () => {
+  afterEach(cleanup);
+
+  function videoStudio(videoId: string | null = null) {
+    const studio = createStudioValue();
+    return {
+      ...studio,
+      data: {
+        ...studio.data,
+        episodes: studio.data.episodes.map((episode) =>
+          episode.id === 'episode_9'
+            ? { ...episode, status: 'published' as const, youtubeVideoId: videoId }
+            : episode,
+        ),
+      },
+    };
+  }
+
+  it('previews and saves a normalized video ID without replacing audio or publication status', async () => {
+    const user = userEvent.setup();
+    const studio = videoStudio();
+    renderEpisodeEditor(MANAGE_PERMISSIONS, '/episodes/episode_9', studio);
+
+    const input = screen.getByRole('textbox', { name: /^رابط الحلقة في YouTube/ });
+    await user.type(input, 'https://youtu.be/Ioch353mcfc?t=12');
+    expect(screen.getByRole('img', { name: 'معاينة صورة فيديو الحلقة' })).toHaveAttribute(
+      'src',
+      'https://i.ytimg.com/vi/Ioch353mcfc/hqdefault.jpg',
+    );
+    expect(document.querySelector('iframe')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'حفظ التغييرات' }));
+
+    expect(studio.saveEpisode).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        id: 'episode_9',
+        youtubeVideoId: 'Ioch353mcfc',
+      }),
+      'published',
+    );
+    expect(await screen.findByTestId('location')).toHaveTextContent('/episodes?status=published');
+  });
+
+  it('clears an existing link explicitly and removes its preview without touching audio', async () => {
+    const user = userEvent.setup();
+    const studio = videoStudio('Ioch353mcfc');
+    renderEpisodeEditor(MANAGE_PERMISSIONS, '/episodes/episode_9', studio);
+
+    const input = screen.getByRole('textbox', { name: /^رابط الحلقة في YouTube/ });
+    expect(input).toHaveValue('https://www.youtube.com/watch?v=Ioch353mcfc');
+    await user.clear(input);
+    expect(screen.queryByRole('img', { name: 'معاينة صورة فيديو الحلقة' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'حفظ التغييرات' }));
+    expect(studio.saveEpisode).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: 'episode_9', youtubeVideoId: null }),
+      'published',
+    );
+  });
+
+  it('blocks lookalike-host URLs and clears the validation error when corrected', async () => {
+    const user = userEvent.setup();
+    const studio = videoStudio();
+    renderEpisodeEditor(MANAGE_PERMISSIONS, '/episodes/episode_9', studio);
+    const input = screen.getByRole('textbox', { name: /^رابط الحلقة في YouTube/ });
+    await user.type(input, 'https://youtube.com.example.test/watch?v=Ioch353mcfc');
+    await user.click(screen.getByRole('button', { name: 'حفظ التغييرات' }));
+    expect(studio.saveEpisode).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('أدخل رابط حلقة صالحًا من YouTube.');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.queryByRole('img', { name: 'معاينة صورة فيديو الحلقة' })).not.toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, 'https://www.youtube.com/watch?v=Ioch353mcfc');
+    expect(input).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'حفظ التغييرات' }));
+    expect(studio.saveEpisode).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the chosen link and preview after a failed save so it can be retried', async () => {
+    const user = userEvent.setup();
+    const studio = videoStudio('Ioch353mcfc');
+    vi.mocked(studio.saveEpisode).mockRejectedValueOnce(
+      new AdminRepositoryError({
+        code: 'NETWORK',
+        operation: 'saveEpisode',
+        message: 'Temporary test outage',
+        retryable: true,
+      }),
+    );
+    renderEpisodeEditor(MANAGE_PERMISSIONS, '/episodes/episode_9', studio);
+    await user.click(screen.getByRole('button', { name: 'حفظ التغييرات' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /^رابط الحلقة في YouTube/ })).toHaveValue(
+      'https://www.youtube.com/watch?v=Ioch353mcfc',
+    );
+    expect(screen.getByRole('img', { name: 'معاينة صورة فيديو الحلقة' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'حفظ التغييرات' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'حفظ التغييرات' }));
+    expect(studio.saveEpisode).toHaveBeenCalledTimes(2);
+    expect(await screen.findByTestId('location')).toHaveTextContent('/episodes?status=published');
+  });
+
+  it('keeps the video field read-only for an operator without episode management permission', () => {
+    const studio = videoStudio('Ioch353mcfc');
+    renderEpisodeEditor(VIEW_ONLY_PERMISSIONS, '/episodes/episode_9', studio);
+    expect(screen.getByRole('textbox', { name: /^رابط الحلقة في YouTube/ })).toHaveAttribute(
+      'readonly',
+    );
+    expect(screen.queryByRole('button', { name: 'حفظ التغييرات' })).not.toBeInTheDocument();
+    expect(studio.saveEpisode).not.toHaveBeenCalled();
+  });
+});
+
 describe('page mutation controls', () => {
   afterEach(cleanup);
+
+  it('keeps selection pending after saving metadata and uploads only from its own button', async () => {
+    const user = userEvent.setup();
+    const studio = createStudioValue();
+    const current = studio.data.episodes.find((e) => e.id === 'episode_9')!;
+    current.status = 'published';
+    vi.mocked(studio.saveEpisode).mockResolvedValue(current.id);
+    vi.mocked(studio.uploadEpisodeAudio).mockImplementation(async (draft) => {
+      draft.onAudioUploaded?.();
+      return current.id;
+    });
+    renderEpisodeEditor(MANAGE_PERMISSIONS, '/episodes/episode_9', studio);
+    const file = new File(['audio'], 'اختبار.wav', { type: 'audio/wav' });
+    await user.upload(screen.getByLabelText('اختيار ملف الصوت'), file);
+    expect(studio.uploadEpisodeAudio).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'حفظ التغييرات' }));
+    expect(studio.saveEpisode).toHaveBeenCalledOnce();
+    expect(studio.uploadEpisodeAudio).not.toHaveBeenCalled();
+    expect(vi.mocked(studio.saveEpisode).mock.calls[0]?.[0]).not.toHaveProperty('audioFile');
+    expect(
+      screen.getByText('حُفظت بيانات الحلقة. الملف المختار لم يُرفع بعد.'),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'رفع الملف' }));
+    expect(studio.uploadEpisodeAudio).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: current.id, audioFile: file }),
+    );
+    expect(studio.saveEpisode).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('button', { name: 'رفع الملف' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'حفظ التغييرات' }));
+    expect(studio.uploadEpisodeAudio).toHaveBeenCalledOnce();
+    expect(studio.saveEpisode).toHaveBeenCalledTimes(2);
+  });
 
   it('keeps view-only pages readable with detail links but no mutation controls', () => {
     const episodeRender = renderPage(<EpisodesView />, VIEW_ONLY_PERMISSIONS);

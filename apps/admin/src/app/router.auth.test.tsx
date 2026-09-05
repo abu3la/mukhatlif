@@ -127,6 +127,10 @@ describe('admin auth routing', () => {
       }),
     ).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('link', { name: 'المقالات' })).not.toBeInTheDocument();
+    const website = screen.getByRole('link', { name: 'عرض الموقع: التطوير (يفتح في تبويب جديد)' });
+    expect(website).toHaveAttribute('href', 'https://web.mukhtalif-development.workers.dev');
+    expect(website).toHaveAttribute('target', '_blank');
+    expect(website).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
   it('lets an authenticated member choose a new password from account security', async () => {

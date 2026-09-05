@@ -59,18 +59,26 @@ export function validateEpisodeAudioFile(file: File): string | null {
   if (!recognizedType && !AUDIO_FILE_NAME_PATTERN.test(file.name)) {
     return 'اختر ملف MP3 أو WAV.';
   }
+  if (file.size === 0) return 'الملف فارغ. اختر ملفًا صوتيًا آخر.';
   if (file.size > MAX_AUDIO_FILE_BYTES) {
     return 'حجم الملف أكبر من 500 م.ب. اختر ملفًا أصغر.';
   }
   return null;
 }
 
-type EpisodeOperation = 'save' | 'transition';
+type EpisodeOperation = 'save' | 'transition' | 'upload';
 
 export function getEpisodeOperationErrorMessage(
   cause: unknown,
   operation: EpisodeOperation,
 ): string {
+  if (
+    operation === 'upload' &&
+    (!isAdminRepositoryError(cause) ||
+      ['CONFIGURATION', 'REMOTE_ERROR', 'INVALID_RESPONSE', 'VALIDATION'].includes(cause.code))
+  ) {
+    return 'تعذّر رفع الصوت. راجع الملف ثم حاول مرة أخرى.';
+  }
   if (!isAdminRepositoryError(cause)) {
     return operation === 'save'
       ? 'تعذّر حفظ الحلقة. حاول مرة أخرى.'

@@ -1,6 +1,7 @@
 packages:
-  - "apps/*"
-  - "libs/*"
+  - 'apps/*'
+  - 'libs/*'
+  - 'tools/audio-r2'
 allowBuilds:
   esbuild: true
   sharp: true

@@ -1,3 +1,5 @@
+import { type EpisodeAudioTransfer, sendAudioPart } from './episode-audio-transfer';
+import type { EpisodeAudioUploadSession } from '@mukhtalif/types';
 import {
   CLIENT_SURFACE_HEADER,
   FORM_NOTIFICATION_STATUSES,
@@ -222,6 +224,9 @@ function isApiEpisode(value: unknown): value is ApiEpisode {
     hasOptionalString(value, 'showNotesEn') &&
     hasOptionalString(value, 'audioKey') &&
     hasOptionalString(value, 'audioUrl') &&
+    (value.youtubeVideoId == null ||
+      (typeof value.youtubeVideoId === 'string' &&
+        /^[A-Za-z0-9_-]{11}$/.test(value.youtubeVideoId))) &&
     typeof value.durationSec === 'number' &&
     typeof value.episodeNumber === 'number' &&
     typeof value.premium === 'boolean' &&
@@ -1176,6 +1181,7 @@ export class HonoAdminRepository implements AdminRepository {
         titleAr: command.title,
         showNotesAr: command.notes,
         audioUrl: command.audioUrl,
+        youtubeVideoId: command.youtubeVideoId,
         durationSec: Math.round(command.durationMinutes * 60),
         episodeNumber: command.episodeNumber,
         premium: command.premium,
@@ -1202,6 +1208,7 @@ export class HonoAdminRepository implements AdminRepository {
           titleAr: command.title,
           showNotesAr: command.notes,
           audioUrl: command.audioUrl,
+          youtubeVideoId: command.youtubeVideoId,
           durationSec:
             command.durationMinutes === undefined
               ? undefined
@@ -1229,6 +1236,59 @@ export class HonoAdminRepository implements AdminRepository {
 
   async uploadEpisodeAudio(id: EpisodeId, command: EpisodeAudioCommand): Promise<Episode> {
     const operation = 'uploadEpisodeAudio';
+    if (command.transfer) {
+      const path = `/studio/episodes/${encodeURIComponent(decodeId(id, 'episode', operation))}/audio-uploads`;
+      const transfer: EpisodeAudioTransfer = command.transfer;
+      const payload = await transfer.run(command.body, {
+        create: async () => {
+          const session = (await this.requestJson(operation, path, {
+            method: 'POST',
+            signal: AbortSignal.timeout(30_000),
+            body: JSON.stringify({
+              fileName: command.fileName,
+              size: command.body.size,
+              contentType: audioContentType(command),
+            }),
+          })) as EpisodeAudioUploadSession;
+          if (
+            !session?.id ||
+            !Number.isSafeInteger(session.partSize) ||
+            session.partSize < 5 * 1024 * 1024 ||
+            session.partSize > 32 * 1024 * 1024 ||
+            session.size !== command.body.size ||
+            session.partCount !== Math.ceil(session.size / session.partSize)
+          ) {
+            throw new Error('Invalid audio upload session');
+          }
+          return session;
+        },
+        part: async (session, part, body, hash, signal, progress) => {
+          const headers = await this.mediaUploadAuthHeaders(operation);
+          await sendAudioPart(
+            `${this.baseUrl}${path}/${encodeURIComponent(session.id)}/parts/${part}?sha256=${hash}`,
+            body,
+            headers,
+            signal,
+            progress,
+          );
+        },
+        complete: async (session) =>
+          this.requestJson(operation, `${path}/${encodeURIComponent(session.id)}/complete`, {
+            method: 'POST',
+            signal: AbortSignal.timeout(30_000),
+          }),
+        cancel: async (session) => {
+          await this.requestJson(operation, `${path}/${encodeURIComponent(session.id)}`, {
+            method: 'DELETE',
+            signal: AbortSignal.timeout(30_000),
+          });
+        },
+      });
+      return {
+        ...this.toAdminEpisode(expectEntity(payload, isApiEpisode, operation, 'episode')),
+        audioFileName: command.fileName,
+      };
+    }
     const payload = await this.requestJson(
       operation,
       `/studio/episodes/${encodeURIComponent(decodeId(id, 'episode', operation))}/audio`,
@@ -2119,6 +2179,7 @@ export class HonoAdminRepository implements AdminRepository {
       premium: episode.premium,
       status: episode.status,
       audioFileName: extractFileName(episode.audioKey ?? episode.audioUrl),
+      youtubeVideoId: episode.youtubeVideoId,
       createdAt: episode.createdAt,
       updatedAt: episode.createdAt,
       scheduledAt: episode.status === 'scheduled' ? episode.publishAt : undefined,

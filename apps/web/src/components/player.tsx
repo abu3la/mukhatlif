@@ -52,6 +52,7 @@ interface PlayerContextValue {
   setPlaybackRate: (rate: PlaybackRate) => void;
   setDockSuppressed: (suppressed: boolean) => void;
   close: () => void;
+  pause: () => void;
 }
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -119,6 +120,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   );
 
   const play = useCallback((audio: HTMLAudioElement) => {
+    window.dispatchEvent(new Event('mukhtalif:audio-start'));
     setError(null);
     setStatus('loading');
     const request = audio.play();
@@ -223,6 +225,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setError(null);
   }, []);
 
+  const pause = useCallback(() => {
+    audioRef.current?.pause();
+  }, []);
+
   const context = useMemo<PlayerContextValue>(
     () => ({
       episode,
@@ -240,8 +246,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setPlaybackRate,
       setDockSuppressed,
       close,
+      pause,
     }),
     [
+      pause,
       close,
       canSeek,
       currentTime,

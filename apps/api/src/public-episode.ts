@@ -10,6 +10,7 @@ export function toPublicEpisode(episode: Episode): PublicEpisodeRecord {
     id: episode.id,
     showId: episode.showId,
     titleAr: episode.titleAr,
+    youtubeVideoId: episode.premium ? undefined : episode.youtubeVideoId,
     titleEn: episode.titleEn,
     showNotesAr: episode.showNotesAr,
     showNotesEn: episode.showNotesEn,

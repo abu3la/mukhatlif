@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 
 export const APPROVED_CLOUDFLARE_ACCOUNT_ID = 'bb4abee6bf877ef411dc803b3be96373';
 export const APPROVED_R2_BUCKET = 'mukhtalif-audio';
-export const APPROVED_SUPABASE_PROJECT_REF = 'pacpdxvujkjvnaeeuute';
+export const APPROVED_SUPABASE_PROJECT_REF = 'acomtixjibgkauzeltsn';
 export const AUDIO_OBJECT_PREFIX = 'legacy/podcasts';
 
 const AUDIO_MIME_EXTENSIONS = new Map([
@@ -222,7 +222,8 @@ export function buildAudioMigrationPlan(
       if (invalidSource) databaseState = 'invalid-source';
       else if (matches.length === 0) databaseState = 'missing-database-row';
       else if (matches.length > 1) databaseState = 'ambiguous-database-row';
-      else if (row?.audio_key === key) databaseState = 'already-linked';
+      else if (row?.audio_key === key && audioUrlMatches && sourceUrlMatches)
+        databaseState = 'already-linked';
       else if (row?.audio_key) databaseState = 'studio-audio-key-preserved';
       else if (!audioUrlMatches) databaseState = 'studio-audio-url-preserved';
       else if (!sourceUrlMatches) databaseState = 'source-provenance-conflict';

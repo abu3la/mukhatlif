@@ -382,7 +382,7 @@ function showRow(show: RssShowManifest): DatabaseRow {
   };
 }
 
-function episodeRow(showId: string, episode: RssEpisodeManifest): DatabaseRow {
+export function episodeRow(showId: string, episode: RssEpisodeManifest): DatabaseRow {
   return {
     id: episode.id,
     show_id: showId,

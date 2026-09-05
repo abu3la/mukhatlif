@@ -105,6 +105,7 @@ export interface Episode {
   premium: boolean;
   notes: string;
   audioFileName?: string;
+  youtubeVideoId?: string | null;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
   scheduledAt?: IsoDateTime;

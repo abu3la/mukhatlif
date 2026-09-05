@@ -21,6 +21,7 @@ import {
 import { requireAuth, requirePermission, type AppEnv } from '../auth';
 import { toPublicEpisode } from '../public-episode';
 import { getRepository } from '../repo';
+import { episodeAudioUploadsRoute } from './episode-audio-uploads';
 
 const audioError = (code: string, error: string) => ({ code, error });
 
@@ -194,6 +195,7 @@ export const appEpisodesRoute = new Hono<AppEnv>().get(
 
 /** Operator management and preview. Every handler requires a permission. */
 export const studioEpisodesRoute = new Hono<AppEnv>()
+  .route('/:id/audio-uploads', episodeAudioUploadsRoute)
   .get(
     '/',
     requirePermission('episodes.view'),

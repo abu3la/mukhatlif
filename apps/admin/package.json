@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "vite --port 3001",
     "build": "tsc --noEmit && vite build",
+    "build:development": "node ../../scripts/cloudflare-studio.mjs build",
+    "deploy:development": "node ../../scripts/cloudflare-studio.mjs deploy",
     "build:hostinger": "node ../../scripts/assert-hostinger-studio-env.mjs && npm run build && node ../../scripts/prepare-hostinger-studio-output.mjs",
     "preview": "vite preview --port 3001",
     "lint": "eslint .",

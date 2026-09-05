@@ -1,4 +1,4 @@
-import type { EpisodeDraft } from '@/application';
+import type { EpisodeAudioDraft, EpisodeDraft } from '@/application';
 import type { AdminRepository } from '@/data';
 import { AdminRepositoryError } from '@/data';
 import { riyadhLocalInputToIso, type EpisodeId, type EpisodeStatus } from '@/lib';
@@ -15,28 +15,34 @@ function validationError(message: string, context?: Readonly<Record<string, unkn
 
 /**
  * Coordinates the episode form with the repository state machine. Creation,
- * metadata updates, binary upload, and publication happen in that order.
+ * metadata updates and publication are separate from the explicit audio action.
  */
 export async function saveEpisodeDraft(
   repository: AdminRepository,
   draft: EpisodeDraft,
   targetStatus: EpisodeStatus,
 ): Promise<EpisodeId> {
-  if (draft.episodeNumber == null || !Number.isInteger(draft.episodeNumber) || draft.episodeNumber <= 0) {
+  if (
+    draft.episodeNumber == null ||
+    !Number.isInteger(draft.episodeNumber) ||
+    draft.episodeNumber <= 0
+  ) {
     throw validationError('Episode number must be a positive integer.', {
       episodeNumber: draft.episodeNumber,
     });
   }
-  if (draft.durationMinutes == null || !Number.isFinite(draft.durationMinutes) || draft.durationMinutes < 0) {
+  if (
+    draft.durationMinutes == null ||
+    !Number.isFinite(draft.durationMinutes) ||
+    draft.durationMinutes < 0
+  ) {
     throw validationError('Episode duration must be a non-negative number.', {
       durationMinutes: draft.durationMinutes,
     });
   }
 
   const core = await repository.readContentWorkspace();
-  const current = draft.id
-    ? core.episodes.find((episode) => episode.id === draft.id)
-    : undefined;
+  const current = draft.id ? core.episodes.find((episode) => episode.id === draft.id) : undefined;
   if (draft.id && !current) {
     throw new AdminRepositoryError({
       code: 'NOT_FOUND',
@@ -61,6 +67,7 @@ export async function saveEpisodeDraft(
         episodeNumber: draft.episodeNumber,
         durationMinutes: draft.durationMinutes,
         premium: draft.premium,
+        youtubeVideoId: draft.youtubeVideoId,
       })
     : await repository.createEpisode({
         showId: draft.showId,
@@ -69,26 +76,18 @@ export async function saveEpisodeDraft(
         episodeNumber: draft.episodeNumber,
         durationMinutes: draft.durationMinutes,
         premium: draft.premium,
+        youtubeVideoId: draft.youtubeVideoId,
       });
 
-  if (draft.audioFile) {
-    saved = await repository.uploadEpisodeAudio(saved.id, {
-      body: draft.audioFile,
-      fileName: draft.audioFile.name,
-      contentType: draft.audioFile.type || undefined,
-    });
-  }
+  draft.onDraftSaved?.(saved.id);
 
-  const scheduledAt = draft.scheduledAt
-    ? riyadhLocalInputToIso(draft.scheduledAt)
-    : undefined;
+  const scheduledAt = draft.scheduledAt ? riyadhLocalInputToIso(draft.scheduledAt) : undefined;
   if (targetStatus === 'scheduled' && !scheduledAt) {
     throw validationError('Scheduling an episode requires a date and time.');
   }
 
   if (saved.status === targetStatus) {
-    const scheduleChanged =
-      targetStatus === 'scheduled' && scheduledAt !== saved.scheduledAt;
+    const scheduleChanged = targetStatus === 'scheduled' && scheduledAt !== saved.scheduledAt;
     if (scheduleChanged) {
       saved = await repository.transitionEpisode(saved.id, { status: 'draft' });
       await repository.transitionEpisode(saved.id, {
@@ -104,4 +103,20 @@ export async function saveEpisodeDraft(
     scheduledAt: targetStatus === 'scheduled' ? scheduledAt : undefined,
   });
   return saved.id;
+}
+
+/** Upload never publishes or silently persists edits to an existing episode. */
+export async function uploadEpisodeAudioDraft(
+  repository: AdminRepository,
+  draft: EpisodeAudioDraft,
+): Promise<EpisodeId> {
+  const id = draft.id ?? (await saveEpisodeDraft(repository, draft, 'draft'));
+  await repository.uploadEpisodeAudio(id, {
+    body: draft.audioFile,
+    fileName: draft.audioFile.name,
+    contentType: draft.audioFile.type || undefined,
+    ...(draft.audioTransfer ? { transfer: draft.audioTransfer } : {}),
+  });
+  draft.onAudioUploaded?.();
+  return id;
 }

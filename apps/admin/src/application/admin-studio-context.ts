@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { EpisodeAudioTransfer } from '@/data/episode-audio-transfer';
 import type {
   AdminRepositoryCapabilities,
   AdminRepositoryKind,
@@ -39,7 +40,14 @@ export interface EpisodeDraft {
   readonly notes: string;
   readonly premium: boolean;
   readonly scheduledAt?: string;
-  readonly audioFile?: File;
+  readonly onDraftSaved?: (id: EpisodeId) => void;
+  readonly youtubeVideoId?: string | null;
+}
+
+export interface EpisodeAudioDraft extends EpisodeDraft {
+  readonly audioFile: File;
+  readonly audioTransfer?: EpisodeAudioTransfer;
+  readonly onAudioUploaded?: () => void;
 }
 
 export interface StudioDataContextValue {
@@ -61,6 +69,7 @@ export interface StudioDataContextValue {
     scheduledAt?: string,
   ): Promise<void>;
   saveEpisode(draft: EpisodeDraft, status: EpisodeStatus): Promise<EpisodeId>;
+  uploadEpisodeAudio(draft: EpisodeAudioDraft): Promise<EpisodeId>;
   transitionArticleStatus(
     id: ArticleId,
     status: ArticleStatus,

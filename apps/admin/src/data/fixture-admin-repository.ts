@@ -910,6 +910,7 @@ export class FixtureAdminRepository implements AdminRepository {
       premium: command.premium,
       status: 'draft',
       audioFileName: command.audioUrl ? this.fileNameFromUrl(command.audioUrl) : undefined,
+      youtubeVideoId: command.youtubeVideoId,
       createdAt: now,
       updatedAt: now,
     };
@@ -941,6 +942,8 @@ export class FixtureAdminRepository implements AdminRepository {
           ? current.title
           : requireText(command.title, 'title', operation),
       notes: command.notes ?? current.notes,
+      youtubeVideoId:
+        command.youtubeVideoId === undefined ? current.youtubeVideoId : command.youtubeVideoId,
       episodeNumber,
       durationMinutes,
       premium: command.premium ?? current.premium,
@@ -1006,6 +1009,27 @@ export class FixtureAdminRepository implements AdminRepository {
       audioFileName: fileName,
       updatedAt: this.now().toISOString(),
     };
+    if (command.transfer) {
+      await command.transfer.run(command.body, {
+        create: async () => ({
+          id: `fixture-${id}`,
+          fileName,
+          size: command.body.size,
+          partSize: 16 * 1024 * 1024,
+          partCount: Math.ceil(command.body.size / (16 * 1024 * 1024)),
+          status: 'active',
+          expiresAt: Date.now() + 86_400_000,
+          uploadedParts: [],
+        }),
+        part: async (_session, _part, body, _hash, signal, progress) => {
+          if (signal.aborted) throw new Error('Aborted');
+          await body.arrayBuffer();
+          progress(body.size);
+        },
+        complete: async () => updated,
+        cancel: async () => undefined,
+      });
+    }
     this.data.episodes[index] = updated;
     return { ...updated };
   }

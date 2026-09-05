@@ -8,13 +8,8 @@ import {
 } from '@/application';
 import type { AdminRepository } from '@/data';
 import { AdminRepositoryError } from '@/data/repository-error';
-import { saveEpisodeDraft } from '@/features/episodes/model/save-episode';
-import type {
-  AdminStudioContentData,
-  AdminViewer,
-  SocialPlatform,
-  StudioPageId,
-} from '@/lib';
+import { saveEpisodeDraft, uploadEpisodeAudioDraft } from '@/features/episodes/model/save-episode';
+import type { AdminStudioContentData, AdminViewer, SocialPlatform, StudioPageId } from '@/lib';
 
 type RefreshScope = 'core' | 'guests';
 
@@ -197,6 +192,10 @@ export function StudioDataProvider({
         requireManage('episodes', 'saveEpisode');
         return runOperation('core', () => saveEpisodeDraft(repository, draft, status));
       },
+      uploadEpisodeAudio: (draft) => {
+        requireManage('episodes', 'uploadEpisodeAudio');
+        return runOperation('core', () => uploadEpisodeAudioDraft(repository, draft));
+      },
       transitionArticleStatus: (id, status, expectedVersion) =>
         runOperation('core', () => {
           requireManage('articles', 'transitionArticleStatus');
@@ -205,30 +204,37 @@ export function StudioDataProvider({
       getMailchimpCapability: () => repository.getMailchimpCapability(),
       previewArticleNewsletter: (id) => repository.previewArticleNewsletter(id),
       syncArticleNewsletterCampaign: (id, expectedVersion) =>
-        runOperation('core', () => {
-          requireManage('articles', 'syncArticleNewsletterCampaign');
-          return repository.syncArticleNewsletterCampaign(id, expectedVersion);
-        }, { refreshOnError: true }),
-      sendArticleNewsletter: (
-        id,
-        audienceConfirmationToken,
-        expectedVersion,
-        expectedCampaignId,
-      ) =>
-        runOperation('core', () => {
-          requireManage('articles', 'sendArticleNewsletter');
-          return repository.sendArticleNewsletter(
-            id,
-            audienceConfirmationToken,
-            expectedVersion,
-            expectedCampaignId,
-          );
-        }, { refreshOnError: true }),
+        runOperation(
+          'core',
+          () => {
+            requireManage('articles', 'syncArticleNewsletterCampaign');
+            return repository.syncArticleNewsletterCampaign(id, expectedVersion);
+          },
+          { refreshOnError: true },
+        ),
+      sendArticleNewsletter: (id, audienceConfirmationToken, expectedVersion, expectedCampaignId) =>
+        runOperation(
+          'core',
+          () => {
+            requireManage('articles', 'sendArticleNewsletter');
+            return repository.sendArticleNewsletter(
+              id,
+              audienceConfirmationToken,
+              expectedVersion,
+              expectedCampaignId,
+            );
+          },
+          { refreshOnError: true },
+        ),
       reconcileArticleNewsletter: (id) =>
-        runOperation('core', () => {
-          requireManage('articles', 'reconcileArticleNewsletter');
-          return repository.reconcileArticleNewsletter(id);
-        }, { refreshOnError: true }),
+        runOperation(
+          'core',
+          () => {
+            requireManage('articles', 'reconcileArticleNewsletter');
+            return repository.reconcileArticleNewsletter(id);
+          },
+          { refreshOnError: true },
+        ),
       listArticleMedia: () => repository.listArticleMedia(),
       listArticleAuthors: () => repository.listArticleAuthors(),
       uploadArticleImage: (command) =>

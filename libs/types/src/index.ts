@@ -57,6 +57,7 @@ export {
   isClientSurface,
 } from './surface';
 export type { Show } from './show';
+export { isYouTubeVideoId, parseYouTubeVideoId, youtubeThumbnailUrl } from './episode-video';
 export type {
   HomeSummary,
   HomepageWeeklyEpisode,
@@ -206,3 +207,4 @@ export {
   canTransitionSubscription,
 } from './subscription';
 export type { Follow, PlaybackProgress } from './engagement';
+export type { EpisodeAudioUploadSession } from './audio-upload';

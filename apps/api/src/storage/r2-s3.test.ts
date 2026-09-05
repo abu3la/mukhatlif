@@ -2,6 +2,11 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  PutObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
 } from '@aws-sdk/client-s3';
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { Upload } from '@aws-sdk/lib-storage';
@@ -16,6 +21,44 @@ function sdkBody(value: string) {
 }
 
 describe('R2S3Bucket', () => {
+  it('maps explicit resumable multipart operations onto S3 without touching other keys', async () => {
+    const send = vi.fn(async (command) => {
+      if (command instanceof CreateMultipartUploadCommand) return { UploadId: 'upload-1' };
+      if (command instanceof UploadPartCommand) return { ETag: 'part-etag' };
+      if (command instanceof HeadObjectCommand)
+        return { ContentLength: 3, ETag: 'final', ContentType: 'audio/mpeg' };
+      return {};
+    });
+    const bucket = new R2S3Bucket({ send } as unknown as S3Client, 'audio');
+    const upload = await bucket.createMultipartUpload('episodes/new.mp3', {
+      httpMetadata: { contentType: 'audio/mpeg' },
+    });
+    const part = await upload.uploadPart(1, new Uint8Array([1, 2, 3]).buffer);
+    expect(part).toEqual({ partNumber: 1, etag: 'part-etag' });
+    expect((await upload.complete([part])).size).toBe(3);
+    await upload.abort();
+    const commands = send.mock.calls.map((call) => call[0]);
+    expect(commands.some((command) => command instanceof CompleteMultipartUploadCommand)).toBe(
+      true,
+    );
+    expect(commands.some((command) => command instanceof AbortMultipartUploadCommand)).toBe(true);
+    expect(commands.some((command) => command instanceof DeleteObjectCommand)).toBe(false);
+  });
+  it('uses provider compare-and-set for session transitions and preserves the write ETag', async () => {
+    const send = vi.fn(async (command) =>
+      command instanceof PutObjectCommand
+        ? { ETag: 'written-version' }
+        : { ContentLength: 2, ETag: 'later-version', ContentType: 'application/json' },
+    );
+    const bucket = new R2S3Bucket({ send } as unknown as S3Client, 'audio');
+    const result = await bucket.put('session.json', '{}', {
+      onlyIf: { etagMatches: 'old-version' },
+    });
+    expect((send.mock.calls[0]![0] as PutObjectCommand).input.IfMatch).toBe('"old-version"');
+    expect(result?.httpEtag).toBe('"written-version"');
+    send.mockRejectedValueOnce({ $metadata: { httpStatusCode: 412 } });
+    expect(await bucket.put('session.json', '{}', { onlyIf: { etagMatches: 'stale' } })).toBeNull();
+  });
   it('maps a full object to the portable R2 contract', async () => {
     const send = vi.fn().mockResolvedValue({
       Body: sdkBody('hello'),
@@ -69,10 +112,7 @@ describe('R2S3Bucket', () => {
 
   it('maps missing objects to null but does not hide a missing bucket', async () => {
     const missingObject = vi.fn().mockRejectedValue({ name: 'NoSuchKey' });
-    const objectBucket = new R2S3Bucket(
-      { send: missingObject } as unknown as S3Client,
-      'media',
-    );
+    const objectBucket = new R2S3Bucket({ send: missingObject } as unknown as S3Client, 'media');
     await expect(objectBucket.get('missing')).resolves.toBeNull();
 
     const missingBucket = vi.fn().mockRejectedValue({
@@ -92,11 +132,7 @@ describe('R2S3Bucket', () => {
     });
     const done = vi.fn().mockResolvedValue(undefined);
     const createUpload = vi.fn((_options: ConstructorParameters<typeof Upload>[0]) => ({ done }));
-    const bucket = new R2S3Bucket(
-      { send } as unknown as S3Client,
-      'audio',
-      createUpload,
-    );
+    const bucket = new R2S3Bucket({ send } as unknown as S3Client, 'audio', createUpload);
     const stream = new Blob(['stream']).stream();
 
     const stored = await bucket.put('episode.mp3', stream, {
@@ -126,11 +162,7 @@ describe('R2S3Bucket', () => {
     const createUpload = vi.fn((_options: ConstructorParameters<typeof Upload>[0]) => ({
       done: vi.fn().mockResolvedValue(undefined),
     }));
-    const bucket = new R2S3Bucket(
-      { send } as unknown as S3Client,
-      'media',
-      createUpload,
-    );
+    const bucket = new R2S3Bucket({ send } as unknown as S3Client, 'media', createUpload);
     await bucket.put('image', new Uint8Array([0, 1, 255]).buffer);
     expect(createUpload.mock.calls[0]?.[0]?.params.Body).toEqual(new Uint8Array([0, 1, 255]));
   });

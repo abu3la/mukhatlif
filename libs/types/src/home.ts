@@ -20,11 +20,11 @@ export type PublicEpisode = Pick<
   | 'episodeNumber'
   | 'premium'
   | 'publishAt'
+  | 'youtubeVideoId'
 >;
 
 export const HOMEPAGE_WEEKLY_EPISODES_WINDOW_DAYS = 7 as const;
-export const DEFAULT_HOMEPAGE_WEEKLY_EPISODES_TITLE =
-  'حلقات آخر أسبوع من مختلف' as const;
+export const DEFAULT_HOMEPAGE_WEEKLY_EPISODES_TITLE = 'حلقات آخر أسبوع من مختلف' as const;
 
 /** Studio-managed presentation settings for the trailing-week home section. */
 export interface HomepageWeeklyEpisodesSettings {
