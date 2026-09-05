@@ -51,5 +51,15 @@ describe('HomePage weekly episodes placement', () => {
     expect(heroEnd).toBeGreaterThan(-1);
     expect(weeklyStart).toBe(heroEnd + '</section>'.length);
     expect(html).not.toContain('لا يوجد محتوى منشور بعد');
+    expect(html.match(/class="newsletter-signup"/g)).toHaveLength(1);
+  });
+
+  it('keeps the newsletter on an empty home page and out of the shared footer', async () => {
+    vi.stubGlobal('React', React);
+    mockGetHomeSummary.mockResolvedValue({ shows: [], latestEpisodes: [], latestArticles: [] });
+    const { default: HomePage } = await import('./page');
+    const { SiteFooter } = await import('@/components/site-chrome');
+    expect(renderToStaticMarkup(await HomePage())).toContain('newsletter-signup__form');
+    expect(renderToStaticMarkup(React.createElement(SiteFooter))).not.toContain('newsletter-signup');
   });
 });

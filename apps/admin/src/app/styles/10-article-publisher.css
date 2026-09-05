@@ -68,12 +68,13 @@
   display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 6px;
-  min-block-size: 38px;
-  padding: 6px 10px;
+  justify-content: center;
+  inline-size: 44px;
+  min-block-size: 44px;
+  padding: 10px;
   color: var(--ink-soft);
-  background: var(--surface);
-  border: 1px solid var(--field-line);
+  background: transparent;
+  border: 0;
   border-radius: var(--radius-control);
   font: inherit;
   font-size: 12px;
@@ -96,11 +97,6 @@
 
 .article-publisher__section-toggle svg {
   flex: none;
-  transition: transform 140ms ease;
-}
-
-.article-publisher__section-toggle[aria-expanded='false'] svg {
-  transform: rotate(-90deg);
 }
 
 .article-publisher__section--preview {
