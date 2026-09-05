@@ -29,6 +29,8 @@ function createAuthValue(permissions: PermissionId[]): AdminAuthContextValue {
     isSubmitting: false,
     demoAccounts: [],
     signIn: vi.fn(async () => undefined),
+    changePassword: vi.fn(async () => undefined),
+    requestPasswordChangeVerification: vi.fn(async () => undefined),
     signOut: vi.fn(async () => undefined),
     retry: vi.fn(async () => undefined),
   };
@@ -61,6 +63,7 @@ function createStudioValue(): StudioDataContextValue {
     updateArticle: vi.fn(async () => demoData.articles[0]!),
     transitionEpisodeStatus: vi.fn(async () => undefined),
     saveEpisode: vi.fn(async () => demoData.episodes[0]!.id),
+    uploadEpisodeAudio: vi.fn(async () => demoData.episodes[0]!.id),
     transitionArticleStatus: vi.fn(async () => demoData.articles[0]!),
     getMailchimpCapability: vi.fn(async () => ({ mode: 'simulation' as const, configured: true })),
     previewArticleNewsletter: vi.fn(async () => ({ subject: 'نشرة', html: '', text: '' })),

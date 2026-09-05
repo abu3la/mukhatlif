@@ -12,6 +12,7 @@ const STORAGE_KEY = 'mukhtalif-admin.fixture-session.v1';
  * used by the Hono or Supabase authentication paths.
  */
 export const FIXTURE_CREATED_ACCOUNT_PASSWORD = 'MukhtalifDemo2026!';
+export const FIXTURE_PASSWORD_VERIFICATION_CODE = '24681012';
 
 export const FIXTURE_ADMIN_ACCOUNTS = [
   {
@@ -56,6 +57,7 @@ export class FixtureAdminAuthGateway implements AdminAuthGateway {
   private readonly accounts: DemoAdminAccount[];
   private readonly listeners = new Set<(session: AdminAuthSession | null) => void>();
   private session: AdminAuthSession | null = null;
+  private passwordVerificationRequested = false;
 
   constructor(options: FixtureAdminAuthGatewayOptions = {}) {
     this.accounts = (options.accounts ?? FIXTURE_ADMIN_ACCOUNTS).map((account) => ({
@@ -88,10 +90,7 @@ export class FixtureAdminAuthGateway implements AdminAuthGateway {
     return { ...registered };
   }
 
-  updateAccountRole(
-    id: string,
-    role: DemoAdminAccount['role'],
-  ): DemoAdminAccount | null {
+  updateAccountRole(id: string, role: DemoAdminAccount['role']): DemoAdminAccount | null {
     const index = this.accounts.findIndex((account) => account.id === id);
     if (index < 0) return null;
     const updated: DemoAdminAccount = { ...this.accounts[index], role };
@@ -142,6 +141,32 @@ export class FixtureAdminAuthGateway implements AdminAuthGateway {
     return this.session;
   }
 
+  async requestPasswordChangeVerification(): Promise<void> {
+    if (!this.session) {
+      throw new AdminAuthError('INVALID_CREDENTIALS', 'No authenticated fixture account.');
+    }
+    this.passwordVerificationRequested = true;
+  }
+
+  async changePassword(password: string, verificationCode: string): Promise<void> {
+    const subjectId = this.session?.subject.id;
+    const index = this.accounts.findIndex((account) => account.id === subjectId);
+    if (index < 0) {
+      throw new AdminAuthError('INVALID_CREDENTIALS', 'No authenticated fixture account.');
+    }
+    if (
+      !this.passwordVerificationRequested ||
+      verificationCode.trim() !== FIXTURE_PASSWORD_VERIFICATION_CODE
+    ) {
+      throw new AdminAuthError(
+        'INVALID_VERIFICATION_CODE',
+        'The fixture verification code is incorrect.',
+      );
+    }
+    this.accounts[index] = { ...this.accounts[index], password };
+    this.passwordVerificationRequested = false;
+  }
+
   /**
    * The fixture has no mail path, so an invitation link cannot exist here. It
    * refuses rather than pretending, which keeps the meeting build from
@@ -156,6 +181,7 @@ export class FixtureAdminAuthGateway implements AdminAuthGateway {
 
   async signOut(): Promise<void> {
     this.session = null;
+    this.passwordVerificationRequested = false;
     this.removeStoredSession();
     this.emit();
   }

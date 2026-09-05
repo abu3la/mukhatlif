@@ -1,9 +1,5 @@
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
-import {
-  AdminAuthError,
-  type AdminAuthGateway,
-  type AdminAuthSession,
-} from './admin-auth-gateway';
+import { AdminAuthError, type AdminAuthGateway, type AdminAuthSession } from './admin-auth-gateway';
 
 export interface SupabaseAdminAuthGatewayConfig {
   readonly url: string;
@@ -19,9 +15,9 @@ function hasSupabaseInvitationSessionInUrl(): boolean {
     type === 'invite' &&
     Boolean(
       fragment.get('access_token') &&
-        fragment.get('refresh_token') &&
-        fragment.get('expires_in') &&
-        fragment.get('token_type'),
+      fragment.get('refresh_token') &&
+      fragment.get('expires_in') &&
+      fragment.get('token_type'),
     )
   );
 }
@@ -49,6 +45,15 @@ function mapAuthError(error: { message: string; status?: number; code?: string }
     return new AdminAuthError('INVALID_LINK', error.message);
   }
   if (
+    normalized.includes('weak_password') ||
+    (normalized.includes('password') &&
+      (normalized.includes('weak') ||
+        normalized.includes('characters') ||
+        normalized.includes('guessable')))
+  ) {
+    return new AdminAuthError('WEAK_PASSWORD', error.message);
+  }
+  if (
     error.status === 400 ||
     normalized.includes('invalid login') ||
     normalized.includes('invalid credentials')
@@ -59,6 +64,23 @@ function mapAuthError(error: { message: string; status?: number; code?: string }
     return new AdminAuthError('NETWORK', error.message);
   }
   return new AdminAuthError('UNKNOWN', error.message);
+}
+
+function mapPasswordVerificationError(error: {
+  message: string;
+  status?: number;
+  code?: string;
+}): AdminAuthError {
+  const normalized = `${error.code ?? ''} ${error.message}`.toLowerCase();
+  if (
+    normalized.includes('reauthenticat') ||
+    normalized.includes('nonce') ||
+    normalized.includes('otp') ||
+    normalized.includes('token')
+  ) {
+    return new AdminAuthError('INVALID_VERIFICATION_CODE', error.message);
+  }
+  return mapAuthError(error);
 }
 
 export class SupabaseAdminAuthGateway implements AdminAuthGateway {
@@ -136,6 +158,19 @@ export class SupabaseAdminAuthGateway implements AdminAuthGateway {
     }
     this.session = session;
     return session;
+  }
+
+  async requestPasswordChangeVerification(): Promise<void> {
+    const { error } = await this.client.auth.reauthenticate();
+    if (error) throw mapAuthError(error);
+  }
+
+  async changePassword(password: string, verificationCode: string): Promise<void> {
+    const { error } = await this.client.auth.updateUser({
+      password,
+      nonce: verificationCode.trim(),
+    });
+    if (error) throw mapPasswordVerificationError(error);
   }
 
   async verifyEmailLink(tokenHash: string): Promise<AdminAuthSession> {

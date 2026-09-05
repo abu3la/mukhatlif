@@ -5,6 +5,7 @@ import type { AdminRepositoryCapabilities } from '@/data';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { Button } from '@/shared/ui/primitives';
 import type { AdminViewer, StudioPageId } from '@/lib';
+import { publicWebsite } from '../config/public-website';
 
 interface StudioNavItem {
   readonly href: string;
@@ -106,6 +107,10 @@ export function StudioShell({
     (item) => canViewPage(viewer, item.page) && isStudioPageAvailable(item.page, capabilities),
   );
   const homePath = visibleItems[0]?.href ?? adminPaths.overview;
+  const website = publicWebsite(
+    window.location.hostname,
+    import.meta.env.VITE_PRODUCTION_WEB_TARGET,
+  );
 
   useEffect(() => {
     setIsNavigationOpen(false);
@@ -119,6 +124,20 @@ export function StudioShell({
             <BrandMark height={24} />
             <span>استوديو الإدارة</span>
           </Link>
+
+          {website && (
+            <a
+              className="studio-website-link"
+              href={website.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`عرض الموقع: ${website.label} (يفتح في تبويب جديد)`}
+              title="يفتح في تبويب جديد"
+            >
+              <span>عرض الموقع</span>
+              <small>{website.label}</small>
+            </a>
+          )}
 
           <button
             className="studio-menu-toggle"
@@ -162,6 +181,13 @@ export function StudioShell({
                 <span>{viewer.roleName}</span>
               </div>
             </div>
+            <Link
+              to={adminPaths.account}
+              className={`studio-account-link ${pathname === adminPaths.account ? 'studio-account-link--active' : ''}`}
+              aria-current={pathname === adminPaths.account ? 'page' : undefined}
+            >
+              أمان الحساب
+            </Link>
             <Button
               className="studio-sign-out"
               type="button"

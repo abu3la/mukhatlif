@@ -72,6 +72,8 @@ function authValue(permissions: PermissionId[]): AdminAuthContextValue {
     isSubmitting: false,
     demoAccounts: [],
     signIn: vi.fn(async () => undefined),
+    changePassword: vi.fn(async () => undefined),
+    requestPasswordChangeVerification: vi.fn(async () => undefined),
     signOut: vi.fn(async () => undefined),
     retry: vi.fn(async () => undefined),
   };
@@ -218,9 +220,9 @@ describe('Studio form-submission inbox', () => {
     await screen.findByRole('heading', { name: 'شركة مثال' });
     await user.click(screen.getByRole('button', { name: 'إعادة إرسال البريد' }));
 
-    expect(
-      await screen.findByRole('alert'),
-    ).toHaveTextContent('لم يُرسل البريد لأن إعداداته غير مكتملة.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'لم يُرسل البريد لأن إعداداته غير مكتملة.',
+    );
     expect(screen.queryByText('أُرسل البريد.')).not.toBeInTheDocument();
   });
 });

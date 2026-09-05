@@ -1,4 +1,11 @@
-import { type ChangeEvent, useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import {
+  AudioTransferCancelled,
+  EpisodeAudioTransfer,
+  type AudioTransferSnapshot,
+} from '@/data/episode-audio-transfer';
+import { AudioUploadPanel } from './audio-upload-panel';
+import { parseYouTubeVideoId, youtubeThumbnailUrl } from '@mukhtalif/types';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { adminPaths, canManagePage, useAdminAuth, useStudioData } from '@/application';
 import {
@@ -26,9 +33,10 @@ export function EpisodeEditorView() {
   const navigate = useNavigate();
   const { episodeId } = useParams<{ episodeId?: EpisodeId }>();
   const [searchParams] = useSearchParams();
-  const { data, saveEpisode } = useStudioData();
+  const { data, saveEpisode, uploadEpisodeAudio } = useStudioData();
   const canManageEpisodes = viewer ? canManagePage(viewer, 'episodes') : false;
-  const episode = data.episodes.find((item) => item.id === episodeId);
+  const [createdId, setCreatedId] = useState<EpisodeId>();
+  const episode = data.episodes.find((item) => item.id === (episodeId ?? createdId));
   const schedulingIntent = searchParams.get('intent') === 'schedule';
   const firstShowId = data.shows[0]?.id ?? ('show_unassigned' as ShowId);
 
@@ -49,28 +57,32 @@ export function EpisodeEditorView() {
   const [episodeNumber, setEpisodeNumber] = useState(initial.episodeNumber);
   const [durationMinutes, setDurationMinutes] = useState(initial.durationMinutes);
   const [notes, setNotes] = useState(initial.notes);
+  const [youtubeUrl, setYoutubeUrl] = useState(
+    episode?.youtubeVideoId ? `https://www.youtube.com/watch?v=${episode.youtubeVideoId}` : '',
+  );
   const [premium, setPremium] = useState(initial.premium);
   const [scheduledAt, setScheduledAt] = useState(initial.scheduledAt);
   const [audioFile, setAudioFile] = useState<File>();
+  const transfer = useRef<EpisodeAudioTransfer | undefined>(undefined);
+  const [uploadState, setUploadState] = useState<AudioTransferSnapshot>();
+  const [saveNotice, setSaveNotice] = useState('');
+  const [uploadedName, setUploadedName] = useState<string>();
   const [pendingStatus, setPendingStatus] = useState<EpisodeStatus | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   const [invalidField, setInvalidField] = useState<
-    EpisodeNumericField | 'title' | 'showId' | 'scheduledAt' | 'audioFile' | null
+    EpisodeNumericField | 'title' | 'showId' | 'scheduledAt' | 'audioFile' | 'youtubeUrl' | null
   >(null);
 
-  const isSaving = pendingStatus !== null;
-  const displayedAudioFileName = audioFile?.name ?? episode?.audioFileName;
+  const isSaving = pendingStatus !== null || isUploading;
+  const displayedAudioFileName = audioFile?.name ?? uploadedName ?? episode?.audioFileName;
 
   function clearError() {
     setError('');
     setInvalidField(null);
   }
 
-  function selectAudioFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0];
-    event.currentTarget.value = '';
-    if (!file) return;
-
+  function selectAudioFile(file: File) {
     const validationMessage = validateEpisodeAudioFile(file);
     if (validationMessage) {
       setError(validationMessage);
@@ -79,15 +91,14 @@ export function EpisodeEditorView() {
     }
 
     setAudioFile(file);
+    setUploadState(undefined);
+    setSaveNotice('');
     clearError();
   }
 
-  async function save(status: EpisodeStatus) {
-    if (!canManageEpisodes || isSaving) return;
-    clearError();
-
+  function validateDraft() {
     if (!title.trim()) {
-      setError('أدخل عنوان الحلقة قبل الحفظ.');
+      setError('أدخل عنوان الحلقة أولًا.');
       setInvalidField('title');
       return;
     }
@@ -104,32 +115,94 @@ export function EpisodeEditorView() {
       return;
     }
 
+    const youtubeVideoId = youtubeUrl.trim() ? parseYouTubeVideoId(youtubeUrl) : null;
+    if (youtubeUrl.trim() && !youtubeVideoId) {
+      setError('أدخل رابط حلقة صالحًا من YouTube.');
+      setInvalidField('youtubeUrl');
+      return;
+    }
+    return {
+      id: episode?.id ?? createdId,
+      title: title.trim(),
+      showId,
+      episodeNumber: numericValues.episodeNumber,
+      durationMinutes: numericValues.durationMinutes,
+      notes: notes.trim(),
+      premium,
+      scheduledAt: scheduledAt || undefined,
+      onDraftSaved: setCreatedId,
+      youtubeVideoId,
+    };
+  }
+
+  async function save(status: EpisodeStatus) {
+    if (!canManageEpisodes || isSaving) return;
+    clearError();
+    const draft = validateDraft();
+    if (!draft) return;
     if (status === 'scheduled' && !scheduledAt) {
       setError('اختر موعد النشر قبل جدولة الحلقة.');
       setInvalidField('scheduledAt');
       return;
     }
-
+    if (audioFile && status !== 'draft' && status !== episode?.status) {
+      setError('ارفع الملف المختار أو ألغِ اختياره قبل نشر الحلقة أو جدولتها.');
+      setInvalidField('audioFile');
+      return;
+    }
     setPendingStatus(status);
+    setSaveNotice('');
     try {
-      await saveEpisode(
-        {
-          id: episode?.id,
-          title: title.trim(),
-          showId,
-          episodeNumber: numericValues.episodeNumber,
-          durationMinutes: numericValues.durationMinutes,
-          notes: notes.trim(),
-          premium,
-          scheduledAt: scheduledAt || undefined,
-          audioFile,
-        },
-        status,
-      );
-      navigate(`${adminPaths.episodes}?status=${encodeURIComponent(status)}`, { replace: true });
+      const id = await saveEpisode(draft, status);
+      setCreatedId(id);
+      if (audioFile) setSaveNotice('حُفظت بيانات الحلقة. الملف المختار لم يُرفع بعد.');
+      else
+        navigate(`${adminPaths.episodes}?status=${encodeURIComponent(status)}`, { replace: true });
     } catch (cause) {
       setError(getEpisodeOperationErrorMessage(cause, 'save'));
+    } finally {
       setPendingStatus(null);
+    }
+  }
+
+  async function uploadAudio() {
+    if (!canManageEpisodes || isSaving || !audioFile) return;
+    clearError();
+    // Existing episodes only need their id: unsaved metadata belongs to Save.
+    const draft = episode ? { ...episode, onDraftSaved: setCreatedId } : validateDraft();
+    if (!draft) return;
+    const selected = audioFile;
+    setIsUploading(true);
+    setSaveNotice('');
+    transfer.current = new EpisodeAudioTransfer(selected.size, setUploadState);
+    setUploadState(transfer.current.snapshot);
+    try {
+      const id = await uploadEpisodeAudio({
+        ...draft,
+        audioFile: selected,
+        audioTransfer: transfer.current,
+        onAudioUploaded: () => {
+          setUploadedName(selected.name);
+          setAudioFile(undefined);
+        },
+      });
+      setCreatedId(id);
+      setUploadedName(selected.name);
+      setAudioFile(undefined);
+      setSaveNotice(
+        episode
+          ? 'الصوت مرتبط بالحلقة. احفظ تعديلات البيانات عند الانتهاء.'
+          : 'الصوت مرتبط بمسودة الحلقة. لم تُنشر الحلقة.',
+      );
+    } catch (cause) {
+      if (cause instanceof AudioTransferCancelled)
+        setSaveNotice('أُلغي رفع الصوت. بيانات الحلقة المحفوظة لم تتغير.');
+      else {
+        setError(getEpisodeOperationErrorMessage(cause, 'upload'));
+        if (transfer.current?.snapshot.phase === 'preparing') setUploadState(undefined);
+      }
+    } finally {
+      setIsUploading(false);
     }
   }
 
@@ -154,11 +227,7 @@ export function EpisodeEditorView() {
   if (!episode && !canManageEpisodes) {
     return (
       <>
-        <PageBreadcrumb
-          parentLabel="الحلقات"
-          parentTo={adminPaths.episodes}
-          current="حلقة جديدة"
-        />
+        <PageBreadcrumb parentLabel="الحلقات" parentTo={adminPaths.episodes} current="حلقة جديدة" />
         <PageHeader title="حلقة جديدة" />
         <section className="card form-card" role="status">
           <p className="empty-state">لا تملك صلاحية إنشاء حلقة.</p>
@@ -292,64 +361,64 @@ export function EpisodeEditorView() {
             />
           </Field>
 
-          <Field label="ملف الصوت">
+          <Field
+            label="رابط الحلقة في YouTube"
+            hint="اختياري. أضف رابط الحلقة الكاملة. حذف الرابط يخفي الفيديو وصورته."
+          >
+            <Input
+              value={youtubeUrl}
+              dir="ltr"
+              type="url"
+              placeholder="https://www.youtube.com/watch?v=…"
+              disabled={isSaving}
+              readOnly={!canManageEpisodes}
+              aria-invalid={invalidField === 'youtubeUrl'}
+              onChange={(event) => {
+                setYoutubeUrl(event.target.value);
+                clearError();
+              }}
+            />
+            {youtubeThumbnailUrl(parseYouTubeVideoId(youtubeUrl)) ? (
+              <img
+                className="episode-video-preview"
+                src={youtubeThumbnailUrl(parseYouTubeVideoId(youtubeUrl))!}
+                alt="معاينة صورة فيديو الحلقة"
+                width={320}
+                height={180}
+                loading="lazy"
+              />
+            ) : null}
+          </Field>
+
+          <section className="field" aria-label="ملف الصوت">
+            <span className="field__label">ملف الصوت</span>
             {!canManageEpisodes ? (
               <p className="row-copy__meta" dir={displayedAudioFileName ? 'ltr' : undefined}>
                 {displayedAudioFileName ?? 'لا يوجد ملف صوت.'}
               </p>
-            ) : displayedAudioFileName ? (
-              <div className="upload-file-row">
-                <span dir="ltr">{displayedAudioFileName}</span>
-                <div className="row-actions">
-                  <label
-                    className="button button--quiet"
-                    htmlFor="episode-audio"
-                    aria-disabled={isSaving}
-                  >
-                    {audioFile ? 'اختيار ملف آخر' : 'استبدال الملف'}
-                  </label>
-                  {audioFile ? (
-                    <Button
-                      type="button"
-                      variant="danger"
-                      disabled={isSaving}
-                      onClick={() => setAudioFile(undefined)}
-                    >
-                      إلغاء الاختيار
-                    </Button>
-                  ) : null}
-                </div>
-                <input
-                  className="sr-only"
-                  id="episode-audio"
-                  type="file"
-                  accept="audio/mpeg,audio/wav,.mp3,.wav"
-                  disabled={isSaving}
-                  aria-invalid={invalidField === 'audioFile'}
-                  onChange={selectAudioFile}
-                />
-              </div>
             ) : (
-              <div className="upload-zone">
-                <div>
-                  <p>اختر ملف الصوت النهائي للحلقة.</p>
-                  <label className="button button--quiet" htmlFor="episode-audio">
-                    تصفح الملفات
-                  </label>
-                  <input
-                    className="sr-only"
-                    id="episode-audio"
-                    type="file"
-                    accept="audio/mpeg,audio/wav,.mp3,.wav"
-                    disabled={isSaving}
-                    aria-invalid={invalidField === 'audioFile'}
-                    onChange={selectAudioFile}
-                  />
-                  <small>MP3 أو WAV، حتى 500 م.ب</small>
-                </div>
-              </div>
+              <AudioUploadPanel
+                file={audioFile}
+                fileName={displayedAudioFileName}
+                disabled={isSaving}
+                invalid={invalidField === 'audioFile'}
+                state={uploadState}
+                transfer={transfer.current}
+                isNew={!episode && !createdId}
+                onUpload={() => void uploadAudio()}
+                onSelect={selectAudioFile}
+                onClear={() => {
+                  setAudioFile(undefined);
+                  setUploadState(undefined);
+                }}
+              />
             )}
-          </Field>
+            {saveNotice && (
+              <p className="audio-upload__saved" role="status">
+                {saveNotice}
+              </p>
+            )}
+          </section>
         </section>
 
         <aside className="card publish-card" aria-label="إعدادات النشر">

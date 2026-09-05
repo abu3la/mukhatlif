@@ -11,6 +11,11 @@ export const createEpisodeSchema = z.object({
   showNotesAr: z.string().default(''),
   showNotesEn: z.string().optional(),
   audioUrl: z.string().url().optional(),
+  youtubeVideoId: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{11}$/)
+    .nullable()
+    .optional(),
   durationSec: z.number().int().nonnegative(),
   episodeNumber: z.number().int().positive(),
   premium: z.boolean().default(false),

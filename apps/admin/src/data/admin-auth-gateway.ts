@@ -2,6 +2,8 @@ import type { AdminUserRole } from '@/lib';
 
 export type AdminAuthKind = 'fixture' | 'supabase';
 
+export const MIN_ADMIN_PASSWORD_LENGTH = 12;
+
 export interface AdminAuthSubject {
   readonly id: string;
   readonly email: string;
@@ -21,8 +23,10 @@ export interface DemoAdminAccount extends AdminAuthSubject {
 
 export type AdminAuthErrorCode =
   | 'INVALID_CREDENTIALS'
+  | 'INVALID_VERIFICATION_CODE'
   | 'INVALID_LINK'
   | 'EXPIRED_LINK'
+  | 'WEAK_PASSWORD'
   | 'RATE_LIMITED'
   | 'NETWORK'
   | 'UNSUPPORTED'
@@ -51,6 +55,8 @@ export interface AdminAuthGateway {
    */
   restoreInvitationSession(): Promise<AdminAuthSession | null>;
   signInWithPassword(email: string, password: string): Promise<AdminAuthSession>;
+  requestPasswordChangeVerification(): Promise<void>;
+  changePassword(password: string, verificationCode: string): Promise<void>;
   /**
    * Exchanges the token an invitation link carries for a session. This is the
    * only way an invited person can authenticate: they have no password until

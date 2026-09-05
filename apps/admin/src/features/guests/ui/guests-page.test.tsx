@@ -32,15 +32,15 @@ function createAuthValue(permissions: PermissionId[]): AdminAuthContextValue {
     isSubmitting: false,
     demoAccounts: [],
     signIn: vi.fn(async () => undefined),
+    changePassword: vi.fn(async () => undefined),
+    requestPasswordChangeVerification: vi.fn(async () => undefined),
     signOut: vi.fn(async () => undefined),
     retry: vi.fn(async () => undefined),
   };
 }
 
 function createStudioValue(
-  createGuest: StudioDataContextValue['createGuest'] = vi.fn(
-    async () => demoData.guests[0]!.id,
-  ),
+  createGuest: StudioDataContextValue['createGuest'] = vi.fn(async () => demoData.guests[0]!.id),
 ): StudioDataContextValue {
   return {
     data: {
@@ -68,6 +68,7 @@ function createStudioValue(
     updateArticle: vi.fn(async () => demoData.articles[0]!),
     transitionEpisodeStatus: vi.fn(async () => undefined),
     saveEpisode: vi.fn(async () => demoData.episodes[0]!.id),
+    uploadEpisodeAudio: vi.fn(async () => demoData.episodes[0]!.id),
     transitionArticleStatus: vi.fn(async () => demoData.articles[0]!),
     getMailchimpCapability: vi.fn(async () => ({ mode: 'simulation' as const, configured: true })),
     previewArticleNewsletter: vi.fn(async () => ({ subject: 'نشرة', html: '', text: '' })),
@@ -144,7 +145,10 @@ describe('guest creation flow', () => {
   });
 
   it('hides the new-guest link from a viewer without manage permission', () => {
-    renderGuests(vi.fn(async () => demoData.guests[0]!.id), ['guests.view']);
+    renderGuests(
+      vi.fn(async () => demoData.guests[0]!.id),
+      ['guests.view'],
+    );
 
     expect(screen.queryByRole('link', { name: 'ضيف جديد' })).not.toBeInTheDocument();
   });
@@ -159,10 +163,7 @@ describe('guest creation flow', () => {
       'href',
       '/guests',
     );
-    expect(within(breadcrumb).getByText('ضيف جديد')).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
+    expect(within(breadcrumb).getByText('ضيف جديد')).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('textbox', { name: 'اسم الضيف' })).toBeRequired();
     expect(screen.getByRole('textbox', { name: 'المسمى' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'المدينة' })).toBeInTheDocument();
@@ -180,10 +181,7 @@ describe('guest creation flow', () => {
     const createGuest = vi.fn(async () => demoData.guests[0]!.id);
     renderGuestNew(createGuest);
 
-    await user.type(
-      screen.getByRole('textbox', { name: 'البريد الإلكتروني' }),
-      'a b@example.com',
-    );
+    await user.type(screen.getByRole('textbox', { name: 'البريد الإلكتروني' }), 'a b@example.com');
     await user.click(screen.getByRole('button', { name: 'إضافة الضيف' }));
 
     expect(screen.getByText('أدخل اسم الضيف بحرفين على الأقل.')).toBeInTheDocument();

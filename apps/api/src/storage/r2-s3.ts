@@ -3,6 +3,11 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   S3Client,
+  PutObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
   type GetObjectCommandOutput,
   type HeadObjectCommandOutput,
 } from '@aws-sdk/client-s3';
@@ -18,6 +23,7 @@ import type {
   ObjectStoragePutOptions,
   ObjectStoragePutValue,
   ObjectStorageRange,
+  ObjectStorageMultipartUpload,
 } from './object-storage';
 
 const MULTIPART_PART_SIZE = 8 * 1024 * 1024;
@@ -69,7 +75,15 @@ function contentSize(
 }
 
 function metadata(
-  output: Pick<HeadObjectCommandOutput, 'ContentType' | 'ContentDisposition' | 'ContentLanguage' | 'ContentEncoding' | 'CacheControl' | 'Expires'>,
+  output: Pick<
+    HeadObjectCommandOutput,
+    | 'ContentType'
+    | 'ContentDisposition'
+    | 'ContentLanguage'
+    | 'ContentEncoding'
+    | 'CacheControl'
+    | 'Expires'
+  >,
 ): ObjectStorageHttpMetadata | undefined {
   const result: ObjectStorageHttpMetadata = {
     ...(output.ContentType ? { contentType: output.ContentType } : {}),
@@ -85,7 +99,8 @@ function metadata(
 function rangeHeader(range: ObjectStorageRange | undefined): string | undefined {
   if (!range) return undefined;
   if ('suffix' in range) {
-    if (!Number.isSafeInteger(range.suffix) || range.suffix <= 0) throw new Error('R2_RANGE_INVALID');
+    if (!Number.isSafeInteger(range.suffix) || range.suffix <= 0)
+      throw new Error('R2_RANGE_INVALID');
     return `bytes=-${range.suffix}`;
   }
   const offset = range.offset ?? 0;
@@ -159,7 +174,9 @@ export class R2S3Bucket implements ObjectStorageBucket {
 
   async head(key: string): Promise<ObjectStorageObject | null> {
     try {
-      const output = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
+      const output = await this.client.send(
+        new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
       return storedObject(output);
     } catch (error) {
       if (isNotFound(error)) return null;
@@ -197,6 +214,29 @@ export class R2S3Bucket implements ObjectStorageBucket {
     value: ObjectStoragePutValue,
     options?: ObjectStoragePutOptions,
   ): Promise<ObjectStorageObject | null> {
+    if (options?.onlyIf) {
+      try {
+        const output = await this.client.send(
+          new PutObjectCommand({
+            Bucket: this.bucket,
+            Key: key,
+            Body: uploadBody(value),
+            ...uploadMetadata(options),
+            IfMatch: options.onlyIf.etagMatches ? httpEtag(options.onlyIf.etagMatches) : undefined,
+            IfNoneMatch: options.onlyIf.etagDoesNotMatch,
+          }),
+        );
+        const stored = await this.head(key);
+        if (!stored || !output.ETag) throw invalidResponse('conditional-put');
+        return { ...stored, httpEtag: httpEtag(output.ETag) };
+      } catch (error) {
+        if (
+          (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 412
+        )
+          return null;
+        throw error;
+      }
+    }
     const upload = this.createUpload({
       client: this.client,
       params: {
@@ -217,6 +257,61 @@ export class R2S3Bucket implements ObjectStorageBucket {
 
   async delete(key: string): Promise<void> {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+  }
+
+  async createMultipartUpload(
+    key: string,
+    options?: ObjectStoragePutOptions,
+  ): Promise<ObjectStorageMultipartUpload> {
+    const output = await this.client.send(
+      new CreateMultipartUploadCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ...uploadMetadata(options),
+      }),
+    );
+    if (!output.UploadId) throw invalidResponse('multipart');
+    return this.resumeMultipartUpload(key, output.UploadId);
+  }
+
+  resumeMultipartUpload(key: string, uploadId: string): ObjectStorageMultipartUpload {
+    const identity = { Bucket: this.bucket, Key: key, UploadId: uploadId };
+    return {
+      key,
+      uploadId,
+      uploadPart: async (partNumber, value) => {
+        const output = await this.client.send(
+          new UploadPartCommand({
+            ...identity,
+            PartNumber: partNumber,
+            Body: new Uint8Array(value),
+            ContentLength: value.byteLength,
+          }),
+        );
+        if (!output.ETag) throw invalidResponse('part');
+        return { partNumber, etag: output.ETag };
+      },
+      complete: async (parts) => {
+        await this.client.send(
+          new CompleteMultipartUploadCommand({
+            ...identity,
+            MultipartUpload: {
+              Parts: parts.map((part) => ({ PartNumber: part.partNumber, ETag: part.etag })),
+            },
+          }),
+        );
+        const object = await this.head(key);
+        if (!object) throw invalidResponse('complete');
+        return object;
+      },
+      abort: async () => {
+        try {
+          await this.client.send(new AbortMultipartUploadCommand(identity));
+        } catch (error) {
+          if ((error as { name?: string }).name !== 'NoSuchUpload') throw error;
+        }
+      },
+    };
   }
 }
 

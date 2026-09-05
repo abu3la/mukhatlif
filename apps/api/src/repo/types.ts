@@ -340,7 +340,11 @@ export interface Repository {
     status: EpisodeStatus,
     publishAt?: string,
   ): Promise<Episode | null>;
-  setEpisodeAudioKey(id: string, audioKey: string): Promise<Episode | null>;
+  setEpisodeAudioKey(
+    id: string,
+    audioKey: string,
+    expectedAudioKey?: string | null,
+  ): Promise<Episode | null>;
 
   listReadyMediaAssets(): Promise<StoredMediaAsset[]>;
   getMediaAsset(id: string): Promise<StoredMediaAsset | null>;

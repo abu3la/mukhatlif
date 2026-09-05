@@ -10,10 +10,7 @@ import {
 } from '@/application';
 import { AdminRepositoryError, type ArticleMediaAsset } from '@/data';
 import { demoData, type Article, type PermissionId } from '@/lib';
-import {
-  AI_ARTICLE_SKILL_DOWNLOAD_URL,
-  AI_ARTICLE_SKILL_FILENAME,
-} from './article-ai-skill';
+import { AI_ARTICLE_SKILL_DOWNLOAD_URL, AI_ARTICLE_SKILL_FILENAME } from './article-ai-skill';
 import { ArticleEditorRouteView, ArticleEditorView } from './article-editor-page';
 
 const ARTICLE_PERMISSIONS: PermissionId[] = ['articles.view', 'articles.manage'];
@@ -31,6 +28,8 @@ function createAuthValue(): AdminAuthContextValue {
     isSubmitting: false,
     demoAccounts: [],
     signIn: vi.fn(async () => undefined),
+    changePassword: vi.fn(async () => undefined),
+    requestPasswordChangeVerification: vi.fn(async () => undefined),
     signOut: vi.fn(async () => undefined),
     retry: vi.fn(async () => undefined),
   };
@@ -71,6 +70,7 @@ function createStudioValue(
     updateArticle: vi.fn(async () => firstArticle),
     transitionEpisodeStatus: vi.fn(async () => undefined),
     saveEpisode: vi.fn(async () => demoData.episodes[0]!.id),
+    uploadEpisodeAudio: vi.fn(async () => demoData.episodes[0]!.id),
     transitionArticleStatus: vi.fn(async () => firstArticle),
     getMailchimpCapability: vi.fn(async () => ({
       mode: 'simulation' as const,
@@ -389,7 +389,9 @@ describe('ArticleEditorView', () => {
     await user.click(screen.getByRole('button', { name: 'استيراد إلى المسودة' }));
 
     await waitFor(() =>
-      expect(screen.getByRole('textbox', { name: 'عنوان المقال' })).toHaveValue('كيف نعد مقابلة أفضل'),
+      expect(screen.getByRole('textbox', { name: 'عنوان المقال' })).toHaveValue(
+        'كيف نعد مقابلة أفضل',
+      ),
     );
     expect(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ })).toHaveValue(
       'prepare-a-better-interview',
@@ -1066,12 +1068,8 @@ describe('ArticleEditorView', () => {
     const capabilitySummary = (await screen.findByText(/إعداد Mailchimp محفوظ باسم مختلف/)).closest(
       '.article-mailchimp-state',
     );
-    expect(capabilitySummary).toHaveTextContent(
-      'الجمهور: نشرة مختلف. إجمالي أعضاء الجمهور: 436.',
-    );
-    expect(capabilitySummary).toHaveTextContent(
-      'شريحة الإرسال: nlpage. المستلمون المؤهلون: 389.',
-    );
+    expect(capabilitySummary).toHaveTextContent('الجمهور: نشرة مختلف. إجمالي أعضاء الجمهور: 436.');
+    expect(capabilitySummary).toHaveTextContent('شريحة الإرسال: nlpage. المستلمون المؤهلون: 389.');
     expect(syncArticleNewsletterCampaign).not.toHaveBeenCalled();
     expect(sendArticleNewsletter).not.toHaveBeenCalled();
   });

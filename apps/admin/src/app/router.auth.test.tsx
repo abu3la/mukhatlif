@@ -7,6 +7,7 @@ import { createDefaultRolePermissionMatrix, type RolePermissionMatrix } from '@m
 import {
   FIXTURE_ADMIN_ACCOUNTS,
   FIXTURE_CREATED_ACCOUNT_PASSWORD,
+  FIXTURE_PASSWORD_VERIFICATION_CODE,
   FixtureAdminAuthGateway,
   createFixtureAdminRepository,
   type AdminRepository,
@@ -126,6 +127,54 @@ describe('admin auth routing', () => {
       }),
     ).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('link', { name: 'المقالات' })).not.toBeInTheDocument();
+    const website = screen.getByRole('link', { name: 'عرض الموقع: التطوير (يفتح في تبويب جديد)' });
+    expect(website).toHaveAttribute('href', 'https://web.mukhtalif-development.workers.dev');
+    expect(website).toHaveAttribute('target', '_blank');
+    expect(website).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('lets an authenticated member choose a new password from account security', async () => {
+    const user = userEvent.setup();
+    const { gateway } = await renderRoute('/account', 0);
+    const account = FIXTURE_ADMIN_ACCOUNTS[0];
+    const nextPassword = 'A-new-secure-password-2026!';
+
+    expect(await screen.findByRole('heading', { name: 'أمان الحساب' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'أمان الحساب' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.queryByLabelText('كلمة المرور الحالية')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/كلمة المرور الجديدة/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'إرسال رمز التحقق' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('أرسلنا رمز تحقق إلى بريدك.');
+    await user.type(screen.getByLabelText(/رمز التحقق/), '٢٤٦٨١٠١٢');
+    expect(screen.getByLabelText(/رمز التحقق/)).toHaveValue(FIXTURE_PASSWORD_VERIFICATION_CODE);
+
+    await user.type(screen.getByLabelText(/كلمة المرور الجديدة/), nextPassword);
+    await user.type(screen.getByLabelText('تأكيد كلمة المرور'), `${nextPassword}x`);
+    await user.click(screen.getByRole('button', { name: 'حفظ كلمة المرور' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('كلمتا المرور غير متطابقتين.');
+
+    await user.clear(screen.getByLabelText('تأكيد كلمة المرور'));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText('تأكيد كلمة المرور'), nextPassword);
+    await user.click(screen.getByRole('button', { name: 'حفظ كلمة المرور' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'حُفظت كلمة المرور. استخدمها عند تسجيل الدخول القادم.',
+    );
+    expect(screen.queryByLabelText(/رمز التحقق/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/كلمة المرور الجديدة/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('تأكيد كلمة المرور')).not.toBeInTheDocument();
+
+    await gateway.signOut();
+    await expect(gateway.signInWithPassword(account.email, account.password)).rejects.toMatchObject(
+      {
+        code: 'INVALID_CREDENTIALS',
+      },
+    );
+    await expect(gateway.signInWithPassword(account.email, nextPassword)).resolves.toBeTruthy();
   });
 
   it('lets a subscriber viewer open the newsletter directory as a separate Studio page', async () => {

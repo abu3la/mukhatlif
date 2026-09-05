@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { EpisodeThumbnail } from './episode-thumbnail';
 import type { Episode, PublishedArticle, Show } from '@mukhtalif/types';
 import { dateTimeAttribute, formatDate, formatDuration, formatNumber } from './formatting';
 import { PlayEpisodeButton, type PlayerEpisode } from './player';
@@ -104,10 +105,7 @@ export function ArticleCard({
   const Heading = headingLevel === 2 ? 'h2' : 'h3';
 
   return (
-    <Link
-      className="card article-card"
-      href={`/articles/${encodeURIComponent(article.slug)}`}
-    >
+    <Link className="card article-card" href={`/articles/${encodeURIComponent(article.slug)}`}>
       {article.coverUrl ? (
         /*
          * A cover can come from R2 or an external URL supplied by an editor.
@@ -148,7 +146,7 @@ export function EpisodeRow({
 }: {
   episode: Pick<
     Episode,
-    'id' | 'titleAr' | 'episodeNumber' | 'durationSec' | 'premium' | 'publishAt'
+    'id' | 'titleAr' | 'episodeNumber' | 'durationSec' | 'premium' | 'publishAt' | 'youtubeVideoId'
   >;
   showName?: string;
   variant?: 'list' | 'table';
@@ -158,16 +156,17 @@ export function EpisodeRow({
   const publishedDate = episode.publishAt ? formatDate(episode.publishAt) : '';
   const publishedDateTime = dateTimeAttribute(episode.publishAt);
   const audioSrc = publicEpisodeAudioSrc(episode.id);
-  const playerEpisode: PlayerEpisode | null = audioSrc && !episode.premium
-    ? {
-        id: episode.id,
-        title: episode.titleAr,
-        showTitle: showName,
-        href,
-        durationSec: episode.durationSec,
-        audioSrc,
-      }
-    : null;
+  const playerEpisode: PlayerEpisode | null =
+    audioSrc && !episode.premium
+      ? {
+          id: episode.id,
+          title: episode.titleAr,
+          showTitle: showName,
+          href,
+          durationSec: episode.durationSec,
+          audioSrc,
+        }
+      : null;
 
   return (
     <div
@@ -175,11 +174,7 @@ export function EpisodeRow({
       role="listitem"
     >
       {playerEpisode ? (
-        <PlayEpisodeButton
-          episode={playerEpisode}
-          variant="icon"
-          className="episode-row__play"
-        />
+        <PlayEpisodeButton episode={playerEpisode} variant="icon" className="episode-row__play" />
       ) : episode.premium ? (
         <Link
           className="episode-row__play episode-row__play--premium"
@@ -189,16 +184,17 @@ export function EpisodeRow({
           <LockedIcon />
         </Link>
       ) : (
-        <Link
-          className="episode-row__play"
-          href={href}
-          aria-label={`فتح حلقة ${episode.titleAr}`}
-        >
+        <Link className="episode-row__play" href={href} aria-label={`فتح حلقة ${episode.titleAr}`}>
           <PlayIcon />
         </Link>
       )}
 
       <div className="episode-row__body">
+        {!episode.premium && episode.youtubeVideoId ? (
+          <Link href={href} className="episode-row__thumbnail" tabIndex={-1} aria-hidden="true">
+            <EpisodeThumbnail videoId={episode.youtubeVideoId} />
+          </Link>
+        ) : null}
         <Link className="episode-row__title" href={href}>
           <span className="visually-hidden">
             {`الحلقة ${formatNumber(episode.episodeNumber)}: `}
@@ -215,9 +211,7 @@ export function EpisodeRow({
           <span className="episode-row__meta">
             {showName ? <span>{showName}</span> : null}
             {showName && publishedDate ? ' · ' : null}
-            {publishedDate ? (
-              <time dateTime={publishedDateTime}>{publishedDate}</time>
-            ) : null}
+            {publishedDate ? <time dateTime={publishedDateTime}>{publishedDate}</time> : null}
           </span>
         ) : null}
       </div>

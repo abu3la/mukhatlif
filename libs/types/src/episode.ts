@@ -27,6 +27,8 @@ export interface Episode {
   audioKey?: string;
   /** Direct URL for externally hosted audio. */
   audioUrl?: string;
+  /** Verified full-episode video. Null explicitly clears an editor's selection. */
+  youtubeVideoId?: string | null;
   durationSec: number;
   episodeNumber: number;
   /** Premium episodes require an active subscription to stream. */

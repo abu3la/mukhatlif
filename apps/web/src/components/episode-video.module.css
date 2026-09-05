@@ -1,0 +1,12 @@
+.video {
+  margin-block: 32px;
+}
+.frame iframe {
+  display: block;
+  inline-size: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: var(--radius-card);
+  min-block-size: 200px;
+  background: #111;
+}

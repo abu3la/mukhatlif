@@ -147,3 +147,159 @@
   font-size: 14px;
   font-weight: 500;
 }
+
+.episode-video-preview {
+  display: block;
+  width: min(100%, 320px);
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  margin-block-start: 12px;
+}
+
+/* Audio transfer is a working instrument, not decorative upload chrome. */
+.audio-upload {
+  padding: 22px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ink) 3%, var(--surface));
+  color: var(--ink);
+  transition: background-color 160ms ease;
+}
+.audio-upload--dragging {
+  background: color-mix(in srgb, var(--ink) 9%, var(--surface));
+}
+.audio-upload__file,
+.audio-upload__status,
+.audio-upload__measurement {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.audio-upload__identity {
+  min-inline-size: 0;
+  display: grid;
+  gap: 6px;
+}
+.audio-upload__identity strong {
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.audio-upload__identity span,
+.audio-upload__measurement {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.audio-upload__choose {
+  flex-shrink: 0;
+}
+.audio-upload__transfer {
+  margin-block-start: 22px;
+}
+.audio-upload__status {
+  align-items: baseline;
+  margin-block-end: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.audio-upload__percent {
+  font-size: 32px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.audio-upload__percent small {
+  font-size: 15px;
+  margin-inline-start: 4px;
+  font-weight: 500;
+}
+.audio-upload__progress {
+  display: block;
+  appearance: none;
+  inline-size: 100%;
+  block-size: 8px;
+  border: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ink) 12%, var(--surface));
+  color: var(--ink);
+}
+.audio-upload__progress::-webkit-progress-bar {
+  background: color-mix(in srgb, var(--ink) 12%, var(--surface));
+  border-radius: 4px;
+}
+.audio-upload__progress::-webkit-progress-value {
+  background: var(--ink);
+  border-radius: 4px;
+}
+.audio-upload__progress::-moz-progress-bar {
+  background: var(--ink);
+  border-radius: 4px;
+}
+.audio-upload[data-phase='paused'] .audio-upload__progress::-webkit-progress-value {
+  background: var(--ink-soft);
+}
+.audio-upload__measurement {
+  margin-block-start: 10px;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-variant-numeric: tabular-nums;
+}
+.audio-upload__hint {
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.85;
+  margin-block: 14px 0;
+}
+.audio-upload__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-block-start: 14px;
+}
+.audio-upload__actions:empty {
+  display: none;
+}
+.audio-upload > .button {
+  margin-block-start: 10px;
+}
+.audio-upload .button {
+  box-shadow: none;
+  transform: none;
+  min-block-size: 42px;
+}
+.audio-upload .button:hover {
+  transform: none;
+}
+.audio-upload__notice,
+.audio-upload__saved {
+  font-size: 13px;
+  line-height: 1.8;
+  padding-block: 12px;
+  color: var(--ink);
+}
+.audio-upload__notice .button {
+  margin-block-start: 8px;
+}
+@media (max-width: 600px) {
+  .audio-upload {
+    padding: 16px;
+  }
+  .audio-upload__file {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .audio-upload__status {
+    gap: 12px;
+  }
+  .audio-upload__percent {
+    font-size: 28px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .audio-upload {
+    transition: none;
+  }
+}

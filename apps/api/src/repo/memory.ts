@@ -1045,9 +1045,11 @@ export function createMemoryRepository(): Repository {
       if (publishAt !== undefined) episode.publishAt = publishAt;
       return episode;
     },
-    async setEpisodeAudioKey(episodeId, audioKey) {
+    async setEpisodeAudioKey(episodeId, audioKey, expectedAudioKey) {
       const episode = episodes.find((e) => e.id === episodeId);
       if (!episode) return null;
+      if (expectedAudioKey !== undefined && (episode.audioKey ?? null) !== expectedAudioKey)
+        return null;
       episode.audioKey = audioKey;
       return episode;
     },

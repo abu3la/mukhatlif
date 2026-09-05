@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { EpisodeThumbnail } from './episode-thumbnail';
 import type { HomepageWeeklyEpisode } from '@mukhtalif/types';
 import { dateTimeAttribute, formatDate, formatDuration, formatNumber } from './formatting';
 
@@ -14,6 +15,12 @@ export function WeeklyEpisodeCard({ episode }: { episode: HomepageWeeklyEpisode 
         href={href}
         aria-label={`الحلقة ${formatNumber(episode.episodeNumber)}: ${episode.titleAr}`}
       >
+        {!episode.premium ? (
+          <EpisodeThumbnail
+            videoId={episode.youtubeVideoId}
+            className="weekly-episode-card__thumbnail"
+          />
+        ) : null}
         <span className="weekly-episode-card__show">{episode.showTitleAr}</span>
         <h3 className="weekly-episode-card__title">{episode.titleAr}</h3>
         <span className="weekly-episode-card__meta">

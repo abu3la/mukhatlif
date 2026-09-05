@@ -18,9 +18,13 @@ class FakeAudioBucket {
     };
   }
 
-  async put(key: string, value: ReadableStream | ArrayBuffer | null, options?: {
-    httpMetadata?: { contentType?: string };
-  }) {
+  async put(
+    key: string,
+    value: ReadableStream | ArrayBuffer | null,
+    options?: {
+      httpMetadata?: { contentType?: string };
+    },
+  ) {
     const bytes =
       value instanceof ArrayBuffer
         ? new Uint8Array(value)
@@ -132,9 +136,9 @@ describe('episode audio upload', () => {
 
   it('refuses an encoded body and a missing Content-Length', async () => {
     const bucket = new FakeAudioBucket();
-    expect(
-      (await upload(bucket, { ...validHeaders, 'content-encoding': 'gzip' })).status,
-    ).toBe(415);
+    expect((await upload(bucket, { ...validHeaders, 'content-encoding': 'gzip' })).status).toBe(
+      415,
+    );
     const withoutLength = await upload(bucket, { 'content-type': 'audio/mpeg' });
     expect(withoutLength.status).toBe(411);
     expect(bucket.objects.size).toBe(0);
@@ -211,6 +215,66 @@ describe('episode audio delivery', () => {
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
   });
 
+  it('serves legacy M4A objects as audio/mp4 for full and ranged responses without rewriting them', async () => {
+    const bucket = new FakeAudioBucket();
+    const bytes = new Uint8Array([0, 0, 0, 12, 102, 116, 121, 112, 77, 52, 65, 32]);
+    const uploaded = await upload(
+      bucket,
+      {
+        'content-type': 'audio/mp4',
+        'content-length': String(bytes.length),
+      },
+      bytes,
+    );
+    expect(uploaded.status).toBe(200);
+    const key = ((await uploaded.json()) as Episode).audioKey!;
+    bucket.objects.set(key, { bytes, contentType: 'audio/x-m4a' });
+
+    const full = await app.request('/episodes/ep-1001/audio', {}, audioEnv(bucket));
+    expect(full.status).toBe(200);
+    expect(full.headers.get('content-type')).toBe('audio/mp4');
+    expect(full.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(new Uint8Array(await full.arrayBuffer())).toEqual(bytes);
+
+    const partial = await app.request(
+      '/episodes/ep-1001/audio',
+      {
+        headers: { range: 'bytes=4-7' },
+      },
+      audioEnv(bucket),
+    );
+    expect(partial.status).toBe(206);
+    expect(partial.headers.get('content-type')).toBe('audio/mp4');
+    expect(partial.headers.get('content-range')).toBe('bytes 4-7/12');
+    expect(new Uint8Array(await partial.arrayBuffer())).toEqual(bytes.slice(4, 8));
+    expect(bucket.objects.get(key)).toEqual({ bytes, contentType: 'audio/x-m4a' });
+  });
+
+  it('delivers reviewed AAC bytes correctly even when the retained object key ends in mp3', async () => {
+    const bucket = new FakeAudioBucket();
+    const uploaded = await upload(bucket, validHeaders);
+    expect(uploaded.status).toBe(200);
+    const key = ((await uploaded.json()) as Episode).audioKey!;
+    expect(key.endsWith('.mp3')).toBe(true);
+    const bytes = new Uint8Array([255, 249, 80, 128, 46, 130, 68, 0]);
+    bucket.objects.set(key, { bytes, contentType: 'audio/aac' });
+    const full = await app.request('/episodes/ep-1001/audio', {}, audioEnv(bucket));
+    expect(full.status).toBe(200);
+    expect(full.headers.get('content-type')).toBe('audio/aac');
+    expect(full.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(new Uint8Array(await full.arrayBuffer())).toEqual(bytes);
+    const partial = await app.request(
+      '/episodes/ep-1001/audio',
+      { headers: { range: 'bytes=4-7' } },
+      audioEnv(bucket),
+    );
+    expect(partial.status).toBe(206);
+    expect(partial.headers.get('content-type')).toBe('audio/aac');
+    expect(partial.headers.get('content-range')).toBe('bytes 4-7/8');
+    expect(new Uint8Array(await partial.arrayBuffer())).toEqual(bytes.slice(4));
+    expect(bucket.objects.get(key)).toEqual({ bytes, contentType: 'audio/aac' });
+  });
+
   it('supports open-ended and suffix ranges without reading beyond the object', async () => {
     const bucket = new FakeAudioBucket();
     expect((await upload(bucket, validHeaders)).status).toBe(200);
@@ -263,5 +327,23 @@ describe('shared audio media contract', () => {
   it('downgrades an unrecognized stored type instead of echoing it', () => {
     expect(safeAudioMediaContentType('text/html')).toBe('audio/mpeg');
     expect(safeAudioMediaContentType('audio/flac')).toBe('audio/flac');
+  });
+
+  it('canonicalizes only known legacy audio aliases when serving', () => {
+    expect(safeAudioMediaContentType('audio/x-m4a')).toBe('audio/mp4');
+    expect(safeAudioMediaContentType(' AUDIO/X-M4A ; codecs=mp4a.40.2')).toBe('audio/mp4');
+    expect(safeAudioMediaContentType('audio/mp3')).toBe('audio/mpeg');
+    expect(safeAudioMediaContentType('audio/x-m4a-unknown')).toBe('audio/mpeg');
+    expect(safeAudioMediaContentType('video/mp4')).toBe('audio/mpeg');
+  });
+
+  it('does not expand the upload allowlist for legacy delivery aliases', async () => {
+    const bucket = new FakeAudioBucket();
+    for (const contentType of ['audio/x-m4a', 'audio/mp3']) {
+      expect((await upload(bucket, { ...validHeaders, 'content-type': contentType })).status).toBe(
+        415,
+      );
+    }
+    expect(bucket.objects.size).toBe(0);
   });
 });

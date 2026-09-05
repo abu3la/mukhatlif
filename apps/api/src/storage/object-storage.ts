@@ -23,9 +23,7 @@ export interface ObjectStorageObjectBody extends ObjectStorageObject {
 }
 
 export type ObjectStorageRange =
-  | { offset: number; length?: number }
-  | { offset?: number; length: number }
-  | { suffix: number };
+  { offset: number; length?: number } | { offset?: number; length: number } | { suffix: number };
 
 export interface ObjectStorageGetOptions {
   range?: ObjectStorageRange;
@@ -33,17 +31,31 @@ export interface ObjectStorageGetOptions {
 
 export interface ObjectStoragePutOptions {
   httpMetadata?: ObjectStorageHttpMetadata;
+  onlyIf?: { etagMatches?: string; etagDoesNotMatch?: string };
+}
+
+export interface ObjectStorageUploadedPart {
+  partNumber: number;
+  etag: string;
+}
+
+export interface ObjectStorageMultipartUpload {
+  key: string;
+  uploadId: string;
+  uploadPart(partNumber: number, value: ArrayBuffer): Promise<ObjectStorageUploadedPart>;
+  complete(parts: ObjectStorageUploadedPart[]): Promise<ObjectStorageObject>;
+  abort(): Promise<void>;
 }
 
 export type ObjectStoragePutValue =
-  | ReadableStream
-  | ArrayBuffer
-  | ArrayBufferView
-  | string
-  | Blob
-  | null;
+  ReadableStream | ArrayBuffer | ArrayBufferView | string | Blob | null;
 
 export interface ObjectStorageBucket {
+  createMultipartUpload?(
+    key: string,
+    options?: ObjectStoragePutOptions,
+  ): Promise<ObjectStorageMultipartUpload>;
+  resumeMultipartUpload?(key: string, uploadId: string): ObjectStorageMultipartUpload;
   head(key: string): Promise<ObjectStorageObject | null>;
   get(key: string, options?: ObjectStorageGetOptions): Promise<ObjectStorageObjectBody | null>;
   put(

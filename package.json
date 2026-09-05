@@ -14,6 +14,7 @@
     "env:sync": "node scripts/sync-local-env.mjs",
     "format": "prettier --write .",
     "migrate:audio:r2": "tsx tools/audio-r2/src/cli.ts",
+    "migrate:audio:r2:apply": "tsx tools/audio-r2/src/apply-cli.ts",
     "import:newsletter:elementor:apply": "tsx tools/elementor-newsletter-import/src/apply-cli.ts --apply",
     "import:newsletter:elementor:dry-run": "tsx tools/elementor-newsletter-import/src/cli.ts",
     "import:newsletter:elementor:preflight": "tsx tools/elementor-newsletter-import/src/apply-cli.ts",
@@ -39,11 +40,14 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
+    "@types/node": "^24.13.3",
     "eslint": "^9.34.0",
     "parse5": "^8.0.1",
     "prettier": "^3.6.2",
     "tsx": "^4.20.6",
     "turbo": "^2.5.8",
-    "typescript-eslint": "^8.40.0"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.40.0",
+    "vitest": "^4.1.10"
   }
 }

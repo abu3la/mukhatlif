@@ -117,6 +117,11 @@ export function createAdminRoutes(
       element: <StudioLayout repository={repository} />,
       errorElement: <RouteErrorView />,
       children: [
+        {
+          id: adminRouteIds.account,
+          path: adminRoutePatterns.account,
+          lazy: () => import('./routes/account.route'),
+        },
         ...featureRoutes,
         ...(repository.capabilities['guest-management'] ? guestRoutes : []),
         {

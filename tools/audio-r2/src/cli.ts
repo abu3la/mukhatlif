@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { access, chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { access, chmod, mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
+import { parseEnv } from 'node:util';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -32,6 +32,7 @@ interface CliOptions {
   accountId: string;
   bucket: string;
   expectedProjectRef: string;
+  envPath?: string;
 }
 
 interface BucketInfo {
@@ -118,6 +119,7 @@ const USAGE = `Usage:
 Options:
   --manifest PATH       RSS manifest (default: private 2026-09-02 backup)
   --report PATH         JSON report outside Git (default: private backup)
+  --env PATH            Required private development Supabase environment file
   --head-sources        HEAD-check all source files and redirects without downloading bodies
   --head-concurrency N  Concurrent source HEAD checks, 1-16 (default: 8)
   --account-id ID       Must equal the approved Mukhtalif Cloudflare account
@@ -159,6 +161,7 @@ export function parseArguments(args: string[]): CliOptions {
       result.manifestPath = path.resolve(argumentValue(args, index++, flag));
     else if (flag === '--report')
       result.reportPath = path.resolve(argumentValue(args, index++, flag));
+    else if (flag === '--env') result.envPath = path.resolve(argumentValue(args, index++, flag));
     else if (flag === '--account-id') result.accountId = argumentValue(args, index++, flag);
     else if (flag === '--bucket') result.bucket = argumentValue(args, index++, flag);
     else if (flag === '--project-ref')
@@ -204,44 +207,24 @@ async function atomicJson(filePath: string, value: unknown): Promise<void> {
   await chmod(filePath, 0o600);
 }
 
-function loadEnvironment(): void {
-  const envPath = path.join(REPOSITORY_ROOT, '.env.local');
-  if (typeof process.loadEnvFile === 'function') {
-    try {
-      process.loadEnvFile(envPath);
-      return;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-    }
-  }
-  try {
-    for (const line of readFileSync(envPath, 'utf8').split(/\r?\n/)) {
-      const match = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
-      if (!match || process.env[match[1]!] !== undefined) continue;
-      const raw = match[2]!;
-      process.env[match[1]!] =
-        (raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))
-          ? raw.slice(1, -1)
-          : raw;
-    }
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-  }
-}
-
-async function readDatabaseEpisodes(expectedProjectRef: string): Promise<{
+async function readDatabaseEpisodes(
+  expectedProjectRef: string,
+  envPath?: string,
+): Promise<{
   projectRef: string;
   episodes: DatabaseEpisode[];
 }> {
-  loadEnvironment();
-  const originValue = process.env.SUPABASE_URL?.trim();
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!envPath || (await stat(envPath)).mode & 0o077)
+    throw new Error('--env must name a private development credential file');
+  const env = parseEnv(await readFile(envPath, 'utf8'));
+  const originValue = env.SUPABASE_URL?.trim();
+  const key = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!originValue || !key) {
-    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in .env.local');
+    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in --env');
   }
   const origin = new URL(originValue);
-  if (origin.protocol !== 'https:' || origin.username || origin.password) {
-    throw new Error('SUPABASE_URL must be a credential-free HTTPS origin');
+  if (originValue !== `https://${expectedProjectRef}.supabase.co`) {
+    throw new Error('SUPABASE_URL must be the exact pinned development HTTPS origin');
   }
   const projectRef = origin.hostname.split('.')[0] ?? '';
   if (projectRef !== expectedProjectRef) {
@@ -272,7 +255,7 @@ interface ProcessResult {
 }
 
 async function findWrangler(): Promise<string> {
-  const candidate = path.join(REPOSITORY_ROOT, 'node_modules/.bin/wrangler');
+  const candidate = path.join(REPOSITORY_ROOT, 'apps/api/node_modules/.bin/wrangler');
   try {
     await access(candidate);
     return candidate;
@@ -412,7 +395,7 @@ function transferHours(bytes: number, megabitsPerSecond: number, passes: number)
 async function executeDryRun(options: CliOptions): Promise<DryRunReport> {
   const [manifestText, database, bucket] = await Promise.all([
     readFile(options.manifestPath, 'utf8'),
-    readDatabaseEpisodes(options.expectedProjectRef),
+    readDatabaseEpisodes(options.expectedProjectRef, options.envPath),
     readBucketInfo(options),
   ]);
   const manifestValue = JSON.parse(manifestText) as {
@@ -525,6 +508,12 @@ async function main(): Promise<void> {
     return;
   }
   assertOutsideRepository(options.reportPath, '--report');
+  try {
+    await access(options.reportPath);
+    throw new Error('Report already exists; use a new --report path to preserve reviewed evidence');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
   if (options.apply) {
     throw new Error(
       'Audio apply is locked until the user explicitly approves the reviewed 137 GiB storage and transfer plan',
