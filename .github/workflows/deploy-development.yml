@@ -1,5 +1,5 @@
 name: Deploy Cloudflare development
-run-name: Development ${{ github.event.workflow_run.head_sha }}
+run-name: ${{ github.event.workflow_run.event == 'push' && 'Development' || 'Verification only' }} ${{ github.event.workflow_run.head_sha }}
 on:
   workflow_run:
     workflows: ['Verify shared source (no deployment)']
