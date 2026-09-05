@@ -197,3 +197,6 @@ jobs:
 
       - name: Build Web for Hostinger
         run: pnpm --filter @mukhtalif/web build:hostinger
+
+      - name: Run isolated Hostinger Web server and verify static assets
+        run: node scripts/smoke-hostinger-web.mjs
