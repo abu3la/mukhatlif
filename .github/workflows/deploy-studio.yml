@@ -1,0 +1,91 @@
+name: Deploy production Studio
+
+on:
+  workflow_run:
+    workflows: ['Verify shared source (no deployment)']
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-studio
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production-studio
+    env:
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      RELEASE_DIR: /tmp/studio-release-${{ github.run_id }}-${{ github.run_attempt }}
+      VITE_ADMIN_DATA_SOURCE: hono
+      VITE_API_URL: https://api.mukhtalif.net
+      VITE_SUPABASE_URL: https://pacpdxvujkjvnaeeuute.supabase.co
+      PRODUCTION_SUPABASE_PROJECT_REF: pacpdxvujkjvnaeeuute
+      VITE_PRODUCTION_WEB_TARGET: staging
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.STUDIO_PRODUCTION_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+          persist-credentials: false
+      - name: Reject stale main releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$RELEASE_SHA"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @mukhtalif/admin lint
+      - run: pnpm --filter @mukhtalif/admin test
+      - name: Build the same Studio output as the CLI release
+        run: pnpm --filter @mukhtalif/admin build:hostinger
+      - name: Validate and package apps/admin/dist
+        run: node scripts/deploy-hostinger-studio.mjs prepare "$RELEASE_DIR"
+      - name: Install pinned official Hostinger CLI
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl --fail --silent --show-error --location https://github.com/hostinger/api-cli/releases/download/v3.30.0/hostinger-3.30.0-linux-amd64.tar.gz -o hostinger.tar.gz
+          echo '2355939a2e9d96bbb90db111fec8ec72e4b5ea2e498ef33a71f4c66ef933d9d6  hostinger.tar.gz' | sha256sum --check
+          mkdir hostinger-cli
+          tar -xzf hostinger.tar.gz -C hostinger-cli
+          echo "$RUNNER_TEMP/hostinger-cli" >> "$GITHUB_PATH"
+      - name: Back up existing Studio before replacing it
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: node scripts/deploy-hostinger-studio.mjs backup "$RELEASE_DIR"
+      - name: Preserve rollback before deployment
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-rollback-${{ env.RELEASE_SHA }}
+          path: |
+            ${{ env.RELEASE_DIR }}/rollback.zip
+            ${{ env.RELEASE_DIR }}/backup-receipt.json
+          retention-days: 30
+          if-no-files-found: error
+      - name: Recheck main immediately before publishing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$RELEASE_SHA"
+      - name: Deploy only Studio through the shared CLI path
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: node scripts/deploy-hostinger-studio.mjs deploy "$RELEASE_DIR"
+      - name: Verify release, assets and direct routes on production
+        run: node scripts/deploy-hostinger-studio.mjs verify "$RELEASE_DIR"
+      - name: Keep release receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-release-${{ env.RELEASE_SHA }}
+          path: ${{ env.RELEASE_DIR }}/*.json
+          retention-days: 30

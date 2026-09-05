@@ -97,6 +97,8 @@ export interface Show {
 
 export interface Episode {
   id: EpisodeId;
+  /** Canonical API identifier, distinct from the Studio's encoded UI id. */
+  remoteId?: string;
   title: string;
   showId: ShowId;
   episodeNumber: number | null;

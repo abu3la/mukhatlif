@@ -240,6 +240,37 @@ describe('episode YouTube editor controls', () => {
     };
   }
 
+  it('uses the canonical remote id for preview, not the encoded Studio id', async () => {
+    vi.stubEnv('VITE_ADMIN_DATA_SOURCE', 'hono');
+    vi.stubEnv('VITE_API_URL', 'https://mukhtalif-api.mukhtalif-development.workers.dev');
+    try {
+      const studio = videoStudio();
+      studio.data.episodes = studio.data.episodes.map((episode) => ({
+        ...episode,
+        remoteId: 'ep-rss-real',
+        premium: false,
+      }));
+      renderEpisodeEditor(MANAGE_PERMISSIONS, '/episodes/episode_9', studio);
+      const previewSection = screen.getByRole('region', { name: 'معاينة الحلقة' });
+      const episodeDetails = screen.getByRole('region', { name: 'بيانات الحلقة' });
+      expect(episodeDetails).not.toContainElement(previewSection);
+      expect(previewSection.parentElement).toBe(episodeDetails.parentElement);
+      expect(previewSection).toHaveClass('card');
+      await userEvent.setup().click(screen.getByRole('button', { name: 'معاينة الحلقة' }));
+      expect(document.querySelector('audio')).toHaveAttribute(
+        'src',
+        'https://mukhtalif-api.mukhtalif-development.workers.dev/episodes/ep-rss-real/audio',
+      );
+      expect(screen.getByRole('link', { name: 'فتح الحلقة على الموقع' })).toHaveAttribute(
+        'href',
+        'https://web.mukhtalif-development.workers.dev/episodes/ep-rss-real',
+      );
+      expect(studio.saveEpisode).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('previews and saves a normalized video ID without replacing audio or publication status', async () => {
     const user = userEvent.setup();
     const studio = videoStudio();

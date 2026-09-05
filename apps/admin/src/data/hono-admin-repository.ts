@@ -2171,6 +2171,7 @@ export class HonoAdminRepository implements AdminRepository {
   private toAdminEpisode(episode: ApiEpisode): Episode {
     return {
       id: encodeId('episode', episode.id) as EpisodeId,
+      remoteId: episode.id,
       showId: encodeId('show', episode.showId) as ShowId,
       title: episode.titleAr,
       notes: episode.showNotesAr,

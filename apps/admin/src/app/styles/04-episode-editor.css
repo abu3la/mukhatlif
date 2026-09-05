@@ -6,6 +6,60 @@
   gap: 24px;
 }
 
+.episode-editor-main {
+  display: grid;
+  gap: 24px;
+  min-inline-size: 0;
+}
+
+.episode-media-preview {
+  padding: 24px;
+  min-inline-size: 0;
+}
+
+.episode-media-preview__body {
+  display: grid;
+  gap: 16px;
+  padding-block: 20px;
+  min-inline-size: 0;
+}
+.episode-media-preview__body h2 {
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+.episode-media-preview__body p {
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+.episode-media-preview__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.episode-media-preview__actions [aria-pressed='true'] {
+  background: var(--line);
+  color: var(--ink);
+}
+.episode-media-preview__cover,
+.episode-media-preview__video {
+  inline-size: 100%;
+  max-inline-size: 640px;
+  aspect-ratio: 16 / 9;
+  block-size: auto;
+  border: 0;
+  border-radius: var(--radius-card);
+}
+.episode-media-preview__cover {
+  object-fit: cover;
+}
+.episode-media-preview audio {
+  inline-size: 100%;
+  max-inline-size: 640px;
+}
+.episode-media-preview .button:hover {
+  transform: none;
+}
+
 .form-card {
   display: flex;
   flex-direction: column;
