@@ -3,6 +3,16 @@ import { appendFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+export function developmentBaseline(runs, currentRunId) {
+  for (const run of runs) {
+    if (String(run.id) === String(currentRunId)) continue;
+    if (run.conclusion !== 'success' || run.event !== 'workflow_run') continue;
+    const match = /^Development ([a-f0-9]{40})$/.exec(run.display_title ?? '');
+    if (match) return match[1];
+  }
+  return null;
+}
+
 export function classifyDevelopmentChanges(paths) {
   const selected = { api: false, studio: false, web: false };
   for (const path of paths) {
@@ -34,21 +44,22 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       'gh',
       [
         'api',
-        'repos/abu3la/mukhatlif/actions/workflows/deploy-development.yml/runs?branch=dev&status=success&per_page=100',
+        'repos/abu3la/mukhatlif/actions/workflows/deploy-development.yml/runs?status=success&per_page=100',
       ],
       { encoding: 'utf8' },
     ),
   );
-  const previous = runs.find((run) => String(run.id) !== process.env.GITHUB_RUN_ID);
+  // workflow_run's head_sha/head_branch describe main, not the triggering dev commit.
+  const previous = developmentBaseline(runs, process.env.GITHUB_RUN_ID);
   let selected = { api: true, studio: true, web: true };
   if (previous) {
     try {
-      execFileSync('git', ['merge-base', '--is-ancestor', previous.head_sha, sha], {
+      execFileSync('git', ['merge-base', '--is-ancestor', previous, sha], {
         stdio: 'pipe',
       });
       const paths = execFileSync(
         'git',
-        ['diff', '--name-only', '--no-renames', '-z', previous.head_sha, sha],
+        ['diff', '--name-only', '--no-renames', '-z', previous, sha],
         { encoding: 'utf8' },
       )
         .split('\0')

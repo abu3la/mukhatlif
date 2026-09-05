@@ -1,6 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { classifyDevelopmentChanges as classify } from './classify-development-changes.mjs';
+import { developmentBaseline } from './classify-development-changes.mjs';
+
+test('workflow_run baseline uses verified dev identity, never default-branch head_sha', () => {
+  const sha = 'a'.repeat(40);
+  const run = {
+    id: 1,
+    conclusion: 'success',
+    event: 'workflow_run',
+    head_branch: 'main',
+    head_sha: 'b'.repeat(40),
+    display_title: `Development ${sha}`,
+  };
+  assert.equal(developmentBaseline([run], 2), sha);
+  assert.equal(developmentBaseline([run], 1), null);
+  assert.equal(developmentBaseline([{ ...run, conclusion: 'failure' }], 2), null);
+  assert.equal(
+    developmentBaseline([{ ...run, display_title: 'Deploy Cloudflare development' }], 2),
+    null,
+  );
+});
 
 test('development apps select independently', () => {
   assert.deepEqual(classify(['apps/api/src/index.ts']), { api: true, studio: false, web: false });
