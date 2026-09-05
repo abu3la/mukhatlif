@@ -1,0 +1,117 @@
+name: Deploy Cloudflare development
+on:
+  workflow_run:
+    workflows: ['Verify shared source (no deployment)']
+    types: [completed]
+    branches: [dev]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: cloudflare-development
+  cancel-in-progress: false
+jobs:
+  changes:
+    if: >-
+      github.repository == 'abu3la/mukhatlif' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.classify.outputs.api }}
+      studio: ${{ steps.classify.outputs.studio }}
+      web: ${{ steps.classify.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: node scripts/classify-development-changes.mjs
+  deploy:
+    needs: changes
+    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.studio == 'true' || needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: cloudflare-development
+    env:
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+      GH_TOKEN: ${{ github.token }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEVELOPMENT_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: bb4abee6bf877ef411dc803b3be96373
+      NEXT_TELEMETRY_DISABLED: '1'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          persist-credentials: false
+      - name: Reject stale or foreign development releases
+        run: |
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$(gh api repos/abu3la/mukhatlif/git/ref/heads/dev --jq .object.sha)" = "$RELEASE_SHA"
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_DEVELOPMENT_API_TOKEN'; exit 1; }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate development destinations and existing guards
+        run: node scripts/verify-development-release.mjs config
+      - name: Prepare private development browser configuration
+        if: needs.changes.outputs.studio == 'true'
+        env:
+          DEVELOPMENT_ANON_KEY: ${{ secrets.STUDIO_DEVELOPMENT_ANON_KEY }}
+        run: node scripts/verify-development-release.mjs browser-env
+      - name: Build and validate Studio before any deployment
+        if: needs.changes.outputs.studio == 'true'
+        run: pnpm --filter @mukhtalif/admin build:development --env "$RUNNER_TEMP/studio-development.env"
+      - name: Build Web before any deployment
+        if: needs.changes.outputs.web == 'true'
+        run: pnpm --filter @mukhtalif/web build:worker
+      - name: Record current Worker versions for recovery
+        run: |
+          mkdir -p "$RUNNER_TEMP/development-receipts"
+          for app in api admin web; do
+            pnpm --filter "@mukhtalif/$app" exec wrangler deployments list --json > "$RUNNER_TEMP/development-receipts/$app-before.json"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: development-before-${{ github.run_id }}
+          path: ${{ runner.temp }}/development-receipts/*-before.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Recheck dev immediately before publication
+        run: test "$(gh api repos/abu3la/mukhatlif/git/ref/heads/dev --jq .object.sha)" = "$RELEASE_SHA"
+      - name: Deploy development API first
+        if: needs.changes.outputs.api == 'true'
+        run: pnpm --filter @mukhtalif/api deploy:development
+      - name: Verify API before publishing consumers
+        run: node scripts/verify-development-release.mjs api
+      - name: Deploy development Studio
+        if: needs.changes.outputs.studio == 'true'
+        run: pnpm --filter @mukhtalif/admin deploy:development --env "$RUNNER_TEMP/studio-development.env"
+      - name: Deploy development Web
+        if: needs.changes.outputs.web == 'true'
+        run: |
+          node scripts/verify-development-release.mjs config
+          pnpm --filter @mukhtalif/web exec opennextjs-cloudflare deploy
+      - name: Verify public development routes
+        run: node scripts/verify-development-release.mjs public
+      - name: Record deployed Worker versions
+        run: |
+          for app in api admin web; do
+            pnpm --filter "@mukhtalif/$app" exec wrangler deployments list --json > "$RUNNER_TEMP/development-receipts/$app-after.json"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: development-result-${{ github.run_id }}
+          path: ${{ runner.temp }}/development-receipts/*.json
+          retention-days: 30
