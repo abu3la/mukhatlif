@@ -1,6 +1,4 @@
 import Link from 'next/link';
-import { apiOrigin } from '@/lib/config';
-import { NewsletterSignup } from './newsletter-signup';
 import { Wordmark } from './wordmark';
 import { SiteNavigation } from './site-navigation';
 
@@ -84,7 +82,6 @@ export function SiteFooter() {
             </div>
           </nav>
 
-          <NewsletterSignup apiOrigin={apiOrigin()} />
         </div>
 
         <p className="site-footer__copyright">جميع الحقوق محفوظة © ٢٠٢٦ | مختلف</p>

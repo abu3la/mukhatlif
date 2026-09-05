@@ -12,7 +12,7 @@ import {
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { JSONContent } from '@tiptap/react';
-import { ChevronDown, ClipboardCopy, FileDown, FileText, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, ClipboardCopy, FileDown, FileText, Sparkles } from 'lucide-react';
 import { adminPaths, canManagePage, useAdminAuth, useStudioData } from '@/application';
 import {
   type CreateArticleCommand,
@@ -306,12 +306,16 @@ function CollapsibleArticleSection({
           type="button"
           className="article-publisher__section-toggle"
           aria-label={`${open ? 'إغلاق' : 'فتح'} قسم ${title}`}
+          title={`${open ? 'طي' : 'توسيع'} قسم ${title}`}
           aria-expanded={open}
           aria-controls={panelId}
           onClick={onToggle}
         >
-          <span>{open ? 'إغلاق' : 'فتح'}</span>
-          <ChevronDown aria-hidden="true" focusable="false" size={17} strokeWidth={2} />
+          {open ? (
+            <ChevronUp aria-hidden="true" focusable="false" size={20} strokeWidth={2} />
+          ) : (
+            <ChevronDown aria-hidden="true" focusable="false" size={20} strokeWidth={2} />
+          )}
         </button>
       </div>
       <div id={panelId} hidden={!open}>

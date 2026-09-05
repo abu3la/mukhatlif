@@ -1652,8 +1652,7 @@ h3 {
   grid-template-columns:
     minmax(210px, 1.1fr)
     minmax(130px, 0.55fr)
-    minmax(180px, 0.8fr)
-    minmax(260px, 1fr);
+    minmax(180px, 0.8fr);
   gap: clamp(32px, 4vw, 48px);
 }
 
@@ -1717,6 +1716,39 @@ h3 {
 .site-footer__links a:hover,
 .site-footer__socials a:hover {
   color: var(--night-text);
+}
+
+.home-newsletter {
+  margin-block: clamp(40px, 6vw, 72px);
+}
+
+.home-newsletter .newsletter-signup {
+  --night: var(--surface);
+  --night-text: var(--ink);
+  --night-muted: var(--secondary);
+  --night-raised: var(--surface);
+  --night-lifted: var(--surface);
+  --night-line: var(--line);
+  --green: var(--green-dark);
+  max-inline-size: 640px;
+  margin-inline: auto;
+}
+
+.home-newsletter .newsletter-signup__title {
+  font-size: clamp(24px, 3vw, 32px);
+}
+
+.home-newsletter .newsletter-signup__intro {
+  font-size: 15px;
+}
+
+.home-newsletter .newsletter-signup__field-error,
+.home-newsletter .newsletter-signup__feedback {
+  color: var(--danger);
+}
+
+.home-newsletter input[aria-invalid='true'] {
+  border-color: var(--danger);
 }
 
 .newsletter-signup {

@@ -4,6 +4,8 @@ import { ArticleCard, EpisodeRow, ShowCard } from '@/components/cards';
 import { formatNumber } from '@/components/formatting';
 import { EmptyState, ErrorState } from '@/components/states';
 import { WeeklyEpisodeCard } from '@/components/weekly-episodes';
+import { NewsletterSignup } from '@/components/newsletter-signup';
+import { apiOrigin } from '@/lib/config';
 import { ApiUnavailableError, getHomeSummary } from '@/lib/api';
 
 export const revalidate = 60;
@@ -33,6 +35,9 @@ export default async function HomePage() {
       <div className="content-page">
         <div className="content-container">
           <ErrorState />
+          <div className="home-newsletter">
+            <NewsletterSignup apiOrigin={apiOrigin()} />
+          </div>
         </div>
       </div>
     );
@@ -142,6 +147,10 @@ export default async function HomePage() {
             </div>
           </section>
         ) : null}
+
+        <div className="home-newsletter">
+          <NewsletterSignup apiOrigin={apiOrigin()} />
+        </div>
 
         {summary.latestArticles.length > 0 ? (
           <section className="content-section home-articles" aria-labelledby="home-articles">

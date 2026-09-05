@@ -301,6 +301,8 @@ describe('ArticleEditorView', () => {
       const toggle = screen.getByRole('button', { name: `إغلاق قسم ${label}` });
       expect(toggle).toHaveAttribute('aria-expanded', 'true');
       expect(toggle).toHaveAttribute('aria-controls', panelId);
+      expect(toggle.textContent).toBe('');
+      expect(toggle.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
     }
     expect(screen.queryByRole('button', { name: /قسم المقال/ })).not.toBeInTheDocument();
 
