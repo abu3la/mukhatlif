@@ -5,6 +5,8 @@ import {
   type AudioTransferSnapshot,
 } from '@/data/episode-audio-transfer';
 import { AudioUploadPanel } from './audio-upload-panel';
+import { EpisodeMediaPreview } from './episode-media-preview';
+import { publicWebsite } from '@/lib/public-website';
 import { parseYouTubeVideoId, youtubeThumbnailUrl } from '@mukhtalif/types';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { adminPaths, canManagePage, useAdminAuth, useStudioData } from '@/application';
@@ -76,6 +78,13 @@ export function EpisodeEditorView() {
 
   const isSaving = pendingStatus !== null || isUploading;
   const displayedAudioFileName = audioFile?.name ?? uploadedName ?? episode?.audioFileName;
+  const website = publicWebsite(
+    window.location.hostname,
+    import.meta.env.VITE_PRODUCTION_WEB_TARGET,
+  );
+  // The guarded build supplies the same origin used by the Studio repository.
+  const apiOrigin = website ? import.meta.env.VITE_API_URL?.replace(/\/$/, '') : undefined;
+  const isPublicEpisode = episode?.status === 'published' && !episode.premium && !!episode.remoteId;
 
   function clearError() {
     setError('');
@@ -279,147 +288,165 @@ export function EpisodeEditorView() {
       ) : null}
 
       <div className="editor-grid">
-        <section className="card form-card" aria-label="بيانات الحلقة" aria-busy={isSaving}>
-          <Field label="عنوان الحلقة">
-            <Input
-              value={title}
-              onChange={(event) => {
-                setTitle(event.target.value);
-                clearError();
-              }}
-              placeholder="اكتب عنوان الحلقة بالعربية"
-              required
-              disabled={isSaving}
-              readOnly={!canManageEpisodes}
-              aria-invalid={invalidField === 'title'}
-              autoFocus={canManageEpisodes}
-            />
-          </Field>
-
-          <div className="form-row">
-            <Field
-              label="البرنامج"
-              hint={episode ? 'لا يمكن نقل الحلقة إلى برنامج آخر بعد إنشائها.' : undefined}
-            >
-              <Select
-                value={showId}
-                disabled={Boolean(episode) || isSaving || !canManageEpisodes}
-                aria-invalid={invalidField === 'showId'}
+        <div className="episode-editor-main">
+          <section className="card form-card" aria-label="بيانات الحلقة" aria-busy={isSaving}>
+            <Field label="عنوان الحلقة">
+              <Input
+                value={title}
                 onChange={(event) => {
-                  setShowId(event.target.value as ShowId);
+                  setTitle(event.target.value);
                   clearError();
                 }}
+                placeholder="اكتب عنوان الحلقة بالعربية"
+                required
+                disabled={isSaving}
+                readOnly={!canManageEpisodes}
+                aria-invalid={invalidField === 'title'}
+                autoFocus={canManageEpisodes}
+              />
+            </Field>
+
+            <div className="form-row">
+              <Field
+                label="البرنامج"
+                hint={episode ? 'لا يمكن نقل الحلقة إلى برنامج آخر بعد إنشائها.' : undefined}
               >
-                {data.shows.map((show) => (
-                  <option key={show.id} value={show.id}>
-                    {show.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="رقم الحلقة">
-              <Input
-                value={episodeNumber}
-                onChange={(event) => {
-                  setEpisodeNumber(normalizeEpisodeNumericInput(event.target.value));
-                  clearError();
-                }}
-                inputMode="numeric"
-                dir="ltr"
-                lang="en"
-                required
+                <Select
+                  value={showId}
+                  disabled={Boolean(episode) || isSaving || !canManageEpisodes}
+                  aria-invalid={invalidField === 'showId'}
+                  onChange={(event) => {
+                    setShowId(event.target.value as ShowId);
+                    clearError();
+                  }}
+                >
+                  {data.shows.map((show) => (
+                    <option key={show.id} value={show.id}>
+                      {show.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="رقم الحلقة">
+                <Input
+                  value={episodeNumber}
+                  onChange={(event) => {
+                    setEpisodeNumber(normalizeEpisodeNumericInput(event.target.value));
+                    clearError();
+                  }}
+                  inputMode="numeric"
+                  dir="ltr"
+                  lang="en"
+                  required
+                  disabled={isSaving}
+                  readOnly={!canManageEpisodes}
+                  aria-invalid={invalidField === 'episodeNumber'}
+                />
+              </Field>
+              <Field label="المدة (بالدقائق)">
+                <Input
+                  value={durationMinutes}
+                  onChange={(event) => {
+                    setDurationMinutes(normalizeEpisodeNumericInput(event.target.value));
+                    clearError();
+                  }}
+                  inputMode="decimal"
+                  dir="ltr"
+                  lang="en"
+                  required
+                  disabled={isSaving}
+                  readOnly={!canManageEpisodes}
+                  aria-invalid={invalidField === 'durationMinutes'}
+                />
+              </Field>
+            </div>
+
+            <Field label="ملاحظات الحلقة">
+              <Textarea
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="ما الذي سيسمعه المستمع في هذه الحلقة؟"
                 disabled={isSaving}
                 readOnly={!canManageEpisodes}
-                aria-invalid={invalidField === 'episodeNumber'}
               />
             </Field>
-            <Field label="المدة (بالدقائق)">
+
+            <Field
+              label="رابط الحلقة في YouTube"
+              hint="اختياري. أضف رابط الحلقة الكاملة. حذف الرابط يخفي الفيديو وصورته."
+            >
               <Input
-                value={durationMinutes}
-                onChange={(event) => {
-                  setDurationMinutes(normalizeEpisodeNumericInput(event.target.value));
-                  clearError();
-                }}
-                inputMode="decimal"
+                value={youtubeUrl}
                 dir="ltr"
-                lang="en"
-                required
+                type="url"
+                placeholder="https://www.youtube.com/watch?v=…"
                 disabled={isSaving}
                 readOnly={!canManageEpisodes}
-                aria-invalid={invalidField === 'durationMinutes'}
-              />
-            </Field>
-          </div>
-
-          <Field label="ملاحظات الحلقة">
-            <Textarea
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="ما الذي سيسمعه المستمع في هذه الحلقة؟"
-              disabled={isSaving}
-              readOnly={!canManageEpisodes}
-            />
-          </Field>
-
-          <Field
-            label="رابط الحلقة في YouTube"
-            hint="اختياري. أضف رابط الحلقة الكاملة. حذف الرابط يخفي الفيديو وصورته."
-          >
-            <Input
-              value={youtubeUrl}
-              dir="ltr"
-              type="url"
-              placeholder="https://www.youtube.com/watch?v=…"
-              disabled={isSaving}
-              readOnly={!canManageEpisodes}
-              aria-invalid={invalidField === 'youtubeUrl'}
-              onChange={(event) => {
-                setYoutubeUrl(event.target.value);
-                clearError();
-              }}
-            />
-            {youtubeThumbnailUrl(parseYouTubeVideoId(youtubeUrl)) ? (
-              <img
-                className="episode-video-preview"
-                src={youtubeThumbnailUrl(parseYouTubeVideoId(youtubeUrl))!}
-                alt="معاينة صورة فيديو الحلقة"
-                width={320}
-                height={180}
-                loading="lazy"
-              />
-            ) : null}
-          </Field>
-
-          <section className="field" aria-label="ملف الصوت">
-            <span className="field__label">ملف الصوت</span>
-            {!canManageEpisodes ? (
-              <p className="row-copy__meta" dir={displayedAudioFileName ? 'ltr' : undefined}>
-                {displayedAudioFileName ?? 'لا يوجد ملف صوت.'}
-              </p>
-            ) : (
-              <AudioUploadPanel
-                file={audioFile}
-                fileName={displayedAudioFileName}
-                disabled={isSaving}
-                invalid={invalidField === 'audioFile'}
-                state={uploadState}
-                transfer={transfer.current}
-                isNew={!episode && !createdId}
-                onUpload={() => void uploadAudio()}
-                onSelect={selectAudioFile}
-                onClear={() => {
-                  setAudioFile(undefined);
-                  setUploadState(undefined);
+                aria-invalid={invalidField === 'youtubeUrl'}
+                onChange={(event) => {
+                  setYoutubeUrl(event.target.value);
+                  clearError();
                 }}
               />
-            )}
-            {saveNotice && (
-              <p className="audio-upload__saved" role="status">
-                {saveNotice}
-              </p>
-            )}
+              {youtubeThumbnailUrl(parseYouTubeVideoId(youtubeUrl)) ? (
+                <img
+                  className="episode-video-preview"
+                  src={youtubeThumbnailUrl(parseYouTubeVideoId(youtubeUrl))!}
+                  alt="معاينة صورة فيديو الحلقة"
+                  width={320}
+                  height={180}
+                  loading="lazy"
+                />
+              ) : null}
+            </Field>
+
+            <section className="field" aria-label="ملف الصوت">
+              <span className="field__label">ملف الصوت</span>
+              {!canManageEpisodes ? (
+                <p className="row-copy__meta" dir={displayedAudioFileName ? 'ltr' : undefined}>
+                  {displayedAudioFileName ?? 'لا يوجد ملف صوت.'}
+                </p>
+              ) : (
+                <AudioUploadPanel
+                  file={audioFile}
+                  fileName={displayedAudioFileName}
+                  disabled={isSaving}
+                  invalid={invalidField === 'audioFile'}
+                  state={uploadState}
+                  transfer={transfer.current}
+                  isNew={!episode && !createdId}
+                  onUpload={() => void uploadAudio()}
+                  onSelect={selectAudioFile}
+                  onClear={() => {
+                    setAudioFile(undefined);
+                    setUploadState(undefined);
+                  }}
+                />
+              )}
+              {saveNotice && (
+                <p className="audio-upload__saved" role="status">
+                  {saveNotice}
+                </p>
+              )}
+            </section>
           </section>
-        </section>
+          <EpisodeMediaPreview
+            key={episode?.id ?? 'new'}
+            title={title}
+            youtubeUrl={youtubeUrl}
+            file={audioFile}
+            savedAudioUrl={
+              isPublicEpisode && apiOrigin && import.meta.env.VITE_ADMIN_DATA_SOURCE === 'hono'
+                ? `${apiOrigin}/episodes/${encodeURIComponent(episode.remoteId!)}/audio`
+                : undefined
+            }
+            publishedUrl={
+              isPublicEpisode && website
+                ? `${website.href}/episodes/${encodeURIComponent(episode.remoteId!)}`
+                : undefined
+            }
+          />
+        </div>
 
         <aside className="card publish-card" aria-label="إعدادات النشر">
           <h2>النشر</h2>
