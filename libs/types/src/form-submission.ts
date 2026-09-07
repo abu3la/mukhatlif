@@ -100,15 +100,20 @@ export interface FormSubmissionPayloadByType {
 export type FormSubmissionPayload = FormSubmissionPayloadByType[FormSubmissionType];
 
 /**
- * Reserved attachment contract. Public forms do not accept uploads yet; a
- * future private upload flow can add opaque references without changing the
- * form-submission record shape.
+ * Verified private attachment. The API creates this reference from a validated
+ * upload token; applicants cannot supply arbitrary object keys or URLs.
  */
 export interface FormSubmissionAttachmentRef {
   id: string;
   fileName: string;
   mimeType: string;
   byteSize: number;
+}
+
+export interface CareersAttachmentUploadReceipt {
+  attachment: FormSubmissionAttachmentRef;
+  token: string;
+  expiresAt: string;
 }
 
 /** Server-derived metadata. None of these values is trusted form content. */

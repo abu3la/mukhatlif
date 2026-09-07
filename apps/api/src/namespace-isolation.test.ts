@@ -94,6 +94,7 @@ describe('route table', () => {
   it('exposes only the explicitly reviewed public intake mutations', () => {
     const mutations = publicRoutes.filter((route) => !['GET', 'HEAD'].includes(route.method));
     expect(mutations.map((route) => `${route.method} ${route.path}`)).toEqual([
+      'POST /forms/careers/attachments',
       'POST /forms/:type',
       'POST /newsletter/subscriptions',
     ]);
@@ -164,14 +165,17 @@ describe('listener namespace', () => {
     },
   );
 
-  it.each(appRoutes.map((route) => [`${route.method} ${route.path}`, route] as const))(
-    'refuses a Studio-only identity on %s',
-    async (_label, route) => {
-      // usr-admin-1 operates the Studio and has no application profile.
-      const response = await request(route, 'usr-admin-1');
-      expect(response.status).toBe(403);
-    },
-  );
+  // Account discovery/provisioning deliberately uses a confirmed Auth identity
+  // before an application profile exists. Other listener routes keep the gate.
+  it.each(
+    appRoutes
+      .filter((route) => !(route.path === '/app/account' && ['GET', 'POST'].includes(route.method)))
+      .map((route) => [`${route.method} ${route.path}`, route] as const),
+  )('refuses a Studio-only identity on %s', async (_label, route) => {
+    // usr-admin-1 operates the Studio and has no application profile.
+    const response = await request(route, 'usr-admin-1');
+    expect(response.status).toBe(403);
+  });
 });
 
 describe('public namespace', () => {
@@ -181,7 +185,12 @@ describe('public namespace', () => {
       const response = await request(route);
       // 404 is a legitimate answer for a placeholder identifier; 401 and 403
       // are not, because nothing here may require a caller.
-      const allowedStatuses = route.method === 'POST' ? [200, 202, 400, 404] : [200, 206, 302, 404, 416];
+      const allowedStatuses =
+        route.path === '/forms/careers/attachments'
+          ? [415]
+          : route.method === 'POST'
+            ? [200, 202, 400, 404]
+            : [200, 206, 302, 404, 416];
       expect(allowedStatuses).toContain(response.status);
     },
   );

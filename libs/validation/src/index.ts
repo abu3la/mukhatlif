@@ -140,3 +140,14 @@ export type {
 
 export { updateHomepageWeeklyEpisodesSettingsSchema } from './homepage';
 export type { UpdateHomepageWeeklyEpisodesSettingsInput } from './homepage';
+export {
+  provisionCustomerSchema,
+  updateCustomerProfileSchema,
+  createCustomerPlaylistSchema,
+  updateCustomerPlaylistSchema,
+  createCustomerBookmarkSchema,
+  updateCustomerBookmarkSchema,
+  updateCustomerQueueSchema,
+  customerLibraryDocumentSchema,
+} from './customer';
+export type { ProvisionCustomerInput, UpdateCustomerProfileInput } from './customer';

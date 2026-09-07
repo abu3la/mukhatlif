@@ -31,10 +31,10 @@ describe('guest copy helpers', () => {
     expect(guestAppearanceLabel(0)).toBe('لا حلقات منشورة على يوتيوب');
     expect(guestAppearanceLabel(1)).toBe('ظهر في حلقة واحدة على يوتيوب');
     expect(guestAppearanceLabel(2)).toBe('ظهر في حلقتين على يوتيوب');
-    expect(guestAppearanceLabel(6)).toBe('ظهر في ٦ حلقات على يوتيوب');
-    expect(guestAppearanceLabel(14)).toBe('ظهر في ١٤ حلقة على يوتيوب');
+    expect(guestAppearanceLabel(6)).toBe('ظهر في 6 حلقات على يوتيوب');
+    expect(guestAppearanceLabel(14)).toBe('ظهر في 14 حلقة على يوتيوب');
     expect(guestCountLabel(2)).toBe('ضيفان');
-    expect(guestCountLabel(8)).toBe('٨ ضيوف');
+    expect(guestCountLabel(8)).toBe('8 ضيوف');
   });
 
   it('normalizes repeated and overlong search input before calling the API', () => {

@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { anonymousCustomerFixture } from '@/test/customer-fixture';
+import { describe, expect, it, vi } from 'vitest';
 import { isYouTubeVideoId, parseYouTubeVideoId, youtubeThumbnailUrl } from '@mukhtalif/types';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -57,12 +58,18 @@ describe('episode video sources', () => {
       premium: false,
       youtubeVideoId: 'LyxZez5Nixk',
     };
-    const markup = renderToStaticMarkup(createElement(WeeklyEpisodeCard, { episode }));
+    const markup = renderToStaticMarkup(
+      createElement(PlayerProvider, { children: createElement(WeeklyEpisodeCard, { episode }) }),
+    );
     expect(markup).toContain('https://i.ytimg.com/vi/LyxZez5Nixk/hqdefault.jpg');
     expect(
       renderToStaticMarkup(
-        createElement(WeeklyEpisodeCard, { episode: { ...episode, premium: true } }),
+        createElement(PlayerProvider, {
+          children: createElement(WeeklyEpisodeCard, { episode: { ...episode, premium: true } }),
+        }),
       ),
     ).not.toContain('i.ytimg.com');
   });
 });
+
+vi.mock('@/components/customer-provider', () => ({ useCustomer: () => anonymousCustomerFixture }));

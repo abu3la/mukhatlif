@@ -166,6 +166,16 @@ export const publicArticlesRoute = new Hono<AppEnv>()
     const page = await repo.listArticlesPage(filter, query);
     return c.json(toPaginatedList({ items: page.items.map(render), total: page.total }, query));
   })
+  .get('/id/:id', async (c) => {
+    const article = await getRepository(c.env).getArticle(c.req.param('id'));
+    if (!article || article.status !== 'published')
+      return c.json({ error: 'Article not found' }, 404);
+    const mediaOrigin = getMediaPublicOrigin(c.env, new URL(c.req.url).origin);
+    return c.json({
+      ...toPublishedArticle(rebaseArticleMediaUrls(article, mediaOrigin)),
+      contentHtml: renderRichText(article.content, { mediaBaseUrl: mediaOrigin ?? undefined }),
+    });
+  })
   .get('/:slug', async (c) => {
     const article = await getRepository(c.env).getArticleBySlug(c.req.param('slug'));
     if (!article || article.status !== 'published') {

@@ -3,8 +3,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { PublishedArticle } from '@mukhtalif/types';
 import { dateTimeAttribute, formatDate } from '@/components/formatting';
-import { NotFoundError, getArticle } from '@/lib/api';
+import { ApiUnavailableError, NotFoundError, getArticle, listEpisodes } from '@/lib/api';
 import { absoluteUrl } from '@/lib/config';
+import { EpisodeCard } from '@/components/cards';
+import { ArticleLibraryActions } from '@/components/customer-content';
+import { ReadingSizeControl, ShareButton } from '@/components/public-content-controls';
 
 export const revalidate = 60;
 
@@ -80,12 +83,18 @@ function Byline({ article }: { article: PublishedArticle }) {
 export default async function ArticlePage({ params }: Params) {
   const { slug } = await params;
   const article = await loadArticle(slug);
+  let latestEpisode: Awaited<ReturnType<typeof listEpisodes>>['items'][number] | undefined;
+  try {
+    latestEpisode = (await listEpisodes({ perPage: 1 })).items[0];
+  } catch (error) {
+    if (!(error instanceof ApiUnavailableError)) throw error;
+  }
 
   return (
     <article className="shell article-detail">
       <header className="article-detail__header">
         <nav className="article-detail__breadcrumb" aria-label="مسار التنقل">
-          <Link href="/articles">المقالات</Link>
+          <Link href="/articles">قراءات من مختلف</Link>
         </nav>
         <h1 className="article-detail__title">{article.titleAr}</h1>
         {article.excerptAr ? (
@@ -105,6 +114,15 @@ export default async function ArticlePage({ params }: Params) {
         />
       ) : null}
 
+      <div className="public-reading-controls">
+        <ReadingSizeControl />
+        <ArticleLibraryActions articleId={article.id} />
+        <ShareButton
+          title={article.titleAr}
+          path={'/articles/' + encodeURIComponent(article.slug)}
+        />
+      </div>
+
       {/*
         The body is HTML the API rendered itself from validated editor JSON.
         Per ADR 0006 the API never accepts client-supplied HTML as canonical
@@ -112,9 +130,19 @@ export default async function ArticlePage({ params }: Params) {
         renders markup that came from a browser.
       */}
       <div
+        id="article-body"
         className="article-detail__body prose"
         dangerouslySetInnerHTML={{ __html: article.contentHtml }}
       />
+
+      {latestEpisode ? (
+        <section className="content-section public-reading-related">
+          <h2 className="content-section__title">ومن القراءة إلى الحوار</h2>
+          <div role="list">
+            <EpisodeCard episode={latestEpisode} />
+          </div>
+        </section>
+      ) : null}
 
       {article.authorPlacement === 'end' ? (
         <footer className="article-detail__author-footer">

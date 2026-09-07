@@ -21,6 +21,12 @@ import { studioSummaryRoute } from './routes/summary';
 import { studioMembersRoute } from './routes/studio-members';
 import { publicMediaRoute, studioMediaRoute } from './routes/media';
 import { publicRedirectsRoute } from './routes/redirects';
+import { customerAccountRoute, customerLibraryRoute } from './routes/customer';
+import {
+  CustomerConflictError,
+  CustomerItemNotFoundError,
+  CustomerLibraryLimitError,
+} from './repo/customer';
 import {
   publicNewsletterSubscriptionsRoute,
   studioNewsletterSubscribersRoute,
@@ -65,9 +71,18 @@ app.use('*', resolveUser);
 // any membership check, so a client wired to the wrong namespace fails plainly
 // instead of as a confusing permission error.
 app.use('/app/*', requireNamespaceSurface('app'));
+app.use('/app/*', async (c, next) => {
+  c.header('Cache-Control', 'private, no-store');
+  await next();
+});
 app.use('/studio/*', requireNamespaceSurface('studio'));
 
 app.onError((error, c) => {
+  if (error instanceof CustomerItemNotFoundError) return c.json({ error: error.message }, 404);
+  if (error instanceof CustomerConflictError)
+    return c.json({ error: error.message, code: 'CUSTOMER_CONFLICT' }, 409);
+  if (error instanceof CustomerLibraryLimitError)
+    return c.json({ error: error.message, code: 'LIBRARY_LIMIT' }, 422);
   if (error instanceof ApiConfigurationError) {
     return c.json({ error: 'API configuration is unavailable' }, 503);
   }
@@ -105,6 +120,8 @@ app.get('/', (c) =>
         surfaces: ['web', 'mobile'],
         endpoints: [
           '/app/me',
+          '/app/account',
+          '/app/library',
           '/app/me/subscription',
           '/app/follows',
           '/app/progress',
@@ -153,6 +170,8 @@ app.route('/newsletter', publicNewsletterSubscriptionsRoute);
 
 /* ── app: signed-in listeners ─────────────────────────────────────────────── */
 app.route('/app/me', meRoute);
+app.route('/app/account', customerAccountRoute);
+app.route('/app/library', customerLibraryRoute);
 app.route('/app/follows', followsRoute);
 app.route('/app/progress', progressRoute);
 app.route('/app/episodes', appEpisodesRoute);

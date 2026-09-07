@@ -7,6 +7,7 @@ import type {
   Follow,
   FormNotificationStatus,
   FormSubmission,
+  FormSubmissionAttachmentRef,
   FormSubmissionPayloadByType,
   FormSubmissionSourceMetadata,
   FormSubmissionStatus,
@@ -66,8 +67,10 @@ import type {
   ResolvedCreateArticleInput,
   ResolvedUpdateArticleInput,
 } from '../publishing/article-record';
+import type { CustomerRepository } from './customer';
 
 export interface EpisodeFilter {
+  sort?: 'latest' | 'shortest' | 'longest';
   showId?: string;
   status?: EpisodeStatus;
   /** Inclusive ISO lower bound for publishAt. */
@@ -124,9 +127,12 @@ export interface LegacyRedirectResolution {
 
 export type CreateFormSubmissionRecordInput = {
   [Type in FormSubmissionType]: {
+    /** Assigned by the API to reconcile an uncertain database write. Never client input. */
+    id?: string;
     type: Type;
     payload: FormSubmissionPayloadByType[Type];
     sourceMetadata: FormSubmissionSourceMetadata;
+    attachmentRefs?: FormSubmissionAttachmentRef[];
   };
 }[FormSubmissionType];
 
@@ -255,7 +261,7 @@ export type AcceptStudioInvitationResult =
   | { status: 'accepted'; member: StudioMemberAccess }
   | { status: 'not_found' | 'already_active' | 'failed' };
 
-export interface Repository {
+export interface Repository extends CustomerRepository {
   /** Exact, active-only lookup for a canonical legacy request path. */
   resolveLegacyRedirect(sourcePath: string): Promise<LegacyRedirectResolution | null>;
 

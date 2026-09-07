@@ -20,12 +20,17 @@ import {
   type PlaybackRate,
 } from './player-utils';
 
+import { useCustomer } from './customer-provider';
+import { BrandIcon } from './brand-icon';
+import { isYouTubeVideoId, youtubeThumbnailUrl, type Episode } from '@mukhtalif/types';
 /**
  * Plain serializable episode data. Build `audioSrc` in a Server Component and
  * pass the resulting string across the client boundary; this module never
  * imports server configuration.
  */
 export interface PlayerEpisode {
+  artworkUrl?: string;
+  youtubeVideoId?: string | null;
   id: string;
   title: string;
   audioSrc: string;
@@ -47,10 +52,10 @@ interface PlayerContextValue {
   error: string | null;
   isCurrent: (episode: PlayerEpisode) => boolean;
   toggle: (episode: PlayerEpisode) => void;
+  playFrom: (episode: PlayerEpisode, seconds: number) => void;
   skip: (seconds: number) => void;
   seek: (seconds: number) => void;
   setPlaybackRate: (rate: PlaybackRate) => void;
-  setDockSuppressed: (suppressed: boolean) => void;
   close: () => void;
   pause: () => void;
 }
@@ -101,6 +106,14 @@ export function usePlayer(): PlayerContextValue {
 }
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
+  const customer = useCustomer();
+  const customerRef = useRef(customer);
+  customerRef.current = customer;
+  const pendingPosition = useRef<number | null>(null);
+  const pendingEpisodeId = useRef<string | null>(null);
+  const lastSynced = useRef(0);
+  const playRequest = useRef(0);
+  const wantsPlayback = useRef(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const episodeRef = useRef<PlayerEpisode | null>(null);
   const [episode, setEpisode] = useState<PlayerEpisode | null>(null);
@@ -111,7 +124,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRateState] = useState<PlaybackRate>(1);
   const [error, setError] = useState<string | null>(null);
-  const [dockSuppressed, setDockSuppressedState] = useState(false);
 
   const isCurrent = useCallback(
     (candidate: PlayerEpisode) =>
@@ -119,13 +131,29 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const syncProgress = useCallback((audio: HTMLAudioElement, force = false) => {
+    const current = episodeRef.current;
+    const account = customerRef.current;
+    if (!current || !account.user || !Number.isFinite(audio.currentTime) || audio.readyState === 0)
+      return;
+    if (audio.currentSrc !== new URL(current.audioSrc, window.location.href).href) return;
+    const now = Date.now();
+    if (!force && now - lastSynced.current < 1000) return;
+    lastSynced.current = now;
+    void account.saveProgress(current.id, Math.floor(audio.currentTime)).catch(() => {});
+  }, []);
+
   const play = useCallback((audio: HTMLAudioElement) => {
+    const sequence = ++playRequest.current;
+    wantsPlayback.current = true;
     window.dispatchEvent(new Event('mukhtalif:audio-start'));
     setError(null);
     setStatus('loading');
     const request = audio.play();
     void request.catch((reason: unknown) => {
+      if (sequence !== playRequest.current) return;
       if (reason instanceof DOMException && reason.name === 'AbortError') return;
+      wantsPlayback.current = false;
       setIsPlaying(false);
       setStatus('error');
       setError(
@@ -142,8 +170,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       if (!audio) return;
 
       if (isCurrent(candidate)) {
-        if (!audio.paused) {
+        if (wantsPlayback.current || !audio.paused) {
+          ++playRequest.current;
+          wantsPlayback.current = false;
           audio.pause();
+          setStatus('paused');
+          setIsPlaying(false);
           return;
         }
         if (audio.ended) audio.currentTime = 0;
@@ -151,9 +183,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      syncProgress(audio, true);
+      ++playRequest.current;
+      wantsPlayback.current = false;
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      lastSynced.current = 0;
       episodeRef.current = candidate;
       setEpisode(candidate);
-      setCurrentTime(0);
+      const resume =
+        customerRef.current.library.progress.find((item) => item.episodeId === candidate.id)
+          ?.positionSec ?? 0;
+      pendingPosition.current =
+        (pendingEpisodeId.current === candidate.id ? pendingPosition.current : null) ??
+        (candidate.durationSec && resume >= candidate.durationSec - 5 ? 0 : resume);
+      pendingEpisodeId.current = candidate.id;
+      setCurrentTime(pendingPosition.current);
       setDuration(finiteMediaTime(candidate.durationSec));
       setIsPlaying(false);
       setCanSeek(false);
@@ -171,7 +217,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.load();
       play(audio);
     },
-    [isCurrent, play, playbackRate],
+    [isCurrent, play, playbackRate, syncProgress],
   );
 
   const seek = useCallback((seconds: number) => {
@@ -189,6 +235,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const playFrom = useCallback(
+    (candidate: PlayerEpisode, seconds: number) => {
+      if (isCurrent(candidate) && audioRef.current) {
+        if (Number.isFinite(audioRef.current.duration)) seek(seconds);
+        else {
+          pendingPosition.current = clampMediaTime(seconds, 0);
+          pendingEpisodeId.current = candidate.id;
+        }
+        play(audioRef.current);
+      } else {
+        pendingPosition.current = clampMediaTime(seconds, 0);
+        pendingEpisodeId.current = candidate.id;
+        toggle(candidate);
+      }
+    },
+    [isCurrent, play, seek, toggle],
+  );
+
   const skip = useCallback(
     (seconds: number) => {
       const audio = audioRef.current;
@@ -202,19 +266,25 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const audio = audioRef.current;
     if (audio) audio.playbackRate = rate;
     setPlaybackRateState(rate);
-  }, []);
-
-  const setDockSuppressed = useCallback((suppressed: boolean) => {
-    setDockSuppressedState(suppressed);
+    try {
+      localStorage.setItem('mukhtalif-playback-rate', String(rate));
+    } catch {
+      /* Storage can be unavailable in private browsing. */
+    }
   }, []);
 
   const close = useCallback(() => {
     const audio = audioRef.current;
+    ++playRequest.current;
+    wantsPlayback.current = false;
     if (audio) {
+      syncProgress(audio, true);
       audio.pause();
       audio.removeAttribute('src');
       audio.load();
     }
+    pendingPosition.current = null;
+    pendingEpisodeId.current = null;
     episodeRef.current = null;
     setEpisode(null);
     setStatus('idle');
@@ -223,10 +293,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setCurrentTime(0);
     setDuration(0);
     setError(null);
-  }, []);
+  }, [syncProgress]);
 
   const pause = useCallback(() => {
+    ++playRequest.current;
+    wantsPlayback.current = false;
     audioRef.current?.pause();
+    if (episodeRef.current) setStatus('paused');
   }, []);
 
   const context = useMemo<PlayerContextValue>(
@@ -241,15 +314,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       error,
       isCurrent,
       toggle,
+      playFrom,
       skip,
       seek,
       setPlaybackRate,
-      setDockSuppressed,
       close,
       pause,
     }),
     [
       pause,
+      playFrom,
       close,
       canSeek,
       currentTime,
@@ -261,12 +335,31 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       playbackRate,
       seek,
       setPlaybackRate,
-      setDockSuppressed,
       skip,
       status,
       toggle,
     ],
   );
+
+  useEffect(() => {
+    let rate: number = 1;
+    try {
+      rate = Number(localStorage.getItem('mukhtalif-playback-rate') || 1);
+    } catch {
+      /* Storage can be unavailable in private browsing. */
+    }
+    const valid = PLAYBACK_RATES.find((item) => item === rate);
+    if (valid && audioRef.current) audioRef.current.playbackRate = valid;
+    const flush = () => {
+      if (audioRef.current) syncProgress(audioRef.current, true);
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', flush);
+    };
+  }, [syncProgress]);
 
   return (
     <PlayerContext.Provider value={context}>
@@ -275,12 +368,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         ref={audioRef}
         preload="metadata"
         onLoadStart={() => {
-          if (episodeRef.current) setStatus('loading');
+          if (episodeRef.current && wantsPlayback.current) setStatus('loading');
         }}
         onLoadedMetadata={(event) => {
           const reported = finiteMediaTime(event.currentTarget.duration);
           setDuration(reported || finiteMediaTime(episodeRef.current?.durationSec));
           setCanSeek(reported > 0);
+          if (pendingPosition.current !== null && reported) {
+            event.currentTarget.currentTime = clampMediaTime(pendingPosition.current, reported);
+            setCurrentTime(event.currentTarget.currentTime);
+            pendingPosition.current = null;
+            pendingEpisodeId.current = null;
+          }
         }}
         onDurationChange={(event) => {
           const reported = finiteMediaTime(event.currentTarget.duration);
@@ -289,21 +388,71 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             setCanSeek(true);
           }
         }}
-        onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-        onPlaying={() => {
+        onTimeUpdate={(event) => {
+          setCurrentTime(event.currentTarget.currentTime);
+          syncProgress(event.currentTarget);
+        }}
+        onPlaying={(event) => {
+          if (!wantsPlayback.current) {
+            event.currentTarget.pause();
+            return;
+          }
           setIsPlaying(true);
           setStatus('playing');
           setError(null);
         }}
         onPause={(event) => {
+          syncProgress(event.currentTarget, true);
           setIsPlaying(false);
-          if (!event.currentTarget.ended && episodeRef.current) setStatus('paused');
+          if (!event.currentTarget.ended && episodeRef.current && !wantsPlayback.current)
+            setStatus('paused');
         }}
-        onWaiting={() => setStatus('loading')}
+        onWaiting={() => {
+          if (wantsPlayback.current) setStatus('loading');
+        }}
         onEnded={(event) => {
+          wantsPlayback.current = false;
           setIsPlaying(false);
           setCurrentTime(finiteMediaTime(event.currentTarget.duration));
           setStatus('ended');
+          syncProgress(event.currentTarget, true);
+          const account = customerRef.current;
+          const nextId = account.library.queueEpisodeIds[0];
+          if (nextId && episodeRef.current) {
+            const expected = episodeRef.current.id;
+            void account
+              .publicRead<Episode>(`/episodes/${encodeURIComponent(nextId)}`)
+              .then(async (next) => {
+                const latest = customerRef.current;
+                if (
+                  episodeRef.current?.id !== expected ||
+                  !audioRef.current?.ended ||
+                  latest.user?.id !== account.user?.id ||
+                  latest.library.queueEpisodeIds[0] !== nextId
+                )
+                  return;
+                if (next.premium) throw new Error('Unavailable public audio');
+                await latest.updateQueue(
+                  latest.library.queueEpisodeIds.filter((id) => id !== nextId),
+                );
+                if (
+                  episodeRef.current?.id !== expected ||
+                  !audioRef.current?.ended ||
+                  customerRef.current.user?.id !== account.user?.id
+                )
+                  return;
+                toggle({
+                  id: next.id,
+                  title: next.titleAr,
+                  durationSec: next.durationSec,
+                  artworkUrl: youtubeThumbnailUrl(next.youtubeVideoId) ?? undefined,
+                  youtubeVideoId: next.youtubeVideoId,
+                  audioSrc: `${account.config.apiOrigin}/episodes/${encodeURIComponent(next.id)}/audio`,
+                  href: `/episodes/${encodeURIComponent(next.id)}`,
+                });
+              })
+              .catch(() => setError('تعذّر تشغيل الحلقة التالية. حاول من قائمة الانتظار.'));
+          }
         }}
         onRateChange={(event) => {
           const rate = PLAYBACK_RATES.find((value) => value === event.currentTarget.playbackRate);
@@ -311,13 +460,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }}
         onError={(event) => {
           if (!episodeRef.current) return;
+          wantsPlayback.current = false;
           setIsPlaying(false);
           setCanSeek(false);
           setStatus('error');
           setError(mediaErrorMessage(event.currentTarget));
         }}
       />
-      {episode && !dockSuppressed ? (
+      <PlaybackFailureDialog />
+      {episode ? (
         <>
           <div className={styles.spacer} aria-hidden="true" />
           <PlayerBar />
@@ -344,21 +495,31 @@ export interface PlayEpisodeButtonProps {
   episode: PlayerEpisode;
   variant?: 'label' | 'icon';
   className?: string;
+  initialSeconds?: number;
 }
 
 export function PlayEpisodeButton({
   episode,
   variant = 'label',
   className,
+  initialSeconds = 0,
 }: PlayEpisodeButtonProps) {
   const player = usePlayer();
+  const customer = useCustomer();
   const current = player.isCurrent(episode);
+  const resume =
+    customer.library.progress.find((item) => item.episodeId === episode.id)?.positionSec ?? 0;
+  const loading = current && player.status === 'loading';
   const playing = current && player.isPlaying;
-  const label = playing
-    ? 'إيقاف الحلقة مؤقتًا'
-    : current
-      ? 'متابعة الحلقة'
-      : `تشغيل ${episode.title}`;
+  const label = loading
+    ? 'إلغاء تحميل الحلقة'
+    : playing
+      ? 'إيقاف الحلقة مؤقتًا'
+      : current
+        ? 'متابعة الحلقة'
+        : resume >= 15 && (!episode.durationSec || resume < episode.durationSec - 5)
+          ? `أكمل ${episode.title} من ${formatPlaybackTime(resume)}`
+          : `تشغيل ${episode.title}`;
 
   return (
     <button
@@ -371,11 +532,22 @@ export function PlayEpisodeButton({
       )}
       aria-label={label}
       aria-pressed={playing}
-      onClick={() => player.toggle(episode)}
+      aria-busy={loading}
+      onClick={() =>
+        !current && initialSeconds > 0
+          ? player.playFrom(episode, initialSeconds)
+          : player.toggle(episode)
+      }
     >
-      <PlayIcon paused={!playing} />
+      {loading ? (
+        <span className={styles.spinner} aria-hidden="true" />
+      ) : (
+        <PlayIcon paused={!playing} />
+      )}
       {variant === 'label' ? (
-        <span>{playing ? 'إيقاف مؤقت' : current ? 'متابعة' : 'استمع الآن'}</span>
+        <span>
+          {loading ? 'جارٍ التحميل' : playing ? 'إيقاف مؤقت' : current ? 'متابعة' : 'استمع الآن'}
+        </span>
       ) : null}
     </button>
   );
@@ -384,9 +556,11 @@ export function PlayEpisodeButton({
 function Transport({
   episode,
   playVariant = 'icon',
+  initialSeconds = 0,
 }: {
   episode: PlayerEpisode;
   playVariant?: PlayEpisodeButtonProps['variant'];
+  initialSeconds?: number;
 }) {
   const player = usePlayer();
   const current = player.isCurrent(episode);
@@ -402,7 +576,7 @@ function Transport({
       >
         −15
       </button>
-      <PlayEpisodeButton episode={episode} variant={playVariant} />
+      <PlayEpisodeButton episode={episode} variant={playVariant} initialSeconds={initialSeconds} />
       <button
         type="button"
         className={styles.button}
@@ -436,6 +610,10 @@ function Timeline({ episode }: { episode: PlayerEpisode }) {
         value={position}
         disabled={!current || !player.canSeek}
         aria-label="موضع التشغيل"
+        aria-valuetext={`${formatPlaybackTime(position)} من ${formatPlaybackTime(duration)}`}
+        style={{
+          background: `linear-gradient(to left, #38df82 ${duration ? (position / duration) * 100 : 0}%, #454b8a ${duration ? (position / duration) * 100 : 0}%)`,
+        }}
         onChange={(event) => player.seek(Number(event.currentTarget.value))}
       />
       <time className={styles.time} dateTime={`PT${Math.floor(duration)}S`}>
@@ -481,9 +659,37 @@ export function PlayerBar({ className }: { className?: string }) {
     <section
       className={classes(styles.bar, 'mukhtalif-player-bar', className)}
       aria-label="مشغل مختلف"
+      onKeyDown={(event) => {
+        if (event.target instanceof HTMLElement && event.target.closest('dialog')) return;
+        if (
+          event.target instanceof HTMLSelectElement ||
+          (event.target instanceof HTMLInputElement && event.target.type !== 'range')
+        )
+          return;
+        if (event.key === ' ' && !(event.target instanceof HTMLButtonElement)) {
+          event.preventDefault();
+          player.toggle(episode);
+        } else if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          player.skip(15);
+        } else if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          player.skip(-15);
+        }
+      }}
+      tabIndex={0}
     >
       <div className={styles.barInner}>
         <div className={styles.episodeInfo}>
+          {episode.artworkUrl ? (
+            <img
+              className={styles.artwork}
+              src={episode.artworkUrl}
+              width="48"
+              height="48"
+              alt=""
+            />
+          ) : null}
           {episode.href ? (
             <Link className={styles.episodeLink} href={episode.href}>
               {episode.title}
@@ -502,7 +708,7 @@ export function PlayerBar({ className }: { className?: string }) {
         </div>
         <Transport episode={episode} />
         <Timeline episode={episode} />
-        <RateControl />
+        <PlayerTools />
         <button
           type="button"
           className={styles.closeButton}
@@ -527,19 +733,15 @@ export function PlayerBar({ className }: { className?: string }) {
 export function InlineEpisodePlayer({
   episode,
   className,
+  initialSeconds = 0,
 }: {
   episode: PlayerEpisode;
   className?: string;
+  initialSeconds?: number;
 }) {
   const player = usePlayer();
-  const { setDockSuppressed } = player;
   const current = player.isCurrent(episode);
   const message = current ? statusLabel(player.status, player.error) : 'جاهزة للاستماع';
-
-  useEffect(() => {
-    setDockSuppressed(true);
-    return () => setDockSuppressed(false);
-  }, [setDockSuppressed]);
 
   return (
     <section
@@ -559,10 +761,266 @@ export function InlineEpisodePlayer({
         </div>
       </div>
       <div className={styles.inlineControls}>
-        <Transport episode={episode} playVariant="label" />
+        <Transport episode={episode} playVariant="label" initialSeconds={initialSeconds} />
         <Timeline episode={episode} />
         <RateControl disabled={!current} />
       </div>
     </section>
+  );
+}
+
+function PlaybackFailureDialog() {
+  const player = usePlayer();
+  const dialog = useRef<HTMLDialogElement>(null);
+  const lastFailure = useRef('');
+  const episode = player.episode;
+  useEffect(() => {
+    if (!player.error || !episode) {
+      lastFailure.current = '';
+      return;
+    }
+    const key = `${episode.id}:${player.error}`;
+    if (isYouTubeVideoId(episode.youtubeVideoId) && lastFailure.current !== key) {
+      lastFailure.current = key;
+      dialog.current?.showModal();
+    }
+  }, [episode, player.error]);
+  return (
+    <dialog ref={dialog} className="customer-dialog" aria-labelledby="playback-error-title">
+      <div className="customer-dialog__head">
+        <h2 id="playback-error-title">الصوت غير متاح الآن</h2>
+        <button className="icon-action" aria-label="إغلاق" onClick={() => dialog.current?.close()}>
+          <BrandIcon name="close" />
+        </button>
+      </div>
+      <p>{player.error}</p>
+      {episode && isYouTubeVideoId(episode.youtubeVideoId) && (
+        <Link
+          className="customer-primary"
+          href={`${episode.href || `/episodes/${encodeURIComponent(episode.id)}`}#episode-video`}
+          onClick={() => dialog.current?.close()}
+        >
+          شاهد الحلقة
+        </Link>
+      )}
+      <button
+        className="customer-text-button"
+        onClick={() => {
+          dialog.current?.close();
+          if (episode) player.toggle(episode);
+        }}
+      >
+        حاول تشغيل الصوت مجددًا
+      </button>
+    </dialog>
+  );
+}
+
+function PlayerTools() {
+  const customer = useCustomer();
+  const player = usePlayer();
+  const queueDialog = useRef<HTMLDialogElement>(null);
+  const bookmarkDialog = useRef<HTMLDialogElement>(null);
+  const [titles, setTitles] = useState<Record<string, Episode>>({});
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [note, setNote] = useState('');
+  const [moment, setMoment] = useState<{ episode: PlayerEpisode; seconds: number } | null>(null);
+  const openQueue = async () => {
+    if (!customer.requireAccount()) return;
+    queueDialog.current?.showModal();
+    setMessage('');
+    setBusy(true);
+    try {
+      const values = await Promise.allSettled(
+        customer.library.queueEpisodeIds.map(
+          async (id) =>
+            [
+              id,
+              await customer.publicRead<Episode>(`/episodes/${encodeURIComponent(id)}`),
+            ] as const,
+        ),
+      );
+      setTitles(
+        Object.fromEntries(
+          values.flatMap((value) => (value.status === 'fulfilled' ? [value.value] : [])),
+        ),
+      );
+      if (values.some((value) => value.status === 'rejected'))
+        setMessage('تعذّر تحميل بعض الحلقات. أعد المحاولة أو أزل الحلقة من الانتظار.');
+    } catch {
+      setMessage('تعذّر تحميل بعض الحلقات. حاول مرة أخرى.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const update = async (ids: string[]) => {
+    setBusy(true);
+    setMessage('');
+    try {
+      await customer.updateQueue(ids);
+      customer.notify('حدّثنا قائمة الانتظار.');
+    } catch {
+      setMessage('تعذّر تحديث الانتظار. حاول مرة أخرى.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className={styles.tools}>
+      <RateControl />
+      <button
+        className={styles.button}
+        aria-label="قائمة الانتظار"
+        onClick={() => void openQueue()}
+      >
+        <BrandIcon name="queue" />
+      </button>
+      <button
+        className={styles.button}
+        aria-label="احفظ اللحظة"
+        onClick={() => {
+          if (customer.requireAccount()) {
+            setMessage('');
+            setNote('');
+            if (player.episode)
+              setMoment({ episode: player.episode, seconds: Math.floor(player.currentTime) });
+            bookmarkDialog.current?.showModal();
+          }
+        }}
+      >
+        <BrandIcon name="save" />
+      </button>
+      <dialog ref={queueDialog} className="customer-dialog" aria-labelledby="player-queue-title">
+        <div className="customer-dialog__head">
+          <h2 id="player-queue-title">قائمة الانتظار</h2>
+          <button
+            className="icon-action"
+            aria-label="إغلاق الانتظار"
+            onClick={() => queueDialog.current?.close()}
+          >
+            <BrandIcon name="close" />
+          </button>
+        </div>
+        {message && <p role="alert">{message}</p>}
+        {message && !busy && (
+          <button className="customer-text-button" onClick={() => void openQueue()}>
+            أعد تحميل القائمة
+          </button>
+        )}
+        {busy && <p role="status">جارٍ التحميل...</p>}
+        {!customer.library.queueEpisodeIds.length ? (
+          <p>قائمة الانتظار فارغة. أضف حلقة من زر الانتظار بجانبها.</p>
+        ) : (
+          <ol className="queue-list">
+            {customer.library.queueEpisodeIds.map((id, index) => (
+              <li key={id}>
+                <button
+                  className="queue-list__title"
+                  disabled={busy || !titles[id] || titles[id].premium}
+                  onClick={() => {
+                    const item = titles[id];
+                    if (!item) return;
+                    player.toggle({
+                      id,
+                      title: item.titleAr,
+                      durationSec: item.durationSec,
+                      artworkUrl: youtubeThumbnailUrl(item.youtubeVideoId) ?? undefined,
+                      youtubeVideoId: item.youtubeVideoId,
+                      audioSrc: `${customer.config.apiOrigin}/episodes/${encodeURIComponent(id)}/audio`,
+                      href: `/episodes/${encodeURIComponent(id)}`,
+                    });
+                    void update(customer.library.queueEpisodeIds.filter((value) => value !== id));
+                    queueDialog.current?.close();
+                  }}
+                >
+                  {titles[id]?.titleAr ?? (busy ? 'جارٍ تحميل الحلقة' : 'الحلقة غير متاحة')}
+                </button>
+                <div className="queue-list__tools">
+                  <button
+                    className="icon-action"
+                    aria-label="تقديم الحلقة في الانتظار"
+                    disabled={busy || index === 0}
+                    onClick={() => {
+                      const ids = [...customer.library.queueEpisodeIds];
+                      [ids[index - 1], ids[index]] = [ids[index], ids[index - 1]];
+                      void update(ids);
+                    }}
+                  >
+                    <BrandIcon name="up" />
+                  </button>
+                  <button
+                    className="icon-action"
+                    aria-label="تأخير الحلقة في الانتظار"
+                    disabled={busy || index === customer.library.queueEpisodeIds.length - 1}
+                    onClick={() => {
+                      const ids = [...customer.library.queueEpisodeIds];
+                      [ids[index + 1], ids[index]] = [ids[index], ids[index + 1]];
+                      void update(ids);
+                    }}
+                  >
+                    <BrandIcon name="down" />
+                  </button>
+                  <button
+                    className="icon-action"
+                    aria-label="إزالة من الانتظار"
+                    disabled={busy}
+                    onClick={() =>
+                      void update(customer.library.queueEpisodeIds.filter((value) => value !== id))
+                    }
+                  >
+                    <BrandIcon name="close" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </dialog>
+      <dialog
+        ref={bookmarkDialog}
+        className="customer-dialog"
+        aria-labelledby="player-moment-title"
+      >
+        <div className="customer-dialog__head">
+          <h2 id="player-moment-title">احفظ اللحظة</h2>
+          <button
+            className="icon-action"
+            aria-label="إغلاق حفظ اللحظة"
+            onClick={() => bookmarkDialog.current?.close()}
+          >
+            <BrandIcon name="close" />
+          </button>
+        </div>
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (!moment) return;
+            setBusy(true);
+            try {
+              await customer.addBookmark(moment.episode.id, moment.seconds, note);
+              setMessage('حُفظت اللحظة في مكتبتك.');
+              bookmarkDialog.current?.close();
+            } catch {
+              setMessage('تعذّر حفظ اللحظة. حاول مرة أخرى.');
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <p>
+            {moment?.episode.title} · <bdi>{formatPlaybackTime(moment?.seconds ?? 0)}</bdi>
+          </p>
+          <label>
+            ملاحظة (اختياري)
+            <input value={note} maxLength={300} onChange={(event) => setNote(event.target.value)} />
+          </label>
+          {message && <p role="status">{message}</p>}
+          <button type="submit" disabled={busy}>
+            احفظ اللحظة
+          </button>
+        </form>
+      </dialog>
+    </div>
   );
 }

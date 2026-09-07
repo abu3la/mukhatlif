@@ -1,40 +1,27 @@
 import { ApiUnavailableError, NotFoundError, resolveLegacyRedirect } from '@/lib/api';
+import { publicErrorResponse } from '@/lib/public-error-response';
 import { canonicalLegacyRequestPath, legacyRedirectResponse } from '@/lib/legacy-redirect';
 
 export const dynamic = 'force-dynamic';
-
-function plainResponse(status: 404 | 503, message: string): Response {
-  return new Response(message, {
-    status,
-    headers: {
-      'Cache-Control': 'no-store',
-      'Content-Type': 'text/plain; charset=utf-8',
-      ...(status === 503 ? { 'Retry-After': '60' } : {}),
-    },
-  });
-}
 
 export async function GET(request: Request): Promise<Response> {
   let requestUrl: URL;
   try {
     requestUrl = new URL(request.url);
   } catch {
-    return plainResponse(404, 'Not found');
+    return publicErrorResponse(404);
   }
 
   const sourcePath = canonicalLegacyRequestPath(requestUrl.pathname);
-  if (!sourcePath) return plainResponse(404, 'Not found');
+  if (!sourcePath) return publicErrorResponse(404);
 
   try {
     const resolution = await resolveLegacyRedirect(sourcePath);
-    return (
-      legacyRedirectResponse(resolution, sourcePath, requestUrl) ??
-      plainResponse(404, 'Not found')
-    );
+    return legacyRedirectResponse(resolution, sourcePath, requestUrl) ?? publicErrorResponse(404);
   } catch (error) {
-    if (error instanceof NotFoundError) return plainResponse(404, 'Not found');
+    if (error instanceof NotFoundError) return publicErrorResponse(404);
     if (error instanceof ApiUnavailableError) {
-      return plainResponse(503, 'Service temporarily unavailable');
+      return publicErrorResponse(503, requestUrl.pathname + requestUrl.search);
     }
     throw error;
   }

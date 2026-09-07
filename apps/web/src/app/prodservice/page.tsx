@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { RequestForm } from '@/components/request-form';
+import { ProductionRequest } from '@/components/production-request';
+import { singleQuery } from '@/lib/public-content';
 import { RequestPage } from '@/components/request-page';
 import { apiOrigin } from '@/lib/config';
 
@@ -9,14 +10,19 @@ export const metadata: Metadata = {
   alternates: { canonical: '/prodservice' },
 };
 
-export default function ProductionServicePage() {
+export default async function ProductionServicePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const service = singleQuery((await searchParams).service);
   return (
     <RequestPage
-      title="خدمة الإنتاج"
-      intro="شاركنا فكرة المشروع وما تحتاجه من تخطيط أو تسجيل أو تحرير أو توزيع."
+      title="لديك فكرة؟ لنبدأ منها."
+      intro="من الجمهور والرسالة، إلى الشكل والنطاق. ثلاث خطوات توضح ما تحتاجه."
       note="يقرأ فريق الإنتاج تفاصيل المشروع، ثم يتواصل معك لتحديد النطاق والموعد والخطوة التالية."
     >
-      <RequestForm apiOrigin={apiOrigin()} type="production_service" />
+      <ProductionRequest apiOrigin={apiOrigin()} initialService={service} />
     </RequestPage>
   );
 }

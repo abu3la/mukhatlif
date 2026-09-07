@@ -59,21 +59,38 @@ if (mode === 'config') {
     `VITE_SUPABASE_URL=https://${ref}.supabase.co\nVITE_SUPABASE_ANON_KEY=${key}\n`,
     { mode: 0o600, flag: 'wx' },
   );
+  writeFileSync(
+    resolve(process.env.RUNNER_TEMP, 'web-auth-development.json'),
+    JSON.stringify({
+      MUKHTALIF_SUPABASE_URL: `https://${ref}.supabase.co`,
+      MUKHTALIF_SUPABASE_ANON_KEY: key,
+      MUKHTALIF_GOOGLE_AUTH_ENABLED: 'false',
+    }),
+    { mode: 0o600, flag: 'wx' },
+  );
 } else if (mode === 'api') {
   const response = await check(`${api}/`);
   if ((await response.json()).name !== 'mukhtalif-api')
     throw Error('API identity response mismatch');
   await check(`${api}/shows`);
   await check(`${api}/studio/me`, 401);
+  await check(`${api}/app/account`, 401);
+  await check(`${api}/app/library`, 401);
   console.log('Development API identity, data read and authentication guard verified.');
 } else if (mode === 'public') {
   for (const origin of [web, studio]) {
-    for (const route of ['/', '/login', '/episodes']) {
+    const routes =
+      origin === web
+        ? ['/', '/login', '/signup', '/account', '/library', '/episodes', '/search']
+        : ['/', '/login', '/episodes'];
+    for (const route of routes) {
       const response = await check(`${origin}${route}`);
       const body = await response.text();
       if (!body.includes('<html')) throw Error(`${origin}${route}: not HTML`);
       if (origin === web && !/noindex/i.test(response.headers.get('x-robots-tag') ?? ''))
         throw Error('Development Web must deny indexing');
+      if (origin === web && route === '/signup' && !body.includes(`https://${ref}.supabase.co`))
+        throw Error('Development Web customer authentication is not configured');
     }
   }
   console.log('Development Web and Studio routes verified; no content was written.');

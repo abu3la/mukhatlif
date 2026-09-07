@@ -47,7 +47,10 @@ export const progressRoute = new Hono<AppEnv>()
   .put('/', requireAuth, zValidator('json', upsertProgressSchema), async (c) => {
     const { episodeId, positionSec } = c.req.valid('json');
     const repo = getRepository(c.env);
-    if (!(await repo.getEpisode(episodeId))) return c.json({ error: 'Unknown episode' }, 422);
+    const episode = await repo.getEpisode(episodeId);
+    if (episode?.status !== 'published') return c.json({ error: 'Unknown episode' }, 422);
+    if (positionSec > episode.durationSec)
+      return c.json({ error: 'Position exceeds episode duration' }, 422);
     const entry = await repo.upsertProgress(c.get('user')!.id, episodeId, positionSec);
     return c.json(entry);
   });

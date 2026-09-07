@@ -1,0 +1,30 @@
+{
+  "source": "research/brand-guide/patterns.ai",
+  "sourceSha256": "cad93d6d467d202b9ce90ce1fb381bbe6f8093dc2f7e0c656927c6a5ce82b751",
+  "artboard": 6,
+  "method": "PyMuPDF get_svg_image: original vector paths, complete artboard; no redraw",
+  "assets": [
+    {
+      "file": "output/assets/patterns/brand-curves.svg",
+      "changes": "none"
+    },
+    {
+      "file": "output/assets/patterns/brand-curves-dark.svg",
+      "changes": "Only logo fill #15236f replaced with white for dark background; pattern paths and blue unchanged, using guide alternate white logo treatment."
+    },
+    {
+      "file": "output/assets/patterns/brand-curves-background.svg",
+      "changes": "Removed only navy wordmark path from original vector; curve geometry unchanged. Used as CSS mask with existing foreground token at low opacity behind content."
+    },
+    {
+      "file": "output/assets/patterns/brand-waves-background.svg",
+      "artboard": 5,
+      "changes": "Original wave paths exported unchanged; navy wordmark paths removed. Low-opacity CSS background mask. No redraw."
+    },
+    {
+      "file": "output/assets/patterns/brand-square-paths-background.svg",
+      "artboard": 2,
+      "changes": "Original square-path geometry retained; navy wordmark paths removed and empty artboard margins trimmed via viewBox. Tonal CSS mask anchored bottom right."
+    }
+  ]
+}

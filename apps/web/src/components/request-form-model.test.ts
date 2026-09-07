@@ -2,6 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { buildRequestPayload } from './request-form-model';
 
 describe('buildRequestPayload', () => {
+  it('carries handoff program, budget and discussion fields into stored request text', () => {
+    const data = new FormData();
+    data.set('program', 'بترولي');
+    data.set('budget', '25 إلى 75 ألف ريال');
+    data.set('message', 'تواصل مع أصحاب التجارب');
+    expect(buildRequestPayload('sponsorship', data).message).toBe(
+      'تواصل مع أصحاب التجارب\n\nالبرنامج: بترولي\n\nالميزانية المقترحة: 25 إلى 75 ألف ريال',
+    );
+    data.set('topic', 'تجربة تغيير المهنة');
+    data.set('notes', 'لديه تجربة تستحق المشاركة');
+    expect(buildRequestPayload('guest_suggestion', data).notes).toBe(
+      'موضوع الحوار: تجربة تغيير المهنة\n\nلديه تجربة تستحق المشاركة',
+    );
+  });
   it('normalizes a partnership request and omits blank optional values', () => {
     const data = new FormData();
     data.set('organizationName', '  شركة ألف  ');

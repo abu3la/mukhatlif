@@ -74,6 +74,7 @@ import {
   type InviteStudioMemberInput,
 } from '@mukhtalif/validation';
 import { escapeSearchPattern, pageRange } from './list-query';
+import { createSupabaseCustomerRepository } from './customer-supabase';
 import type {
   AcceptStudioInvitationResult,
   ChangeRolePermissionsResult,
@@ -1299,6 +1300,7 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
   }
 
   return {
+    ...createSupabaseCustomerRepository(db),
     async resolveLegacyRedirect(sourcePath): Promise<LegacyRedirectResolution | null> {
       const { data, error } = await db
         .from('url_redirects')
@@ -1725,6 +1727,8 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       if (filter.status) query = query.eq('status', filter.status);
       if (filter.publishedFrom) query = query.gte('publish_at', filter.publishedFrom);
       if (filter.publishedTo) query = query.lte('publish_at', filter.publishedTo);
+      if (filter.sort === 'shortest' || filter.sort === 'longest')
+        query = query.order('duration_sec', { ascending: filter.sort === 'shortest' });
       const { data, error } = await query
         .order('publish_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
@@ -1738,6 +1742,8 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       if (filter.status) request = request.eq('status', filter.status);
       if (filter.publishedFrom) request = request.gte('publish_at', filter.publishedFrom);
       if (filter.publishedTo) request = request.lte('publish_at', filter.publishedTo);
+      if (filter.sort === 'shortest' || filter.sort === 'longest')
+        request = request.order('duration_sec', { ascending: filter.sort === 'shortest' });
       if (query.search) {
         const pattern = escapeSearchPattern(query.search);
         request = request.or(`title_ar.ilike.%${pattern}%,title_en.ilike.%${pattern}%`);
@@ -2226,13 +2232,18 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       const { data, error } = await db
         .from('form_submissions')
         .insert({
+          ...(input.id ? { id: input.id } : {}),
           type: input.type,
           payload: input.payload,
           source_metadata: input.sourceMetadata,
+          attachment_refs: input.attachmentRefs ?? [],
         })
         .select()
         .single();
-      throwOn(error);
+      // Retain SQLSTATE for safe attachment rollback. Network/REST failures
+      // must remain distinguishable from a definitively rejected insert.
+      if (error)
+        throw Object.assign(new Error('Form submission write failed'), { code: error.code });
       return toFormSubmission(data as FormSubmissionRow);
     },
     async updateFormSubmission(id, input) {
