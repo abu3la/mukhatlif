@@ -1,3 +1,16 @@
+## Authorized automatic production release (2026-09-08)
+
+The owner explicitly authorized publishing through GitHub automation to
+`api.mukhtalif.net`, `studio.mukhtalif.net` and `staging.mukhtalif.net` only.
+This supersedes historical manual-only release rules for these three targets.
+Never change root `mukhtalif.net` or its DNS in this release.
+The verified main push deploys API first; successful API release and customer
+schema/access checks unlock the Studio and staging Web workflows. All stages
+pin the same main source and retain the existing production environment guards.
+Production migration 0024 has been applied after a fresh private database/Auth
+and roles backup; the existing content/user fingerprints are unchanged. Do not
+copy development data or rerun the migration. See `docs/PRODUCTION_AUTO_RELEASE.md`.
+
 # Mukhtalif deployment architecture
 
 This file is the operational source of truth for every agent working in this
