@@ -231,7 +231,6 @@
     grid-area: library;
     min-width: 44px;
   }
-  .library svg,
   .menuToggle span {
     display: none;
   }

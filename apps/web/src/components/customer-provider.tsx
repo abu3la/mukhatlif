@@ -314,10 +314,9 @@ export function CustomerProvider({
           if (!ownerId || ownerId !== sessionRef.current?.user.id)
             throw new CustomerRequestError(401);
           const next = await request<CustomerLibrary>(`/app/library${path}`, method, body);
-          if (ownerId === sessionRef.current?.user.id) {
-            ++libraryRevision.current;
-            publishLibrary(next);
-          }
+          if (ownerId !== sessionRef.current?.user.id) throw new CustomerRequestError(401);
+          ++libraryRevision.current;
+          publishLibrary(next);
           return next;
         });
       mutationQueue.current = action;

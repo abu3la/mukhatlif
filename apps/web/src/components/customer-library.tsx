@@ -562,7 +562,7 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
   const router = useRouter();
   const playlist = customer.library.playlists.find((item) => item.id === playlistId);
   const { episodes, shows, loading, error } = useCustomerEpisodes(playlist?.episodeIds || []);
-  const playableEpisodes = episodes.filter((episode) => !episode.premium);
+  const playableEpisodes = loading || error ? [] : episodes.filter((episode) => !episode.premium);
   const [dialog, setDialog] = useState<'rename' | 'add' | 'delete' | null>(null);
   const [busy, setBusy] = useState(false);
   if (!playlist)

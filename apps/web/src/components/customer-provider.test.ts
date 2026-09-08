@@ -272,6 +272,41 @@ describe('customer session isolation', () => {
     });
     expect(exposed.library.savedEpisodeIds).toEqual(['episode-a']);
   });
+  it('rejects a late library result after switching accounts so callers cannot use it', async () => {
+    fake.current = session();
+    await mount();
+    const pending = deferred<Response>();
+    vi.mocked(fetch).mockImplementation((url, options) =>
+      options?.method === 'POST'
+        ? pending.promise
+        : String(url).endsWith('/app/account')
+          ? json(profile(fake.current?.user.id))
+          : json(emptyCustomerLibrary()),
+    );
+    let creating!: Promise<unknown>;
+    const completed = vi.fn();
+    await act(async () => {
+      creating = exposed
+        .mutateLibrary('/playlists', 'POST', { name: 'قائمة الحساب السابق' })
+        .then(completed)
+        .catch((error) => error);
+    });
+    await authEvent('SIGNED_IN', session('customer-b'));
+    await act(async () => {
+      pending.resolve(
+        new Response(
+          JSON.stringify({
+            ...emptyCustomerLibrary(),
+            playlists: [{ id: 'previous-account-playlist', name: 'قائمة الحساب السابق' }],
+          }),
+        ),
+      );
+      expect(await creating).toBeInstanceOf(Error);
+    });
+    expect(completed).not.toHaveBeenCalled();
+    expect(exposed.user?.id).toBe('customer-b');
+    expect(exposed.library).toEqual(emptyCustomerLibrary());
+  });
   it('rolls back a failed optimistic save while retaining confirmed server data', async () => {
     fake.current = session();
     await mount();

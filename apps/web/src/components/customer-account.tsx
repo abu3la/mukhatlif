@@ -187,10 +187,12 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
             token: String(fields.get('code')).trim(),
           });
           if (failure) throw failure;
-          await auth.refreshSession();
+          const refreshed = await auth.refreshSession();
+          if (refreshed.error) throw refreshed.error;
           await customer.refresh();
-          const { data } = await auth.getUser();
-          if (data.user?.email === pendingEmail) {
+          const { data, error: userError } = await auth.getUser();
+          if (userError) throw userError;
+          if (data.user?.email?.toLowerCase() === pendingEmail.toLowerCase()) {
             customer.notify('حفظنا بريدك الإلكتروني الجديد.');
             onClose();
           } else {
@@ -310,6 +312,7 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
                 أدخل الرمز المرسل إلى <bdi>{pendingEmail}</bdi>، أو افتح رابط التأكيد في الرسالة.
               </p>
               <CustomerField
+                key="email-change-code"
                 name="code"
                 label="رمز التأكيد"
                 dir="ltr"
@@ -325,6 +328,7 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
             <>
               <p className="customer-muted">نرسل تأكيدًا إلى البريد الجديد قبل تغييره.</p>
               <CustomerField
+                key="email-change-address"
                 name="email"
                 label="البريد الإلكتروني الجديد"
                 type="email"
