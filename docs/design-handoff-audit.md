@@ -288,3 +288,21 @@ Closing paused playback and removed the measured property. The viewport was
 restored and the owned QA tab closed; the owner's playing tab was untouched.
 All 179 Web tests, full typecheck/lint and formatting passed. This follow-up is
 part of PR #9 and still needs exact-commit CI and published pointer verification.
+
+### Email confirmation follows the delivered link, 8 September 2026
+
+The owner reported that confirmation emails contain a link while the Web asks
+for a code. Signup confirmation now explains opening the email link in the
+initiating browser, offers a validated resend with cooldown, and retains a safe
+login/return destination. Signup and email-change screens no longer request or
+submit an OTP. Email changes explain the existing secure two-inbox link flow;
+success requires the server-confirmed requested address and matching refreshed
+session. Password reauthentication retains its separate nonce/code flow.
+
+Callback and recovery screens await the SDK's existing PKCE initialization and
+reject an unresolved code or initialization error before trusting an older
+session. The SDK remains the only code exchanger. Existing provider-error and
+partial-email-change guidance remains. All 197 Web tests, typecheck, lint and
+formatting pass. This change does not alter email templates, SMTP credentials,
+Auth policy or customer data; actual email delivery and authenticated customer
+acceptance remain separate from mocked flow and anonymous browser verification.

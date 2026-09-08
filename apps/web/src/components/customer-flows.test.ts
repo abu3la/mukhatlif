@@ -35,6 +35,8 @@ import { CustomerAccount } from './customer-account';
 import { CustomerPlaylistPage } from './customer-library';
 
 const auth = {
+  initialize: vi.fn(),
+  resend: vi.fn(),
   signUp: vi.fn(),
   signInWithPassword: vi.fn(),
   updateUser: vi.fn(),
@@ -143,6 +145,8 @@ beforeEach(() => {
     addBookmark: vi.fn(),
     publicRead: vi.fn(),
   };
+  auth.initialize.mockResolvedValue({ error: null });
+  auth.resend.mockResolvedValue({ data: {}, error: null });
   auth.signUp.mockResolvedValue({ data: { session: null }, error: null });
   auth.signInWithPassword.mockResolvedValue({ data: { user: { id: 'customer-a' } }, error: null });
   auth.reauthenticate.mockResolvedValue({ data: {}, error: null });
@@ -162,6 +166,70 @@ afterEach(async () => {
 });
 
 describe('customer authentication dispatch and return intent', () => {
+  it('resends a confirmation link without requesting a code and preserves the destination', async () => {
+    await mount(
+      createElement(CustomerAuth, {
+        mode: 'confirm',
+        email: 'listener@example.test',
+        next: '/library?tab=playlists',
+      }),
+    );
+    expect(field('code')).toBeNull();
+    expect(container.textContent).toContain('افتح رابط التأكيد في بريدك');
+    expect(container.textContent).not.toContain('رمز');
+    expect(
+      container.querySelector('a[href="/login?next=%2Flibrary%3Ftab%3Dplaylists"]'),
+    ).not.toBeNull();
+    await submit();
+    expect(auth.resend).toHaveBeenCalledWith({
+      type: 'signup',
+      email: 'listener@example.test',
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Flibrary%3Ftab%3Dplaylists`,
+      },
+    });
+    expect(auth.verifyOtp).not.toHaveBeenCalled();
+    expect(container.querySelector<HTMLButtonElement>('button.customer-primary')?.disabled).toBe(
+      true,
+    );
+    await submit();
+    expect(auth.resend).toHaveBeenCalledOnce();
+  });
+  it('validates the confirmation email before resending a link', async () => {
+    await mount(createElement(CustomerAuth, { mode: 'confirm', email: 'not-an-email' }));
+    await submit();
+    expect(auth.resend).not.toHaveBeenCalled();
+    expect(field('email').getAttribute('aria-invalid')).toBe('true');
+    expect(document.activeElement).toBe(field('email'));
+  });
+  it('handles resend errors without losing the safe return destination', async () => {
+    auth.resend.mockResolvedValueOnce({ data: {}, error: new Error('untrusted-provider-details') });
+    await mount(
+      createElement(CustomerAuth, {
+        mode: 'confirm',
+        email: 'listener@example.test',
+        next: 'https://untrusted.example',
+      }),
+    );
+    await submit();
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('تعذّر إكمال الطلب');
+    expect(container.textContent).not.toContain('untrusted-provider-details');
+    expect(auth.resend.mock.calls[0][0].options.emailRedirectTo).toBe(
+      `${window.location.origin}/auth/callback?next=%2Faccount`,
+    );
+    expect(container.querySelector<HTMLButtonElement>('button.customer-primary')?.disabled).toBe(
+      false,
+    );
+  });
+  it('continues after a link creates a customer session in another tab', async () => {
+    const screen = () => createElement(CustomerAuth, { mode: 'confirm', next: '/library' });
+    await mount(screen());
+    expect(fake.replace).not.toHaveBeenCalled();
+    signedIn();
+    await mount(screen());
+    expect(fake.replace).toHaveBeenCalledWith('/onboarding?next=%2Flibrary');
+    expect(auth.verifyOtp).not.toHaveBeenCalled();
+  });
   it('rejects invalid email and missing consent before contacting Auth', async () => {
     await mount(createElement(CustomerAuth, { mode: 'signup', email: 'not-an-email' }));
     field('name').value = 'مستمع';
@@ -210,33 +278,164 @@ describe('customer authentication dispatch and return intent', () => {
 });
 
 describe('customer email change dialog', () => {
-  it('starts with an empty code field and clears it when choosing another email', async () => {
+  const confirmedUser = {
+    id: 'customer-a',
+    email: 'new@example.test',
+    email_confirmed_at: '2026-09-08T00:00:00Z',
+  };
+  beforeEach(() => {
+    auth.getUser.mockResolvedValue({ data: { user: confirmedUser }, error: null });
+    auth.refreshSession.mockResolvedValue({
+      data: { session: { user: confirmedUser } },
+      error: null,
+    });
+  });
+
+  it('requests links for both inboxes without offering or submitting an email-change code', async () => {
     await requestEmailChange();
-    expect(auth.updateUser).toHaveBeenCalled();
-    expect(field('code').value).toBe('');
-    field('code').value = '123456';
+    expect(auth.updateUser).toHaveBeenCalledWith(
+      { email: 'New@Example.test' },
+      { emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Faccount` },
+    );
+    expect(field('code')).toBeNull();
+    expect(container.querySelector('dialog')?.textContent).toContain('بريدك الحالي والجديد');
+    expect(container.querySelector('dialog')?.textContent).not.toContain('رمز');
+    expect(auth.verifyOtp).not.toHaveBeenCalled();
+  });
+  it('returns to an empty address field when choosing another email', async () => {
+    await requestEmailChange();
     await click('غيّر البريد');
     expect(field('email').value).toBe('');
+    expect(field('code')).toBeNull();
   });
-  it('recognizes a confirmed address regardless of email casing', async () => {
+  it('recognizes a server-confirmed address regardless of email casing and refreshes the session', async () => {
     await requestEmailChange();
-    field('code').value = '123456';
+    auth.getUser.mockResolvedValueOnce({
+      data: { user: { ...confirmedUser, email: 'NEW@example.test' } },
+      error: null,
+    });
     await submit();
+    expect(auth.getUser).toHaveBeenCalledOnce();
+    expect(auth.refreshSession).toHaveBeenCalledOnce();
+    expect(fake.customer.refresh).toHaveBeenCalledOnce();
+    expect(auth.verifyOtp).not.toHaveBeenCalled();
     expect(fake.customer.notify).toHaveBeenCalledWith('حفظنا بريدك الإلكتروني الجديد.');
     expect(container.querySelector('dialog')).toBeNull();
+  });
+  it('keeps both-link guidance when only the pending address or stale client metadata has changed', async () => {
+    await requestEmailChange();
+    fake.customer.user = { ...fake.customer.user!, email: 'new@example.test' };
+    auth.getUser.mockResolvedValueOnce({
+      data: {
+        user: { ...confirmedUser, email: 'old@example.test', new_email: 'new@example.test' },
+      },
+      error: null,
+    });
+    await submit();
+    expect(container.querySelector('[role="status"]')?.textContent).toContain(
+      'لم يكتمل تغيير البريد',
+    );
+    expect(auth.refreshSession).not.toHaveBeenCalled();
+    expect(fake.customer.notify).not.toHaveBeenCalled();
+    expect(auth.verifyOtp).not.toHaveBeenCalled();
+  });
+  it('does not report success for an unconfirmed address returned by Auth', async () => {
+    await requestEmailChange();
+    auth.getUser.mockResolvedValueOnce({
+      data: { user: { ...confirmedUser, email_confirmed_at: null } },
+      error: null,
+    });
+    await submit();
+    expect(fake.customer.notify).not.toHaveBeenCalled();
+    expect(auth.refreshSession).not.toHaveBeenCalled();
+    expect(container.querySelector('[role="status"]')?.textContent).toContain(
+      'لم يكتمل تغيير البريد',
+    );
+  });
+  it('does not accept a confirmed address belonging to another account', async () => {
+    await requestEmailChange();
+    auth.getUser.mockResolvedValueOnce({
+      data: { user: { ...confirmedUser, id: 'customer-b' } },
+      error: null,
+    });
+    await submit();
+    expect(fake.customer.notify).not.toHaveBeenCalled();
+    expect(auth.refreshSession).not.toHaveBeenCalled();
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      'تعذّر التحقق من جلستك',
+    );
   });
   it.each(['refreshSession', 'getUser'] as const)(
     'shows an Auth failure from %s instead of asking for another confirmation email',
     async (method) => {
       await requestEmailChange();
       auth[method].mockResolvedValueOnce({ data: {}, error: new Error('Auth network failure') });
-      field('code').value = '123456';
       await submit();
       expect(container.querySelector('[role="alert"]')?.textContent).toContain('تعذّر إكمال الطلب');
       expect(fake.customer.notify).not.toHaveBeenCalled();
       expect(container.textContent).not.toContain('أكدنا هذا البريد');
     },
   );
+  it('keeps a failed customer refresh actionable rather than reporting success', async () => {
+    await requestEmailChange();
+    vi.mocked(fake.customer.refresh).mockRejectedValueOnce(new Error('Profile refresh failure'));
+    await submit();
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('تعذّر إكمال الطلب');
+    expect(fake.customer.notify).not.toHaveBeenCalled();
+    expect(container.querySelector('dialog')).not.toBeNull();
+  });
+  it('offers a fresh login after a missing Auth user without claiming confirmation', async () => {
+    await requestEmailChange();
+    auth.getUser.mockResolvedValueOnce({ data: { user: null }, error: null });
+    await submit();
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      'بعد تأكيد رابطَي البريد',
+    );
+    expect(fake.customer.notify).not.toHaveBeenCalled();
+    await click('سجّل الدخول مجددًا');
+    expect(auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    expect(fake.customer.refresh).toHaveBeenCalledOnce();
+    expect(fake.replace).toHaveBeenCalledWith('/login?next=%2Faccount');
+  });
+  it('asks for a fresh login if the confirmed address is missing from the refreshed session', async () => {
+    await requestEmailChange();
+    auth.refreshSession.mockResolvedValueOnce({ data: { session: null }, error: null });
+    await submit();
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      'سجّل الدخول به لتحديث جلستك',
+    );
+    expect(fake.customer.notify).not.toHaveBeenCalled();
+    expect(fake.customer.refresh).not.toHaveBeenCalled();
+  });
+  it('gives safe login guidance after an expired session', async () => {
+    await requestEmailChange();
+    auth.getUser.mockResolvedValueOnce({
+      data: { user: null },
+      error: { code: 'session_not_found', status: 401 },
+    });
+    await submit();
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('انتهت جلستك');
+    expect(container.textContent).toContain('سجّل الدخول مجددًا');
+    expect(fake.customer.notify).not.toHaveBeenCalled();
+  });
+  it('discards a late confirmation check after switching accounts', async () => {
+    let resolve!: (value: unknown) => void;
+    await requestEmailChange();
+    auth.getUser.mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    await submit();
+    fake.customer.user = { ...fake.customer.user!, id: 'customer-b', email: 'b@example.test' };
+    fake.customer.profile = { ...fake.customer.profile!, id: 'customer-b' };
+    await mount(createElement(CustomerAccount));
+    await act(async () => resolve({ data: { user: confirmedUser }, error: null }));
+    expect(auth.refreshSession).not.toHaveBeenCalled();
+    expect(fake.customer.notify).not.toHaveBeenCalled();
+    expect(container.querySelector('dialog')).toBeNull();
+  });
 });
 
 describe('customer password change credentials', () => {
@@ -310,6 +509,50 @@ describe('customer password change credentials', () => {
 });
 
 describe('customer Auth link states', () => {
+  it.each(['callback', 'reset'] as const)(
+    'rejects an unresolved PKCE link on %s even with an older signed-in session',
+    async (mode) => {
+      signedIn();
+      fake.customer.profile!.onboarded = true;
+      window.history.replaceState(null, '', `/${mode}?code=unresolved-test-code`);
+      await mount(createElement(CustomerAuth, { mode, next: '/library' }));
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+        'المتصفح الذي بدأت منه',
+      );
+      expect(fake.replace).not.toHaveBeenCalled();
+      expect(container.querySelector('form')).toBeNull();
+      expect(auth.updateUser).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['callback', 'reset'] as const)(
+    'rejects SDK initialization errors on %s without exposing provider details',
+    async (mode) => {
+      signedIn();
+      auth.initialize.mockResolvedValueOnce({ error: new Error('untrusted-exchange-details') });
+      await mount(createElement(CustomerAuth, { mode, next: '/library' }));
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+        'تعذّر تأكيد الرابط',
+      );
+      expect(container.textContent).not.toContain('untrusted-exchange-details');
+      expect(fake.replace).not.toHaveBeenCalled();
+      expect(container.querySelector('form')).toBeNull();
+      expect(auth.updateUser).not.toHaveBeenCalled();
+    },
+  );
+  it('lets the SDK finish exchanging the link before redirecting a confirmed customer', async () => {
+    signedIn();
+    window.history.replaceState(null, '', '/auth/callback?code=one-use-test-code');
+    let complete!: (value: { error: null }) => void;
+    auth.initialize.mockReturnValueOnce(new Promise((resolve) => (complete = resolve)));
+    await mount(createElement(CustomerAuth, { mode: 'callback', next: '/library' }));
+    expect(fake.replace).not.toHaveBeenCalled();
+    await act(async () => {
+      window.history.replaceState(null, '', '/auth/callback');
+      complete({ error: null });
+    });
+    expect(fake.replace).toHaveBeenCalledWith('/onboarding?next=%2Flibrary');
+    expect(auth.verifyOtp).not.toHaveBeenCalled();
+  });
   it.each([
     [true, '?error=access_denied'],
     [false, '?error=access_denied'],
