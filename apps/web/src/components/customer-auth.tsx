@@ -16,10 +16,7 @@ type AuthMode = 'login' | 'signup' | 'confirm' | 'forgot' | 'reset' | 'callback'
 const copy: Record<AuthMode, [string, string]> = {
   login: ['أهلًا بعودتك.', 'عد إلى ما تحب الاستماع إليه، وتابع من حيث توقفت.'],
   signup: ['حكايتك مع مختلف تبدأ هنا.', 'احفظ ما يعجبك، واجمع حلقاتك في قوائمك.'],
-  confirm: [
-    'خطوة لتأكيد البريد.',
-    'اتبع الرابط في رسالة التأكيد، أو أدخل الرمز إن كان ظاهرًا فيها.',
-  ],
+  confirm: ['أكّد بريدك عبر الرابط.', 'افتح رابط التأكيد في بريدك لإكمال التسجيل.'],
   forgot: ['نسيت كلمة المرور؟', 'الاستعادة تبدأ بعنوان البريد المرتبط بحسابك.'],
   reset: ['بداية جديدة.', 'اختر كلمة مرور جديدة.'],
   callback: ['نجهّز حسابك.', 'لحظات وتعود إلى الاستماع.'],
@@ -51,22 +48,49 @@ export function CustomerAuth({
 
   useEffect(() => {
     if (mode !== 'callback' && mode !== 'reset') return;
+    let active = true;
+    setCallbackChecked(false);
     const hash = new URLSearchParams(window.location.hash.slice(1));
     const search = new URLSearchParams(window.location.search);
     const failed = [hash, search].some((params) =>
       ['error', 'error_code', 'error_description'].some((key) => Boolean(params.get(key))),
     );
     setLinkError(failed ? 'انتهت صلاحية الرابط أو تعذّر تأكيده. اطلب رسالة جديدة.' : '');
-    setEmailChangePending(
+    const pending =
       !failed &&
-        [hash, search].some(
-          (params) =>
-            params.get('message') ===
-            'Confirmation link accepted. Please proceed to confirm link sent to the other email',
-        ),
+      [hash, search].some(
+        (params) =>
+          params.get('message') ===
+          'Confirmation link accepted. Please proceed to confirm link sent to the other email',
+      );
+    setEmailChangePending(pending);
+    if (failed || pending) {
+      setCallbackChecked(true);
+      return;
+    }
+    if (!client) return;
+    void client.auth.initialize().then(
+      ({ error: initializationError }) => {
+        if (!active) return;
+        if (initializationError) {
+          setLinkError('تعذّر تأكيد الرابط. افتح آخر رابط أرسلناه في المتصفح الذي بدأت منه.');
+        } else if (new URLSearchParams(window.location.search).has('code')) {
+          setLinkError(
+            'افتح الرابط في المتصفح الذي بدأت منه، أو اطلب رابطًا جديدًا من هذا المتصفح.',
+          );
+        }
+        setCallbackChecked(true);
+      },
+      () => {
+        if (!active) return;
+        setLinkError('تعذّر تأكيد الرابط. حاول فتحه مجددًا.');
+        setCallbackChecked(true);
+      },
     );
-    setCallbackChecked(true);
-  }, [mode]);
+    return () => {
+      active = false;
+    };
+  }, [mode, client]);
 
   useEffect(() => {
     if (
@@ -113,6 +137,10 @@ export function CustomerAuth({
     setError('');
     setMessage('');
     if (Object.keys(invalid).length || !client) return;
+    if (mode === 'confirm') {
+      await resend();
+      return;
+    }
     const data = new FormData(form);
     const enteredEmail = String(data.get('email') || email).trim();
     const password = String(data.get('password') || '');
@@ -145,14 +173,6 @@ export function CustomerAuth({
           }
           throw result.error;
         }
-        await customer.refresh();
-      } else if (mode === 'confirm') {
-        const result = await client.auth.verifyOtp({
-          email: enteredEmail,
-          token: String(data.get('code')).trim(),
-          type: 'signup',
-        });
-        if (result.error) throw result.error;
         await customer.refresh();
       } else if (mode === 'forgot') {
         const result = await client.auth.resetPasswordForEmail(enteredEmail, {
@@ -255,7 +275,7 @@ export function CustomerAuth({
         ) : (
           <>
             <p role="status">
-              {customer.loading || customer.user
+              {!callbackChecked || customer.loading || customer.user
                 ? 'جارٍ تأكيد الحساب…'
                 : 'لم نجد جلسة دخول. افتح آخر رابط أرسلناه إلى بريدك.'}
             </p>
@@ -284,7 +304,7 @@ export function CustomerAuth({
   const submitLabel = {
     login: 'تسجيل الدخول',
     signup: 'أنشئ حسابًا',
-    confirm: 'تأكيد',
+    confirm: resendAfter ? `إعادة الإرسال بعد ${resendAfter} ث` : 'أعد إرسال رابط التأكيد',
     forgot: 'أرسل رابط الاستعادة',
     reset: 'احفظ كلمة المرور',
   }[mode];
@@ -363,18 +383,7 @@ export function CustomerAuth({
           />
         )}
         {mode === 'confirm' && (
-          <CustomerField
-            name="code"
-            label="رمز التأكيد"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            required
-            minLength={6}
-            maxLength={10}
-            dir="ltr"
-            error={errors.code}
-            hint="استخدم الرمز الموجود في رسالة التأكيد."
-          />
+          <p className="customer-muted">افتح الرابط في المتصفح الذي بدأت منه التسجيل.</p>
         )}
         {mode === 'signup' && (
           <div>
@@ -441,7 +450,10 @@ export function CustomerAuth({
           <button
             className="customer-primary"
             disabled={
-              busy || !client || (mode === 'reset' && (!callbackChecked || customer.loading))
+              busy ||
+              !client ||
+              (mode === 'confirm' && resendAfter > 0) ||
+              (mode === 'reset' && (!callbackChecked || customer.loading))
             }
           >
             {busy ? 'جارٍ المتابعة…' : submitLabel}
@@ -449,16 +461,9 @@ export function CustomerAuth({
         )}
         {mode === 'confirm' && (
           <>
-            <button
-              type="button"
-              className="customer-text-button"
-              onClick={() => void resend()}
-              disabled={busy || !client || resendAfter > 0}
-            >
-              {resendAfter ? `إعادة الإرسال بعد ${resendAfter} ث` : 'أعد إرسال رسالة التأكيد'}
-            </button>
-            <Link className="customer-form-link" href={`/signup?next=${encodeURIComponent(next)}`}>
-              غيّر البريد الإلكتروني
+            <p className="customer-muted">بعد تأكيد بريدك، يمكنك تسجيل الدخول من أي جهاز.</p>
+            <Link className="customer-form-link" href={`/login?next=${encodeURIComponent(next)}`}>
+              تسجيل الدخول
             </Link>
           </>
         )}

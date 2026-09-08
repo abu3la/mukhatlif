@@ -154,12 +154,14 @@ function AccountContent() {
 
 function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () => void }) {
   const customer = useCustomer();
+  const router = useRouter();
   const profile = customer.profile!;
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
+  const [emailSignInRequired, setEmailSignInRequired] = useState(false);
   const [passwordChallenge, setPasswordChallenge] = useState(false);
   const pendingCredentials = useRef<{ currentPassword: string; password: string } | null>(null);
   const active = useRef(true);
@@ -190,25 +192,46 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
       }
       if (edit === 'email') {
         if (pendingEmail) {
-          const { error: failure } = await auth.verifyOtp({
-            type: 'email_change',
-            email: pendingEmail,
-            token: String(fields.get('code')).trim(),
-          });
-          if (failure) throw failure;
-          const refreshed = await auth.refreshSession();
-          if (refreshed.error) throw refreshed.error;
-          await customer.refresh();
+          if (emailSignInRequired) {
+            const { error: failure } = await auth.signOut({ scope: 'local' });
+            if (failure) throw failure;
+            await customer.refresh();
+            router.replace('/login?next=%2Faccount');
+            return;
+          }
           const { data, error: userError } = await auth.getUser();
           if (userError) throw userError;
-          if (data.user?.email?.toLowerCase() === pendingEmail.toLowerCase()) {
-            customer.notify('حفظنا بريدك الإلكتروني الجديد.');
-            onClose();
-          } else {
-            setMessage(
-              'أكدنا هذا البريد. راجع رسالة التأكيد الأخرى في بريدك الحالي أو الجديد لإكمال التغيير.',
-            );
+          if (!active.current) return;
+          if (!data.user || data.user.id !== customer.user?.id) {
+            setEmailSignInRequired(true);
+            setError('تعذّر التحقق من جلستك. سجّل الدخول بعد تأكيد رابطَي البريد.');
+            return;
           }
+          if (
+            !data.user.email_confirmed_at ||
+            data.user.email?.toLowerCase() !== pendingEmail.toLowerCase()
+          ) {
+            setMessage(
+              'لم يكتمل تغيير البريد بعد. افتح رابطَي التأكيد في بريدك الحالي والجديد، ثم أعد التحقق.',
+            );
+            return;
+          }
+          const refreshed = await auth.refreshSession();
+          if (refreshed.error) throw refreshed.error;
+          if (!active.current) return;
+          if (
+            refreshed.data.session?.user.id !== data.user.id ||
+            !refreshed.data.session.user.email_confirmed_at ||
+            refreshed.data.session.user.email?.toLowerCase() !== pendingEmail.toLowerCase()
+          ) {
+            setEmailSignInRequired(true);
+            setError('أكّدت بريدك الجديد. سجّل الدخول به لتحديث جلستك.');
+            return;
+          }
+          await customer.refresh();
+          if (!active.current) return;
+          customer.notify('حفظنا بريدك الإلكتروني الجديد.');
+          onClose();
         } else {
           const email = String(fields.get('email')).trim();
           if (email.toLowerCase() === customer.user?.email?.toLowerCase()) {
@@ -220,8 +243,9 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
             { emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Faccount` },
           );
           if (failure) throw failure;
+          if (!active.current) return;
           setPendingEmail(email);
-          setMessage('أرسلنا التأكيد. قد تحتاج إلى تأكيد الرسالتين في بريدك الحالي والجديد.');
+          setMessage('أرسلنا روابط التأكيد إلى بريدك الحالي والجديد.');
         }
         return;
       }
@@ -267,15 +291,35 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
       customer.notify('حفظنا التغييرات.');
       onClose();
     } catch (failure) {
+      if (!active.current) return;
+      if (
+        edit === 'email' &&
+        pendingEmail &&
+        failure &&
+        typeof failure === 'object' &&
+        (('status' in failure && failure.status === 401) ||
+          ('name' in failure && failure.name === 'AuthSessionMissingError') ||
+          ('code' in failure &&
+            [
+              'session_not_found',
+              'refresh_token_not_found',
+              'refresh_token_already_used',
+              'bad_jwt',
+            ].includes(String(failure.code))))
+      ) {
+        setEmailSignInRequired(true);
+        setError('انتهت جلستك. سجّل الدخول بعد تأكيد رابطَي البريد.');
+        return;
+      }
       setError(customerError(failure));
     } finally {
-      setBusy(false);
+      if (active.current) setBusy(false);
     }
   }
 
   return (
     <CustomerDialog
-      title={edit === 'email' && pendingEmail ? 'أكّد بريدك الجديد' : editTitles[edit]}
+      title={edit === 'email' && pendingEmail ? 'افتح رابطَي التأكيد' : editTitles[edit]}
       onClose={() => {
         if (!busy) {
           pendingCredentials.current = null;
@@ -324,20 +368,9 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
           (pendingEmail ? (
             <>
               <p className="customer-muted">
-                أدخل الرمز المرسل إلى <bdi>{pendingEmail}</bdi>، أو افتح رابط التأكيد في الرسالة.
+                افتح رابط التأكيد في بريدك الحالي، ثم في <bdi>{pendingEmail}</bdi>.
               </p>
-              <CustomerField
-                key="email-change-code"
-                name="code"
-                label="رمز التأكيد"
-                dir="ltr"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                minLength={6}
-                maxLength={10}
-                required
-                error={errors.code}
-              />
+              <p className="customer-muted">بعد تأكيد الرابطين، عُد إلى هنا للتحقق من التغيير.</p>
             </>
           ) : (
             <>
@@ -400,12 +433,18 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
           disabled={busy}
         >
           {busy
-            ? 'جارٍ الحفظ…'
+            ? edit === 'email' && pendingEmail
+              ? emailSignInRequired
+                ? 'جارٍ تسجيل الخروج…'
+                : 'جارٍ التحقق…'
+              : 'جارٍ الحفظ…'
             : edit === 'clear'
               ? 'امسح المكتبة'
               : edit === 'email'
                 ? pendingEmail
-                  ? 'أكّد البريد'
+                  ? emailSignInRequired
+                    ? 'سجّل الدخول مجددًا'
+                    : 'تحقّق من التغيير'
                   : 'أرسل التأكيد'
                 : edit === 'password' && !passwordChallenge
                   ? 'أرسل رمز التأكيد'
@@ -418,8 +457,10 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
             disabled={busy}
             onClick={() => {
               setPendingEmail('');
+              setEmailSignInRequired(false);
               setMessage('');
               setError('');
+              setErrors({});
             }}
           >
             غيّر البريد
