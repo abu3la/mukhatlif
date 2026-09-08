@@ -1,5 +1,7 @@
 'use client';
 
+import { ContentSkeleton } from './content-skeleton';
+
 import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Show } from '@mukhtalif/types';
@@ -81,7 +83,7 @@ function OnboardingContent({ step, next }: { step: number; next: string }) {
         ) : (
           <form className="customer-interest-form" onSubmit={finish} aria-busy={busy}>
             {loadingShows ? (
-              <p role="status">جارٍ تحميل البرامج…</p>
+              <ContentSkeleton label="تحميل البرامج" variant="cards" />
             ) : (
               <div className="customer-show-choices">
                 {shows.map((show) => (

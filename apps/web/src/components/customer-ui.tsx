@@ -1,5 +1,7 @@
 'use client';
 
+import { ContentSkeleton } from './content-skeleton';
+
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -16,7 +18,7 @@ import { useCustomer } from './customer-provider';
 export function CustomerIcon({
   name,
 }: {
-  name: 'save' | 'check' | 'up' | 'down' | 'close' | 'back' | 'play' | 'queue';
+  name: 'save' | 'check' | 'up' | 'down' | 'close' | 'back' | 'play' | 'queue' | 'eye' | 'eye-off';
 }) {
   const paths = {
     save: 'M6 3h12v18l-6-4-6 4V3Z',
@@ -27,6 +29,8 @@ export function CustomerIcon({
     back: 'm14 5-7 7 7 7',
     play: 'm8 4 12 8-12 8V4Z',
     queue: 'M4 5h16M4 11h16M4 17h8m5-2v6m-3-3h6',
+    eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Zm13 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
+    'eye-off': 'm3 3 18 18M10 5.2A12 12 0 0 1 12 5c6.5 0 10 7 10 7a19 19 0 0 1-3 4M6 6.5A21 21 0 0 0 2 12s3.5 7 10 7a13 13 0 0 0 5-1M9.9 9.9a3 3 0 0 0 4.2 4.2',
   };
   return (
     <svg
@@ -154,6 +158,7 @@ export function CustomerPassword({
           id={id}
           type={visible ? 'text' : 'password'}
           name={name}
+          placeholder="********"
           minLength={current ? 1 : 8}
           maxLength={256}
           required
@@ -163,11 +168,11 @@ export function CustomerPassword({
         />
         <button
           type="button"
-          className="customer-text-button"
+          className="customer-icon-button customer-password-toggle"
           onClick={() => setVisible((value) => !value)}
           aria-label={`${visible ? 'إخفاء' : 'إظهار'} ${label}`}
         >
-          {visible ? 'إخفاء' : 'إظهار'}
+          <CustomerIcon name={visible ? 'eye-off' : 'eye'} />
         </button>
       </div>
       {!current && <small id={`${id}-hint`}>8 أحرف على الأقل.</small>}
@@ -253,7 +258,7 @@ export function CustomerGate({ children }: { children: ReactNode }) {
   if (customer.loading)
     return (
       <div className="page customer-page">
-        <p role="status">جارٍ تحميل حسابك…</p>
+        <ContentSkeleton label="تحميل حسابك" variant="account" />
       </div>
     );
   if (!customer.user)

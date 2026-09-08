@@ -1,5 +1,7 @@
 'use client';
 
+import { ContentSkeleton } from './content-skeleton';
+
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
@@ -216,7 +218,7 @@ function FollowedShows() {
         {error}
       </p>
     );
-  if (!shows) return <p role="status">جارٍ تحميل البرامج…</p>;
+  if (!shows) return <ContentSkeleton label="تحميل البرامج" variant="cards" />;
   return (
     <div className="customer-program-grid">
       {customer.library.followedShowIds.map((id) => {
@@ -305,7 +307,7 @@ function SavedArticles() {
           </article>
         ))
       ) : (
-        <p role="status">جارٍ تحميل القراءات…</p>
+        <ContentSkeleton label="تحميل القراءات" variant="rows" />
       )}
     </section>
   );
@@ -658,7 +660,7 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
         </div>
       </header>
       {loading ? (
-        <p role="status">جارٍ تحميل الحلقات…</p>
+        <ContentSkeleton label="تحميل الحلقات" variant="rows" />
       ) : error ? (
         <p role="alert" className="customer-error">
           {error}
@@ -707,7 +709,9 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
           );
         })
       ) : (
-        <CustomerEmpty title="لا توجد حلقات في القائمة">اختيار «إضافة حلقة» يفتح البحث في الحلقات.</CustomerEmpty>
+        <CustomerEmpty title="لا توجد حلقات في القائمة">
+          اختيار «إضافة حلقة» يفتح البحث في الحلقات.
+        </CustomerEmpty>
       )}
       <div className="customer-history-foot">
         <button className="customer-text-button" onClick={() => setDialog('delete')}>
@@ -796,7 +800,7 @@ function PlaylistPicker({
           </p>
         )}
         {loading ? (
-          <p role="status">جارٍ البحث…</p>
+          <ContentSkeleton label="البحث" variant="rows" />
         ) : (
           <div className="customer-picker-list">
             {result?.items.map((episode) => {

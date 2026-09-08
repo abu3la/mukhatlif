@@ -233,19 +233,29 @@
   position: relative;
 }
 .customer-password input {
-  padding-inline-end: 82px;
+  padding-inline-end: 56px;
+  text-align: right;
 }
-.customer-password .customer-text-button {
+.customer-field input[type='email'] {
+  text-align: right;
+}
+.customer-password .customer-password-toggle {
   position: absolute;
   inset-inline-end: 8px;
   inset-block-start: 50%;
   translate: 0 -50%;
-  min-height: 36px;
-  font-size: 13px;
+  width: 44px;
+  height: 44px;
   color: var(--muted);
+  border: 0;
+  background: transparent;
   border-radius: 8px;
   line-height: 1.5;
   padding-inline: 10px;
+}
+.customer-password .customer-password-toggle:hover {
+  color: var(--fg);
+  background: transparent;
 }
 .customer-google {
   width: 100%;

@@ -1,5 +1,7 @@
 'use client';
 
+import { ContentSkeleton } from './content-skeleton';
+
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { useCustomer } from './customer-provider';
@@ -78,7 +80,7 @@ export function EpisodeMoments({
         </button>
       </div>
       {customer.loading ? (
-        <p role="status">جارٍ تحميل لحظاتك…</p>
+        <ContentSkeleton label="تحميل لحظاتك" variant="rows" />
       ) : !customer.user ? (
         <p>
           احفظ فكرة سمعتها لتعود إليها في أي وقت.{' '}
