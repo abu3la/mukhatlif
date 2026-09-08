@@ -552,9 +552,12 @@ describe('ArticleEditorView', () => {
     await waitFor(() => expect(memberSelect).toBeEnabled());
     expect(screen.getByText(/وليسوا من المشتركين أو المستمعين/)).toBeVisible();
     await user.selectOptions(memberSelect, 'member-producer');
-    await user.type(screen.getByRole('textbox', { name: 'عنوان المقال' }), 'مقال الفريق');
-    await user.type(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }), 'team-article');
-    await user.type(screen.getByRole('textbox', { name: 'محتوى المقال' }), 'محتوى من الفريق.');
+    await user.click(screen.getByRole('textbox', { name: 'عنوان المقال' }));
+    await user.paste('مقال الفريق');
+    await user.click(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }));
+    await user.paste('team-article');
+    await user.click(screen.getByRole('textbox', { name: 'محتوى المقال' }));
+    await user.paste('محتوى من الفريق.');
     await user.click(screen.getByRole('button', { name: 'حفظ المسودة' }));
 
     await waitFor(() => expect(createArticle).toHaveBeenCalledTimes(1));
@@ -688,8 +691,10 @@ describe('ArticleEditorView', () => {
     const createArticle = vi.fn();
     renderNewEditor({ createArticle });
 
-    await user.type(screen.getByRole('textbox', { name: 'عنوان المقال' }), 'مقال بلا محتوى');
-    await user.type(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }), 'empty-content');
+    await user.click(screen.getByRole('textbox', { name: 'عنوان المقال' }));
+    await user.paste('مقال بلا محتوى');
+    await user.click(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }));
+    await user.paste('empty-content');
     await waitFor(() =>
       expect(screen.getByRole('combobox', { name: /^عضو الفريق/ })).toBeEnabled(),
     );
@@ -773,7 +778,8 @@ describe('ArticleEditorView', () => {
     expect(screen.queryByText(/الغلاف جاهز/)).not.toBeInTheDocument();
     expect(uploadArticleImage).not.toHaveBeenCalled();
 
-    await user.type(alternativeTextInput, 'صورة غلاف المقال');
+    await user.click(alternativeTextInput);
+    await user.paste('صورة غلاف المقال');
     expect(uploadButton).toBeEnabled();
   });
 
@@ -886,10 +892,14 @@ describe('ArticleEditorView', () => {
     const createArticle = vi.fn(async () => demoData.articles[0]!.id);
     const { container } = renderNewEditor({ uploadArticleImage, createArticle });
 
-    await user.type(screen.getByRole('textbox', { name: 'عنوان المقال' }), 'غلاف الأسبوع');
-    await user.type(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }), 'weekly-cover');
-    await user.type(screen.getByRole('textbox', { name: 'محتوى المقال' }), 'محتوى تجريبي للغلاف.');
-    await user.type(screen.getByRole('textbox', { name: /^الوصف البديل/ }), coverAlt);
+    await user.click(screen.getByRole('textbox', { name: 'عنوان المقال' }));
+    await user.paste('غلاف الأسبوع');
+    await user.click(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }));
+    await user.paste('weekly-cover');
+    await user.click(screen.getByRole('textbox', { name: 'محتوى المقال' }));
+    await user.paste('محتوى تجريبي للغلاف.');
+    await user.click(screen.getByRole('textbox', { name: /^الوصف البديل/ }));
+    await user.paste(coverAlt);
     const originalCoverFile = new File(['cover'], 'weekly-cover.png', { type: 'image/png' });
     await user.upload(screen.getByLabelText('ملف صورة الغلاف'), originalCoverFile);
     await applyInitialCoverCrop(user);
@@ -1271,7 +1281,8 @@ describe('ArticleEditorView', () => {
 
     const title = screen.getByRole('textbox', { name: 'عنوان المقال' });
     await user.clear(title);
-    await user.type(title, 'قائمة قراءة محدّثة');
+    await user.click(title);
+    await user.paste('قائمة قراءة محدّثة');
     await user.selectOptions(screen.getByRole('combobox', { name: /^موضع اسم الكاتب/ }), 'end');
     await user.click(screen.getByRole('button', { name: 'حفظ المسودة' }));
 
@@ -1306,7 +1317,8 @@ describe('ArticleEditorView', () => {
     expect(screen.getByRole('button', { name: 'تحديث مسودة Mailchimp' })).toBeDisabled();
     const title = screen.getByRole('textbox', { name: 'عنوان المقال' });
     await user.clear(title);
-    await user.type(title, 'دليل الضيف المحدّث');
+    await user.click(title);
+    await user.paste('دليل الضيف المحدّث');
     await user.click(screen.getByRole('button', { name: 'حفظ المسودة' }));
 
     expect(updateArticle).toHaveBeenCalledWith(
@@ -1340,7 +1352,8 @@ describe('ArticleEditorView', () => {
     expect(screen.getByRole('button', { name: 'التحقق من حالة الإرسال' })).toBeInTheDocument();
     const title = screen.getByRole('textbox', { name: 'عنوان المقال' });
     await user.clear(title);
-    await user.type(title, 'دليل الضيف أثناء الإرسال');
+    await user.click(title);
+    await user.paste('دليل الضيف أثناء الإرسال');
     await user.selectOptions(screen.getByRole('combobox', { name: /^موضع اسم الكاتب/ }), 'end');
     await user.click(screen.getByRole('button', { name: 'حفظ المسودة' }));
 

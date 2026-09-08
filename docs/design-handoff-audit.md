@@ -198,6 +198,10 @@ Automatic approval review then rejected creating the new `mukhtalif-auth-develop
 
 The active workflow on `main` predates automatic Web Auth binding upload. The manual development Web bindings have now been installed and verified, as recorded below and in `DEVELOPMENT_AUTOMATIC_DEPLOYMENT.md`; the workflow gap still requires preserving them through release. Development code can be published for controlled acceptance while SMTP is pending, but general customer signup email, recovery delivery and completed email-change flows must not be claimed ready.
 
+A local acceptance runner was prepared to verify real profile/library persistence and isolation using two newly generated synthetic development identities at reserved `example.invalid` addresses. Its ten offline guard/flow tests passed. Automatic approval review rejected executing the two Admin account creations because those exact persistent QA identities require explicit owner approval. No synthetic account was created and no email was sent. The runner and reviewed setup are retained at `/private/tmp/mukhtalif-customer-acceptance.mTvkAb`; authenticated hosted acceptance remains pending that approval.
+
+The final recovery/email-change UI follow-up passed actual Chrome pointer QA at 390×844 with client and scroll widths both 390. Expired query/hash links displayed sanitized Arabic feedback and no password form; the retry/login links preserved the library destination. Partial email confirmation remained on the callback page with second-inbox guidance, and its login link retained the account destination. Two mobile screenshots were inspected. The temporary viewport was restored and the owned QA tab closed; localhost was left running.
+
 ### Verified manual development Web Auth bindings
 
 At `2026-09-08T07:36:27.376Z`, the guarded configuration step installed exactly
