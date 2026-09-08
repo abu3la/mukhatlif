@@ -227,3 +227,64 @@ Web Auth installation step. It did not publish the redesign, change API/Studio
 or production, send emails, or verify a customer session. SMTP, coordinated
 release, hosted account/library/attachment acceptance and remaining hosted visual
 checks remain pending.
+
+## Published development release, 8 September 2026
+
+PR #8 merged into `dev` as `ed6a45cfdbeaf037095b601fcf061667a81fc94c` at
+`2026-09-08T09:34:07Z`. Candidate run `34210314435` and merged-commit run
+`34210719545` passed all required checks. The latest suites include 177 Web,
+618 API and 464 Studio tests. Cloudflare delivery run `34210964476` succeeded
+on attempt 2, publishing API before Studio and Web and checking customer-schema
+readiness before the consumers. The first attempt stopped consumers after an
+immediate request hit an old edge and returned 404; independent readiness/auth
+checks passed after propagation, and the unchanged SHA was retried.
+
+Published versions at `2026-09-08T09:42:19Z`: API
+`029c5d49-61f4-4ce8-8465-1fc8f9fe06f3`, Studio
+`3bcbe97a-79f9-4020-b5b4-4c753fe1ecc1`, Web
+`11f7a8ac-2844-4b7d-9334-73c73ce644f4`, each at 100% traffic. Complete recovery
+receipts are retained at
+`/private/tmp/mukhtalif-customer-release-32gw7goy/release-receipt.json`.
+
+Independent public checks passed for signup/account/library routes, noindex,
+the matching development Auth origin and public anon claims, Google disabled,
+and absence of service credentials in served configuration. API readiness and
+anonymous customer guards passed; shortest/longest episode ordering passed
+across two pages. Actual hosted anonymous pointer QA at 390×844 passed signup
+validation, library-to-login return destination, mobile library/search controls,
+theme/menu/Escape focus restoration and expired-recovery guidance. It did not
+create accounts or send email.
+
+A subsequent native horizontal gesture revealed a real home-page overflow:
+the root could scroll to -849px, moving the header off-screen and showing an
+empty viewport, while the body/main stayed 390px wide. The document's horizontal
+overflow is now clipped at the viewport so intended horizontal movement stays
+in the existing episode scrollports. This corrects the earlier observation
+that the large root scroll width was merely a harmless rail metric. The small
+CSS follow-up requires its own published pointer verification.
+
+General signup/recovery mail and authenticated customer/library acceptance remain
+pending the explicit approvals for the isolated Auth sending key and two synthetic
+QA identities described above. The four Arabic email templates passed static
+browser previews at 1280×900 and 390×844 with unchanged source hashes, readable
+RTL/LTR text and no overflow. This is not email-client or delivery evidence.
+
+### Responsive player follow-up
+
+At the owner's actual 628px viewport, the old player reserved only 90px for the
+episode title and rendered the native rate select as a 77px-wide pill. The player
+now gives its information a full row at intermediate widths, wraps the complete
+title without an ellipsis or line clamp, and uses a transparent 52×44px native
+speed control with a compact 12px LTR label. A ResizeObserver measures the dock
+for the page spacer and customer notification clearance, including title/font
+and viewport changes, and removes that value when the player closes.
+
+Actual local pointer checks used the owner's same episode title. At 628×1354
+it had 434.9px of title width; at 390×844 it wrapped into two complete lines; at
+320px it used three complete lines with 185px of reserved clearance; desktop
+2320px kept the full title and 95px dock clearance. The real speed control
+changed audio playback to 1.25× and 1.5×, with the complete numeric labels visible.
+Closing paused playback and removed the measured property. The viewport was
+restored and the owned QA tab closed; the owner's playing tab was untouched.
+All 179 Web tests, full typecheck/lint and formatting passed. This follow-up is
+part of PR #9 and still needs exact-commit CI and published pointer verification.

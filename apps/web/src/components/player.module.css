@@ -33,14 +33,13 @@
 .episodeLink,
 .episodeTitle {
   display: block;
-  overflow: hidden;
   color: var(--text);
   font-size: 15px;
   font-weight: 700;
   line-height: 1.45;
   text-decoration: none;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .episodeLink:hover {
@@ -166,6 +165,7 @@
   color: var(--text-faint);
   font-size: 12px;
   white-space: nowrap;
+  flex: none;
 }
 
 .rateSelect {
@@ -404,19 +404,24 @@
   direction: ltr;
 }
 .rateSelect {
-  background: #1d2154;
+  appearance: none;
+  inline-size: 52px;
+  block-size: 44px;
+  background: transparent;
   color: #eaebf6;
-  border-color: #3a3f78;
-  border-radius: 999px;
+  border: 0;
+  border-radius: 8px;
   min-width: 44px;
   min-height: 44px;
-  padding-inline: 10px;
+  padding: 0 4px;
+  text-align: center;
+  text-align-last: center;
+  line-height: 1;
   font-size: 12px;
   font-weight: 500;
 }
 .rateSelect:hover:not(:disabled) {
   background: #262b73;
-  border-color: #4a5090;
   color: #fff;
 }
 .rateField > span {
@@ -452,15 +457,19 @@
     flex-basis: 138px;
   }
   .barInner {
-    grid-template-columns: minmax(150px, 1fr) auto auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto 44px;
     min-block-size: 138px;
-    grid-template-areas: 'info transport tools close' 'timeline timeline timeline timeline';
+    grid-template-areas:
+      'info info info close'
+      'transport transport tools tools'
+      'timeline timeline timeline timeline';
   }
   .barInner > .episodeInfo {
     grid-area: info;
   }
   .barInner > .transport {
     grid-area: transport;
+    justify-content: flex-start;
   }
   .barInner > .tools {
     grid-area: tools;
@@ -506,7 +515,8 @@
   .bar .status {
     max-width: 230px;
   }
-  .bar .episodeLink {
+  .bar .episodeLink,
+  .bar .episodeTitle {
     font-size: 14px;
   }
   .bar .tools .button {
@@ -535,6 +545,7 @@
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   column-gap: 12px;
+  align-items: start;
 }
 .artwork {
   width: 48px;
@@ -593,4 +604,13 @@
   height: 8px;
   background: transparent;
   border-radius: 999px;
+}
+
+/* Titles may wrap; reserve the dock's measured height rather than covering the page. */
+.spacer {
+  block-size: var(--player-bar-height, var(--player-height));
+  flex-basis: var(--player-bar-height, var(--player-height));
+}
+:global(body):has(.bar) :global(.customer-toast) {
+  inset-block-end: calc(var(--player-bar-height, var(--player-height, 94px)) + 20px);
 }
