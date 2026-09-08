@@ -1,5 +1,7 @@
 'use client';
 
+import { ContentSkeleton } from './content-skeleton';
+
 import Link from 'next/link';
 import {
   createContext,
@@ -937,8 +939,10 @@ function PlayerTools() {
             أعد تحميل القائمة
           </button>
         )}
-        {busy && <p role="status">جارٍ التحميل...</p>}
-        {!customer.library.queueEpisodeIds.length ? (
+
+        {busy && !Object.keys(titles).length ? (
+          <ContentSkeleton label="تحميل قائمة الانتظار" />
+        ) : !customer.library.queueEpisodeIds.length ? (
           <p>قائمة الانتظار فارغة. أضف حلقة من زر الانتظار بجانبها.</p>
         ) : (
           <ol className="queue-list">
@@ -963,7 +967,15 @@ function PlayerTools() {
                     queueDialog.current?.close();
                   }}
                 >
-                  {titles[id]?.titleAr ?? (busy ? 'جارٍ تحميل الحلقة' : 'الحلقة غير متاحة')}
+                  {titles[id]?.titleAr ??
+                    (busy ? (
+                      <span
+                        className="skeleton content-skeleton__line"
+                        aria-label="تحميل عنوان الحلقة"
+                      />
+                    ) : (
+                      'الحلقة غير متاحة'
+                    ))}
                 </button>
                 <div className="queue-list__tools">
                   <button

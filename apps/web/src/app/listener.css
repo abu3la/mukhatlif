@@ -488,6 +488,8 @@ h3 {
 }
 
 .weekly-episodes__track {
+  /* Keep absolutely positioned accessible labels inside this scrollport. */
+  position: relative;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: clamp(280px, 31vw, 360px);
@@ -2607,5 +2609,100 @@ h3 {
 
   .guest-profile__portrait {
     width: min(72vw, 210px);
+  }
+}
+
+/* Skeletons reserve content space without hiding the loaded interface. */
+.loading-announcement {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.content-skeleton {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+.content-skeleton__items {
+  display: grid;
+  gap: 24px;
+}
+.content-skeleton__item {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-inline-size: 0;
+}
+.content-skeleton__image {
+  inline-size: 90px;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+}
+.content-skeleton__copy {
+  display: grid;
+  gap: 12px;
+  flex: 1;
+  min-inline-size: 0;
+}
+.content-skeleton__line {
+  block-size: 18px;
+  inline-size: 85%;
+}
+.content-skeleton__line--short {
+  block-size: 12px;
+  inline-size: 55%;
+}
+.content-skeleton__field {
+  block-size: 48px;
+  margin-block-start: 8px;
+}
+.content-skeleton--cards .content-skeleton__items {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+}
+.content-skeleton--cards .content-skeleton__item {
+  display: grid;
+}
+.content-skeleton--cards .content-skeleton__image {
+  inline-size: 100%;
+}
+.content-skeleton--account {
+  max-inline-size: 760px;
+}
+.content-skeleton--account .content-skeleton__item {
+  padding-block: 12px;
+}
+.skeleton-card {
+  display: grid;
+  gap: 14px;
+  min-inline-size: 0;
+}
+.skeleton-card__image {
+  aspect-ratio: 1;
+}
+.grid--articles .skeleton-card__image {
+  aspect-ratio: 16 / 9;
+}
+@media (max-width: 600px) {
+  .content-skeleton__image {
+    inline-size: 64px;
+  }
+  .content-skeleton__items {
+    gap: 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .content-skeleton .skeleton,
+  .skeleton-card .skeleton {
+    animation: none;
+  }
+}
+@media (max-width: 600px) {
+  .content-skeleton--cards .content-skeleton__items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

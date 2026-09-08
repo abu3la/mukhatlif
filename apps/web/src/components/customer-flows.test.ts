@@ -628,8 +628,9 @@ describe('customer playlist loading', () => {
       },
     ];
     await mount(createElement(CustomerPlaylistPage, { playlistId: 'new-playlist' }));
-    expect(container.textContent).toContain('جارٍ تحميل الحلقات');
-    expect(container.textContent).not.toContain('شغّل القائمة');
+    expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(container.querySelector('[role="status"]')?.textContent).toBe('تحميل الحلقات');
+    expect(container.textContent).not.toContain('تشغيل القائمة');
     expect(fake.player.toggle).not.toHaveBeenCalled();
   });
 });

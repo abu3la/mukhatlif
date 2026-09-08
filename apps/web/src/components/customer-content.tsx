@@ -1,5 +1,7 @@
 'use client';
 
+import { ContentSkeleton } from './content-skeleton';
+
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import { type Episode, type Show, youtubeThumbnailUrl } from '@mukhtalif/types';
@@ -214,12 +216,7 @@ export function CustomerEpisodeList({
   onUnavailableRemove?: (id: string) => void;
 }) {
   const { episodes, shows, loading, error, unavailable } = useCustomerEpisodes(episodeIds);
-  if (loading)
-    return (
-      <p role="status" className="customer-muted">
-        جارٍ تحميل الحلقات…
-      </p>
-    );
+  if (loading) return <ContentSkeleton label="تحميل الحلقات" variant="rows" />;
   if (error)
     return (
       <p className="customer-error" role="alert">
@@ -251,12 +248,7 @@ export function CustomerEpisodeList({
 
 export function ContinueListening() {
   const customer = useCustomer();
-  if (customer.loading)
-    return (
-      <p role="status" className="customer-muted">
-        جارٍ تحميل مكتبتك…
-      </p>
-    );
+  if (customer.loading) return <ContentSkeleton label="تحميل مكتبتك" variant="rows" />;
   if (!customer.user)
     return (
       <CustomerEmpty
