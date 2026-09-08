@@ -29,22 +29,19 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#1a1b19' },
-  ],
+  themeColor: '#ffffff',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   await connection();
   const config = customerConfig();
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" data-concept="first" suppressHydrationWarning>
       <head>
         <Script
           id="mukhtalif-appearance"
           strategy="beforeInteractive"
-        >{`try{var t=localStorage.getItem('mukhtalif-appearance');document.documentElement.dataset.concept=t==='first'||t==='third'?t:matchMedia('(prefers-color-scheme: dark)').matches?'third':'first'}catch(e){document.documentElement.dataset.concept=matchMedia('(prefers-color-scheme: dark)').matches?'third':'first'}`}</Script>
+        >{`var t='first';try{if(localStorage.getItem('mukhtalif-appearance')==='third')t='third'}catch(e){}document.documentElement.dataset.concept=t;var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='third'?'#1a1b19':'#ffffff')`}</Script>
       </head>
       <body>
         <a className="skip-link" href="#main">
