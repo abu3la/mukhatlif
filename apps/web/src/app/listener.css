@@ -113,6 +113,8 @@
 }
 
 html {
+  /* Keep horizontal overflow inside the page's dedicated scrollports. */
+  overflow-x: clip;
   min-height: 100%;
   background: var(--page);
   -webkit-text-size-adjust: 100%;
