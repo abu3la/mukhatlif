@@ -34,13 +34,99 @@ function operationErrorMessage(error: unknown, action: 'save' | 'retry'): string
     }
     if (error.code === 'NOT_FOUND') return 'الطلب غير موجود. ارجع إلى قائمة الطلبات.';
     if (error.code === 'CONFLICT' && action === 'retry') {
-      return 'حالة البريد تغيّرت. حدّث الصفحة قبل المحاولة.';
+      return 'حالة البريد تغيرت. حدث الصفحة قبل المحاولة.';
     }
     if (error.code === 'VALIDATION') return 'راجع البيانات ثم حاول مرة أخرى.';
   }
   return action === 'save'
-    ? 'تعذّر حفظ التغييرات. حاول مرة أخرى.'
-    : 'تعذّر إعادة إرسال البريد. حاول مرة أخرى.';
+    ? 'تعذر حفظ التغييرات. حاول مرة أخرى.'
+    : 'تعذر إعادة إرسال البريد. حاول مرة أخرى.';
+}
+
+function AttachmentDownload({
+  submissionId,
+  attachment,
+}: {
+  submissionId: string;
+  attachment: FormSubmission['attachmentRefs'][number];
+}) {
+  const repository = useFormSubmissionRepository();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const mounted = useRef(false);
+  const inFlight = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  async function download() {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setPending(true);
+    setError(null);
+    try {
+      const blob = await repository.downloadFormSubmissionAttachment(submissionId, attachment.id);
+      if (!mounted.current) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download =
+        Array.from(attachment.fileName, (character) => {
+          const code = character.charCodeAt(0);
+          return code < 32 || code === 127 || character === '/' || character === '\\'
+            ? '_'
+            : character;
+        }).join('') || 'attachment.pdf';
+      document.body.append(link);
+      try {
+        link.click();
+      } finally {
+        link.remove();
+        // Keep the URL alive long enough for the browser's download to begin.
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } catch (cause) {
+      if (!mounted.current) return;
+      const code = isAdminRepositoryError(cause) ? cause.code : null;
+      setError(
+        code === 'FORBIDDEN' || code === 'UNAUTHENTICATED'
+          ? 'لا تملك صلاحية تنزيل هذا الملف. سجل الدخول بحساب مخول.'
+          : code === 'NOT_FOUND'
+            ? 'الملف غير متاح. حدث الصفحة ثم حاول مرة أخرى.'
+            : 'تعذر تنزيل الملف. حاول مرة أخرى.',
+      );
+    } finally {
+      inFlight.current = false;
+      if (mounted.current) setPending(false);
+    }
+  }
+
+  return (
+    <li>
+      <div className="submission-attachment-info">
+        <bdi dir="auto">{attachment.fileName}</bdi>
+        <span>{attachment.mimeType === 'application/pdf' ? 'PDF' : attachment.mimeType}</span>
+        {error ? (
+          <p role="alert" className="submission-attachment-error">
+            {error}
+          </p>
+        ) : null}
+      </div>
+      <Button
+        type="button"
+        disabled={pending}
+        aria-busy={pending}
+        aria-label={`تنزيل ملف ${attachment.fileName}`}
+        onClick={() => void download()}
+      >
+        {'تنزيل'}
+      </Button>
+    </li>
+  );
 }
 
 function DetailContent({
@@ -57,9 +143,10 @@ function DetailContent({
   const [assigneeId, setAssigneeId] = useState(submission.assigneeId ?? '');
   const [internalNotes, setInternalNotes] = useState(submission.internalNotes);
   const [pendingAction, setPendingAction] = useState<'save' | 'retry' | null>(null);
-  const [feedback, setFeedback] = useState<
-    { readonly kind: 'success' | 'error'; readonly message: string } | null
-  >(null);
+  const [feedback, setFeedback] = useState<{
+    readonly kind: 'success' | 'error';
+    readonly message: string;
+  } | null>(null);
 
   useEffect(() => {
     setStatus(submission.status);
@@ -76,8 +163,7 @@ function DetailContent({
     assigneeId !== (submission.assigneeId ?? '') ||
     internalNotes !== submission.internalNotes;
   const notificationCanRetry =
-    submission.notificationStatus !== 'sent' &&
-    submission.notificationStatus !== 'sending';
+    submission.notificationStatus !== 'sent' && submission.notificationStatus !== 'sending';
   const fields = formSubmissionDisplayFields(submission);
 
   async function saveChanges() {
@@ -91,7 +177,7 @@ function DetailContent({
         internalNotes,
       });
       onUpdated(updated);
-      setFeedback({ kind: 'success', message: 'حُفظت التغييرات.' });
+      setFeedback({ kind: 'success', message: 'حفظت التغييرات.' });
     } catch (error) {
       setFeedback({ kind: 'error', message: operationErrorMessage(error, 'save') });
     } finally {
@@ -107,16 +193,16 @@ function DetailContent({
       const updated = await repository.retryFormSubmissionNotification(submission.id);
       onUpdated(updated);
       if (updated.notificationStatus === 'sent') {
-        setFeedback({ kind: 'success', message: 'أُرسل البريد.' });
+        setFeedback({ kind: 'success', message: 'أرسل البريد.' });
       } else if (updated.notificationStatus === 'unconfigured') {
         setFeedback({
           kind: 'error',
-          message: 'لم يُرسل البريد لأن إعداداته غير مكتملة.',
+          message: 'لم يرسل البريد لأن إعداداته غير مكتملة.',
         });
       } else if (updated.notificationStatus === 'failed') {
         setFeedback({
           kind: 'error',
-          message: 'تعذّر إرسال البريد. راجع سبب التعذّر ثم حاول مرة أخرى.',
+          message: 'تعذر إرسال البريد. راجع سبب التعذر ثم حاول مرة أخرى.',
         });
       } else {
         setFeedback({ kind: 'success', message: 'بدأت محاولة إرسال البريد.' });
@@ -188,7 +274,7 @@ function DetailContent({
               </div>
             ) : null}
             <div className="submission-field">
-              <dt>معرّف الطلب</dt>
+              <dt>معرف الطلب</dt>
               <dd dir="ltr">{submission.sourceMetadata.requestId}</dd>
             </div>
           </dl>
@@ -204,10 +290,11 @@ function DetailContent({
             </header>
             <ul className="submission-attachments">
               {submission.attachmentRefs.map((attachment) => (
-                <li key={attachment.id}>
-                  <bdi dir="auto">{attachment.fileName}</bdi>
-                  <span>{attachment.mimeType}</span>
-                </li>
+                <AttachmentDownload
+                  key={attachment.id}
+                  submissionId={submission.id}
+                  attachment={attachment}
+                />
               ))}
             </ul>
           </section>
@@ -255,7 +342,7 @@ function DetailContent({
                   }}
                 >
                   <option value="">بلا مسؤول</option>
-                  {currentViewerId ? <option value={currentViewerId}>إسناد إليّ</option> : null}
+                  {currentViewerId ? <option value={currentViewerId}>إسناد إلي</option> : null}
                   {assignedToAnother && submission.assigneeId ? (
                     <option value={submission.assigneeId}>المسؤول الحالي</option>
                   ) : null}
@@ -282,7 +369,7 @@ function DetailContent({
                 aria-busy={pendingAction === 'save'}
                 onClick={() => void saveChanges()}
               >
-                {pendingAction === 'save' ? 'جارٍ الحفظ…' : 'حفظ التغييرات'}
+                {'حفظ التغييرات'}
               </Button>
             </>
           ) : (
@@ -329,7 +416,7 @@ function DetailContent({
               aria-busy={pendingAction === 'retry'}
               onClick={() => void retryNotification()}
             >
-              {pendingAction === 'retry' ? 'جارٍ الإرسال…' : 'إعادة إرسال البريد'}
+              {'إعادة إرسال البريد'}
             </Button>
           ) : null}
         </section>
@@ -374,7 +461,7 @@ export function FormSubmissionDetailsView() {
   if (submissionQuery.isPending) {
     return (
       <section className="card embedded-state" aria-busy="true" aria-live="polite">
-        <p>جارٍ تحميل الطلب…</p>
+        <p>تحميل الطلب…</p>
       </section>
     );
   }
@@ -382,7 +469,7 @@ export function FormSubmissionDetailsView() {
   if (submissionQuery.error || !submissionQuery.data) {
     return (
       <section className="card embedded-state" role="alert">
-        <h1>تعذّر تحميل الطلب</h1>
+        <h1>تعذر تحميل الطلب</h1>
         <p>
           {isAdminRepositoryError(submissionQuery.error) &&
           submissionQuery.error.code === 'NOT_FOUND'
@@ -414,7 +501,11 @@ export function FormSubmissionDetailsView() {
         headingRef={headingRef}
         headingTabIndex={-1}
       />
-      <DetailContent submission={submission} onUpdated={handleUpdated} />
+      <DetailContent
+        key={`${viewer?.id}:${submission.id}`}
+        submission={submission}
+        onUpdated={handleUpdated}
+      />
     </div>
   );
 }

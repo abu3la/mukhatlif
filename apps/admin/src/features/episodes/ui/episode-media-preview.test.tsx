@@ -34,7 +34,7 @@ describe('episode media preview', () => {
     await user.click(screen.getByRole('button', { name: 'الصوت المحفوظ' }));
     expect(container.querySelector('iframe')).toBeNull();
     fireEvent.error(container.querySelector('audio')!);
-    expect(screen.getByRole('alert')).toHaveTextContent('تعذّر تشغيل الصوت');
+    expect(screen.getByRole('alert')).toHaveTextContent('تعذر تشغيل الصوت');
     await user.click(screen.getByRole('button', { name: 'إغلاق المعاينة' }));
     expect(container.querySelector('audio, iframe')).toBeNull();
   });
@@ -54,7 +54,7 @@ describe('episode media preview', () => {
     await user.click(screen.getByRole('button', { name: 'معاينة الحلقة' }));
     await user.click(screen.getByRole('button', { name: 'الملف المختار' }));
     expect(container.querySelector('audio')).toHaveAttribute('src', 'blob:preview-local');
-    expect(screen.getByText(/لم يُرفع بعد/)).toBeInTheDocument();
+    expect(screen.getByText(/لم يرفع بعد/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'إغلاق المعاينة' }));
     expect(revoke).toHaveBeenCalledWith('blob:preview-local');
   });

@@ -23,7 +23,9 @@ describe('opt-in list paging', () => {
   });
 
   it('returns the envelope as soon as one paging parameter is supplied', async () => {
-    const page = (await (await request('/shows?perPage=2', 'usr-admin-1')).json()) as PaginatedList<Show>;
+    const page = (await (
+      await request('/shows?perPage=2', 'usr-admin-1')
+    ).json()) as PaginatedList<Show>;
     expect(page.items.length).toBeLessThanOrEqual(2);
     expect(page.pageInfo).toMatchObject({ page: 1, perPage: 2, hasPreviousPage: false });
     expect(page.pageInfo.total).toBeGreaterThan(page.items.length - 1);
@@ -82,13 +84,43 @@ describe('search term escaping', () => {
   });
 });
 
+describe('public episode duration sorting', () => {
+  it('orders the full published result before pagination and keeps the order stable across pages', async () => {
+    const all = (await (await request('/episodes')).json()) as Episode[];
+    for (const sort of ['shortest', 'longest'] as const) {
+      const collected: Episode[] = [];
+      for (let page = 1; ; page += 1) {
+        const response = await request(`/episodes?page=${page}&perPage=2&sort=${sort}`);
+        expect(response.status).toBe(200);
+        const result = (await response.json()) as PaginatedList<Episode>;
+        collected.push(...result.items);
+        if (!result.pageInfo.hasNextPage) break;
+      }
+      expect(new Set(collected.map((item) => item.id))).toEqual(
+        new Set(all.map((item) => item.id)),
+      );
+      expect(collected.every((item) => item.status === 'published')).toBe(true);
+      for (let index = 1; index < collected.length; index += 1) {
+        const difference = collected[index]!.durationSec - collected[index - 1]!.durationSec;
+        expect(sort === 'shortest' ? difference >= 0 : difference <= 0).toBe(true);
+      }
+    }
+  });
+
+  it('rejects unknown sort values rather than passing arbitrary database columns', async () => {
+    expect((await request('/episodes?page=1&sort=secret')).status).toBe(400);
+  });
+});
+
 describe('studio summary', () => {
   it('requires authentication', async () => {
     expect((await request('/studio/summary')).status).toBe(401);
   });
 
   it('gives an administrator every section', async () => {
-    const summary = (await (await request('/studio/summary', 'usr-admin-1')).json()) as StudioSummary;
+    const summary = (await (
+      await request('/studio/summary', 'usr-admin-1')
+    ).json()) as StudioSummary;
     expect(summary.asOf).toEqual(expect.any(String));
     expect(summary.content?.episodes.total).toBeGreaterThan(0);
     expect(summary.content?.shows).toBeGreaterThan(0);
@@ -108,7 +140,9 @@ describe('studio summary', () => {
   });
 
   it('never exposes article source or newsletter state in the recent list', async () => {
-    const summary = (await (await request('/studio/summary', 'usr-admin-1')).json()) as StudioSummary;
+    const summary = (await (
+      await request('/studio/summary', 'usr-admin-1')
+    ).json()) as StudioSummary;
     for (const article of summary.recentArticles ?? []) {
       expect(article).not.toHaveProperty('content');
       expect(article).not.toHaveProperty('newsletter');
@@ -117,7 +151,9 @@ describe('studio summary', () => {
   });
 
   it('caps the recent lists at five records', async () => {
-    const summary = (await (await request('/studio/summary', 'usr-admin-1')).json()) as StudioSummary;
+    const summary = (await (
+      await request('/studio/summary', 'usr-admin-1')
+    ).json()) as StudioSummary;
     expect(summary.recentEpisodes?.length).toBeLessThanOrEqual(5);
     expect(summary.recentArticles?.length).toBeLessThanOrEqual(5);
   });

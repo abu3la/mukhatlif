@@ -50,6 +50,15 @@ describe('public home summary', () => {
 });
 
 describe('public article reads', () => {
+  it('hydrates saved article IDs through the same published-only projection as slugs', async () => {
+    const articles = (await (await anonymous('/articles')).json()) as PublishedArticle[];
+    const first = articles[0];
+    const byId = await anonymous(`/articles/id/${first.id}`);
+    expect(byId.status).toBe(200);
+    expect(await byId.json()).toEqual(await (await anonymous(`/articles/${first.slug}`)).json());
+    expect((await anonymous('/articles/id/art-2')).status).toBe(404);
+    expect((await anonymous('/articles/id/no-such-article')).status).toBe(404);
+  });
   it('returns only published articles and keeps the legacy array shape', async () => {
     const articles = (await (await anonymous('/articles')).json()) as PublishedArticle[];
     expect(Array.isArray(articles)).toBe(true);

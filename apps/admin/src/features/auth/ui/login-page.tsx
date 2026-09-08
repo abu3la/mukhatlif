@@ -17,21 +17,19 @@ function signInErrorMessage(error: unknown): string {
       return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
     }
     if (error.code === 'RATE_LIMITED') {
-      return 'تكررت المحاولات بسرعة. انتظر قليلًا ثم حاول مرة أخرى.';
+      return 'تكررت المحاولات بسرعة. انتظر قليلا ثم حاول مرة أخرى.';
     }
     if (error.code === 'NETWORK') {
-      return 'تعذّر الاتصال بخدمة الدخول. تحقق من الشبكة وحاول مرة أخرى.';
+      return 'تعذر الاتصال بخدمة الدخول. تحقق من الشبكة وحاول مرة أخرى.';
     }
   }
-  return 'تعذّر تسجيل الدخول. حاول مرة أخرى.';
+  return 'تعذر تسجيل الدخول. حاول مرة أخرى.';
 }
 
 export function LoginView() {
   const location = useLocation();
   const auth = useAdminAuth();
-  const returnTo = safeReturnTo(
-    (location.state as { returnTo?: unknown } | null)?.returnTo,
-  );
+  const returnTo = safeReturnTo((location.state as { returnTo?: unknown } | null)?.returnTo);
   const initialAccount = auth.demoAccounts[0];
   const [selectedDemoId, setSelectedDemoId] = useState(initialAccount?.id ?? '');
   const [email, setEmail] = useState(initialAccount?.email ?? '');
@@ -62,8 +60,7 @@ export function LoginView() {
         <header className="auth-panel__header">
           <BrandMark height={30} />
           <div>
-            <h1 id="login-title">الدخول إلى استوديو الإدارة</h1>
-            <p>استخدم حساب فريق مختلف المصرّح له.</p>
+            <h1 id="login-title">الدخول إلى لوحة التحكم</h1>
           </div>
         </header>
 
@@ -71,7 +68,7 @@ export function LoginView() {
           <section className="demo-account-panel" aria-labelledby="demo-account-title">
             <div>
               <h2 id="demo-account-title">حسابات العرض المحلية</h2>
-              <p>اختر حسابًا لتجربة الصلاحيات في نسخة الاجتماع.</p>
+              <p>اختيار حساب لتجربة الصلاحيات محليا.</p>
             </div>
             <Field label="حساب العرض">
               <Select
@@ -134,7 +131,7 @@ export function LoginView() {
           </Field>
           {formError || auth.status === 'error' ? (
             <p className="notice notice--error" role="alert">
-              {formError || 'تعذّر التحقق من الجلسة. حاول مرة أخرى.'}
+              {formError || 'تعذر التحقق من الجلسة. حاول مرة أخرى.'}
             </p>
           ) : null}
           <Button
@@ -144,7 +141,7 @@ export function LoginView() {
             disabled={auth.isSubmitting || auth.status === 'restoring'}
             aria-busy={auth.isSubmitting}
           >
-            {auth.isSubmitting ? 'جارٍ تسجيل الدخول…' : 'تسجيل الدخول'}
+            {'تسجيل الدخول'}
           </Button>
         </form>
       </section>

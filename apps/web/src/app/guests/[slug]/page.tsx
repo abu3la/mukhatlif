@@ -9,11 +9,7 @@ import {
   formatNumber,
 } from '@/components/formatting';
 import { GuestPortrait } from '@/components/guest-card';
-import {
-  guestAppearanceLabel,
-  guestSocialHref,
-  guestSocialLabel,
-} from '@/components/guest-utils';
+import { guestAppearanceLabel, guestSocialHref, guestSocialLabel } from '@/components/guest-utils';
 import { EmptyState } from '@/components/states';
 import { NotFoundError, getGuestProfile } from '@/lib/api';
 
@@ -30,11 +26,7 @@ async function loadGuestProfile(slug: string): Promise<PublicGuestProfile> {
   }
 }
 
-function GuestEpisodeLink({
-  episode,
-}: {
-  episode: PublicGuestProfile['episodes'][number];
-}) {
+function GuestEpisodeLink({ episode }: { episode: PublicGuestProfile['episodes'][number] }) {
   const href = `/episodes/${encodeURIComponent(episode.id)}`;
   const publishedDate = episode.publishAt ? formatDate(episode.publishAt) : '';
   const duration = formatDuration(episode.durationSec);
@@ -104,7 +96,7 @@ export default async function GuestProfilePage({ params }: Params) {
     <div className="content-page guest-profile-page">
       <div className="content-container content-container--narrow">
         <nav className="guest-profile__breadcrumb" aria-label="مسار التنقل">
-          <Link href="/guests">مكتبة الضيوف</Link>
+          <Link href="/guests">الضيوف</Link>
         </nav>
 
         <article className="guest-profile">
@@ -114,9 +106,7 @@ export default async function GuestProfilePage({ params }: Params) {
               <h1 className="guest-profile__name">{guest.name}</h1>
               {guest.role ? <p className="guest-profile__role">{guest.role}</p> : null}
               <p className="guest-profile__meta">
-                {[guest.city, guestAppearanceLabel(guest.episodeCount)]
-                  .filter(Boolean)
-                  .join(' · ')}
+                {[guest.city, guestAppearanceLabel(guest.episodeCount)].filter(Boolean).join(' · ')}
               </p>
 
               {socialLinks.length > 0 ? (
@@ -153,7 +143,7 @@ export default async function GuestProfilePage({ params }: Params) {
         <section className="content-section guest-episodes" aria-labelledby="guest-episodes-title">
           <div className="content-section__header">
             <h2 className="content-section__title" id="guest-episodes-title">
-              حلقات منشورة على يوتيوب شارك فيها
+              حلقات {guest.name}
             </h2>
           </div>
           {profile.episodes.length > 0 ? (

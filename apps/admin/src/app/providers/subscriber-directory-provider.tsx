@@ -13,7 +13,7 @@ import type { AdminViewer } from '@/lib';
 function SubscriberDirectoryLoadingState() {
   return (
     <section className="embedded-state" aria-busy="true" aria-live="polite">
-      <p>جارٍ تحميل بيانات المشتركين…</p>
+      <p>تحميل المشتركين…</p>
     </section>
   );
 }
@@ -21,8 +21,7 @@ function SubscriberDirectoryLoadingState() {
 function SubscriberDirectoryErrorState({ onRetry }: { onRetry(): void }) {
   return (
     <section className="embedded-state" role="alert">
-      <h1>تعذر تحميل بيانات المشتركين</h1>
-      <p>تعذّر تحميل بيانات المشتركين. حاول مرة أخرى.</p>
+      <h1>تعذر تحميل المشتركين</h1>
       <button className="button button--primary" type="button" onClick={onRetry}>
         إعادة المحاولة
       </button>
@@ -108,9 +107,7 @@ export function SubscriberDirectoryProvider({
 
   if (directoryQuery.isPending) return <SubscriberDirectoryLoadingState />;
   if (directoryQuery.error) {
-    return (
-      <SubscriberDirectoryErrorState onRetry={() => void directoryQuery.refetch()} />
-    );
+    return <SubscriberDirectoryErrorState onRetry={() => void directoryQuery.refetch()} />;
   }
   if (!value) return <SubscriberDirectoryLoadingState />;
 

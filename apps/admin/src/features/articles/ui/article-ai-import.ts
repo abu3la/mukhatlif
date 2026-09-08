@@ -29,7 +29,7 @@ export const AI_ARTICLE_TEMPLATE = `أنت مساعد تحرير لمجلة مخ
 القارئ المقصود: [اكتب الجمهور]
 المصادر أو النقاط المعتمدة: [ألصقها هنا]
 
-أعد JSON فقط، من دون أي شرح أو كتلة كود أو HTML، وبالعقد التالي تمامًا:
+أعد JSON فقط، من دون أي شرح أو كتلة كود أو HTML، وبالعقد التالي تماما:
 {
   "schema": "${AI_ARTICLE_SCHEMA}",
   "title": "عنوان عربي واضح",
@@ -50,9 +50,9 @@ export const AI_ARTICLE_TEMPLATE = `أنت مساعد تحرير لمجلة مخ
 
 القيود:
 - استخدم العربية السليمة، وتحقق من كل ادعاء من المصادر المرفقة.
-- المعرّف slug بحروف إنجليزية صغيرة وأرقام وشرطات فقط.
+- المعرف slug بحروف إنجليزية صغيرة وأرقام وشرطات فقط.
 - الأنواع المسموح بها داخل blocks هي paragraph وheading وbullets وordered_list وquote فقط.
-- لا تضف صورًا أو روابطًا أو HTML أو أوامر نشر أو إرسال بريد.`;
+- لا تضف صورا أو روابطا أو HTML أو أوامر نشر أو إرسال بريد.`;
 
 export class AiArticleImportError extends Error {
   constructor(message: string) {
@@ -130,7 +130,7 @@ function readBlock(value: unknown, index: number): AiArticleBlock {
         throw new AiArticleImportError(`أضف عناصر القائمة رقم ${index + 1}.`);
       }
       if (value.items.length > MAX_LIST_ITEMS) {
-        throw new AiArticleImportError(`القائمة رقم ${index + 1} طويلة جدًا.`);
+        throw new AiArticleImportError(`القائمة رقم ${index + 1} طويلة جدا.`);
       }
       return {
         type: value.type,
@@ -200,7 +200,7 @@ function plainText(blocks: readonly AiArticleBlock[]): string {
  * never cross this boundary.
  */
 export function parseAiArticleDraft(input: string): AiArticleDraft {
-  if (!input.trim()) throw new AiArticleImportError('الصق ناتج JSON من مساعدك أولًا.');
+  if (!input.trim()) throw new AiArticleImportError('الصق ناتج JSON من مساعدك أولا.');
 
   let parsed: unknown;
   try {
@@ -210,13 +210,13 @@ export function parseAiArticleDraft(input: string): AiArticleDraft {
   }
 
   if (!isRecord(parsed) || parsed.schema !== AI_ARTICLE_SCHEMA) {
-    throw new AiArticleImportError('استخدم قالب مختلف الرسمي ثم الصق الناتج كاملًا.');
+    throw new AiArticleImportError('استخدم قالب مختلف الرسمي ثم الصق الناتج كاملا.');
   }
 
   const title = readRequiredText(parsed.title, 'عنوان المقال', 180);
-  const slug = readRequiredText(parsed.slug, 'المعرّف في الرابط', 180).toLowerCase();
+  const slug = readRequiredText(parsed.slug, 'المعرف في الرابط', 180).toLowerCase();
   if (!SLUG_PATTERN.test(slug)) {
-    throw new AiArticleImportError('اكتب المعرّف بحروف إنجليزية صغيرة وأرقام وشرطات فقط.');
+    throw new AiArticleImportError('اكتب المعرف بحروف إنجليزية صغيرة وأرقام وشرطات فقط.');
   }
 
   const excerpt = readOptionalText(parsed.excerpt, 'ملخص المقال', 500);
@@ -232,14 +232,14 @@ export function parseAiArticleDraft(input: string): AiArticleDraft {
     throw new AiArticleImportError('أضف محتوى المقال داخل blocks.');
   }
   if (parsed.blocks.length > MAX_BLOCKS) {
-    throw new AiArticleImportError('عدد أقسام المقال كبير جدًا. قسّمه إلى مسودات أصغر.');
+    throw new AiArticleImportError('عدد أقسام المقال كبير جدا. قسمه إلى مسودات أصغر.');
   }
 
   const blocks = parsed.blocks.map(readBlock);
   const normalizedDocument = normalizeArticleDocument(documentFromBlocks(blocks));
   const validatedDocument = richTextDocumentSchema.safeParse(normalizedDocument);
   if (!validatedDocument.success) {
-    throw new AiArticleImportError('تعذّر اعتماد بنية المقال. راجع ناتج AI ثم حاول مرة أخرى.');
+    throw new AiArticleImportError('تعذر اعتماد بنية المقال. راجع ناتج AI ثم حاول مرة أخرى.');
   }
 
   return {

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { AI_ARTICLE_TEMPLATE, AiArticleImportError, parseAiArticleDraft } from './article-ai-import';
+import {
+  AI_ARTICLE_TEMPLATE,
+  AiArticleImportError,
+  parseAiArticleDraft,
+} from './article-ai-import';
 
 const validDraft = {
   schema: 'mukhtalif.article-ai/v1',
@@ -12,7 +16,7 @@ const validDraft = {
   },
   blocks: [
     { type: 'paragraph', text: 'ابدأ من سؤال حقيقي لدى القارئ.' },
-    { type: 'heading', level: 2, text: 'حدّد القيمة' },
+    { type: 'heading', level: 2, text: 'حدد القيمة' },
     { type: 'bullets', items: ['اعرف القارئ', 'تحقق من المصادر'] },
     { type: 'ordered_list', items: ['اجمع المادة', 'اكتب المسودة'] },
     { type: 'quote', text: 'المقال الجيد يجيب عن سؤال واضح.' },
@@ -74,7 +78,7 @@ describe('parseAiArticleDraft', () => {
           slug: 'معرف-عربي',
         }),
       ),
-    ).toThrow('المعرّف');
+    ).toThrow('المعرف');
 
     expect(() =>
       parseAiArticleDraft(
@@ -90,7 +94,7 @@ describe('parseAiArticleDraft', () => {
 describe('AI_ARTICLE_TEMPLATE', () => {
   it('asks for the exact draft-only contract', () => {
     expect(AI_ARTICLE_TEMPLATE).toContain('mukhtalif.article-ai/v1');
-    expect(AI_ARTICLE_TEMPLATE).toContain('لا تضف صورًا أو روابطًا أو HTML');
+    expect(AI_ARTICLE_TEMPLATE).toContain('لا تضف صورا أو روابطا أو HTML');
     expect(AI_ARTICLE_TEMPLATE).toContain('أوامر نشر أو إرسال بريد');
   });
 });

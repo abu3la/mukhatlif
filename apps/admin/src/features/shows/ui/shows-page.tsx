@@ -18,38 +18,38 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function showSaveErrorMessage(error: unknown): string {
   if (!isAdminRepositoryError(error)) {
-    return 'تعذّر حفظ البرنامج. حاول مرة أخرى.';
+    return 'تعذر حفظ البرنامج. حاول مرة أخرى.';
   }
 
   switch (error.code) {
     case 'CONFLICT':
-      return 'هذا المعرّف مستخدم. اختر معرّفًا آخر.';
+      return 'هذا المعرف مستخدم. اختر معرفا آخر.';
     case 'UNAUTHENTICATED':
-      return 'انتهت جلسة الدخول. سجّل الدخول ثم حاول مرة أخرى.';
+      return 'انتهت جلسة الدخول. سجل الدخول ثم حاول مرة أخرى.';
     case 'FORBIDDEN':
       return 'ليس لديك صلاحية لإضافة برنامج.';
     case 'NETWORK':
     case 'REMOTE_UNAVAILABLE':
-      return 'تعذّر الاتصال بالخادم. تحقق من اتصالك ثم حاول مرة أخرى.';
+      return 'تعذر الاتصال بالخادم. تحقق من اتصالك ثم حاول مرة أخرى.';
     default:
-      return 'تعذّر حفظ البرنامج. راجع البيانات ثم حاول مرة أخرى.';
+      return 'تعذر حفظ البرنامج. راجع البيانات ثم حاول مرة أخرى.';
   }
 }
 
 function homepageSettingsErrorMessage(error: unknown): string {
   if (isAdminRepositoryError(error)) {
     if (error.code === 'CONFLICT') {
-      return 'تغيّرت إعدادات القسم في جلسة أخرى. راجعها وحاول مجددًا.';
+      return 'تغيرت إعدادات القسم في جلسة أخرى. راجعها وحاول مجددا.';
     }
     if (error.code === 'UNAUTHENTICATED') {
-      return 'انتهت جلسة الدخول. سجّل الدخول ثم حاول مرة أخرى.';
+      return 'انتهت جلسة الدخول. سجل الدخول ثم حاول مرة أخرى.';
     }
     if (error.code === 'FORBIDDEN') return 'ليس لديك صلاحية لتعديل القسم.';
     if (error.code === 'NETWORK' || error.code === 'REMOTE_UNAVAILABLE') {
-      return 'تعذّر الاتصال بالخادم. حاول مرة أخرى.';
+      return 'تعذر الاتصال بالخادم. حاول مرة أخرى.';
     }
   }
-  return 'تعذّر حفظ إعدادات القسم. راجع البيانات وحاول مجددًا.';
+  return 'تعذر حفظ إعدادات القسم. راجع البيانات وحاول مجددا.';
 }
 
 function HomepageWeeklyEpisodesSettings() {
@@ -68,8 +68,7 @@ function HomepageWeeklyEpisodesSettings() {
   }, [settings.enabled, settings.title, settings.version]);
 
   const normalizedTitle = title.trim();
-  const hasChanges =
-    enabled !== settings.enabled || normalizedTitle !== settings.title;
+  const hasChanges = enabled !== settings.enabled || normalizedTitle !== settings.title;
 
   async function saveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,7 +88,7 @@ function HomepageWeeklyEpisodesSettings() {
       });
       setEnabled(updated.enabled);
       setTitle(updated.title);
-      setFeedback('حُفظت إعدادات القسم.');
+      setFeedback('حفظت إعدادات القسم.');
     } catch (cause) {
       setHasError(true);
       setFeedback(homepageSettingsErrorMessage(cause));
@@ -136,14 +135,22 @@ function HomepageWeeklyEpisodesSettings() {
       <div className="homepage-weekly-settings__footer">
         <div aria-live="polite">
           {feedback ? (
-            <p className={`notice ${hasError ? 'notice--error' : 'notice--success'}`} role={hasError ? 'alert' : 'status'}>
+            <p
+              className={`notice ${hasError ? 'notice--error' : 'notice--success'}`}
+              role={hasError ? 'alert' : 'status'}
+            >
               {feedback}
             </p>
           ) : null}
         </div>
         {canManageShows ? (
-          <Button type="submit" variant="primary" disabled={isMutating || !hasChanges}>
-            {isMutating ? 'جارٍ الحفظ…' : 'حفظ إعدادات القسم'}
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isMutating || !hasChanges}
+            aria-busy={isMutating}
+          >
+            {'حفظ إعدادات القسم'}
           </Button>
         ) : null}
       </div>
@@ -237,7 +244,7 @@ export function CreateShowView() {
       return;
     }
     if (!SLUG_PATTERN.test(normalizedSlug)) {
-      setError('اكتب المعرّف بحروف إنجليزية صغيرة وأرقام وشرطات فقط.');
+      setError('اكتب المعرف بحروف إنجليزية صغيرة وأرقام وشرطات فقط.');
       return;
     }
 
@@ -261,11 +268,7 @@ export function CreateShowView() {
 
   return (
     <div className="content-create-page">
-      <PageBreadcrumb
-        parentLabel="البرامج"
-        parentTo={adminPaths.shows}
-        current="برنامج جديد"
-      />
+      <PageBreadcrumb parentLabel="البرامج" parentTo={adminPaths.shows} current="برنامج جديد" />
       <header className="page-header">
         <div className="page-header__title-row">
           <h1 ref={headingRef} tabIndex={-1} id="new-show-title">
@@ -291,7 +294,7 @@ export function CreateShowView() {
               required
             />
           </Field>
-          <Field label="المعرّف في الرابط" hint="حروف إنجليزية صغيرة وأرقام وشرطات فقط.">
+          <Field label="المعرف في الرابط" hint="حروف إنجليزية صغيرة وأرقام وشرطات فقط.">
             <Input
               dir="ltr"
               value={slug}
@@ -347,8 +350,8 @@ export function CreateShowView() {
               </p>
             ) : null}
           </div>
-          <Button type="submit" variant="primary" disabled={isSaving}>
-            {isSaving ? 'جارٍ الحفظ…' : 'حفظ البرنامج'}
+          <Button type="submit" variant="primary" disabled={isSaving} aria-busy={isSaving}>
+            {'حفظ البرنامج'}
           </Button>
         </div>
       </form>

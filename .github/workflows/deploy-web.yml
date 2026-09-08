@@ -1,7 +1,7 @@
 name: Deploy staging Web
 on:
   workflow_run:
-    workflows: ['Verify shared source (no deployment)']
+    workflows: ['Deploy production API']
     types: [completed]
     branches: [main]
 permissions:
@@ -14,7 +14,7 @@ jobs:
   changes:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository
+      github.event.workflow_run.event == 'workflow_run' && github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     outputs:
       changed: ${{ steps.classify.outputs.changed }}
@@ -85,6 +85,11 @@ jobs:
           path: ${{ env.RELEASE_DIR }}/rollback.json
           if-no-files-found: error
           retention-days: 30
+      - name: Configure staging customer authentication
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+          MUKHTALIF_SUPABASE_ANON_KEY: ${{ secrets.STUDIO_PRODUCTION_ANON_KEY }}
+        run: node scripts/configure-hostinger-web.mjs
       - name: Recheck main before deployment
         env:
           GH_TOKEN: ${{ github.token }}

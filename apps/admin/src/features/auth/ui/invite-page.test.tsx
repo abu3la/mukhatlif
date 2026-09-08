@@ -163,7 +163,7 @@ describe('invitation acceptance', () => {
     const repository = repositoryStub(INVITED);
     renderInvite(gateway, repository);
 
-    expect(await screen.findByText('تُرسل الدعوات من داخل الاستوديو فقط.')).toBeInTheDocument();
+    expect(await screen.findByText(/إذا لم يصلك الرابط أو انتهت صلاحيته/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'العودة إلى تسجيل الدخول' })).toHaveAttribute(
       'href',
       '/login',
@@ -202,7 +202,7 @@ describe('invitation acceptance', () => {
     const gateway = gatewayStub();
     renderInvite(gateway, repositoryStub({ status: 'active' }), INVITE_LINK);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/قُبلت هذه الدعوة من قبل/);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/قبلت هذه الدعوة من قبل/);
     await waitFor(() => expect(gateway.signOut).toHaveBeenCalled());
   });
 
@@ -255,7 +255,7 @@ describe('invitation acceptance', () => {
       'new@mukhtalif.test',
       'a-long-enough-pass',
     );
-    expect(await screen.findByRole('status')).toHaveTextContent(/أصبح حسابك جاهزًا/);
+    expect(await screen.findByRole('status')).toHaveTextContent(/تم تفعيل الحساب/);
   });
 
   it('starts a fresh password session before refreshing access after acceptance', async () => {
@@ -288,11 +288,11 @@ describe('invitation acceptance', () => {
       'a-long-enough-pass',
     );
     expect(calls).toEqual(['password-sign-in', 'retry']);
-    expect(screen.queryByText(/أصبح حسابك جاهزًا/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/تم تفعيل الحساب/)).not.toBeInTheDocument();
 
     resolveRetry?.();
 
-    expect(await screen.findByRole('status')).toHaveTextContent(/أصبح حسابك جاهزًا/);
+    expect(await screen.findByRole('status')).toHaveTextContent(/تم تفعيل الحساب/);
   });
 
   it('explains how to recover when the accepted invitation cannot start a new session', async () => {
@@ -307,7 +307,7 @@ describe('invitation acceptance', () => {
 
     await setPassword(user, 'a-long-enough-pass');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/حُفظت كلمة المرور/);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/حفظت كلمة المرور/);
     expect(auth.retry).not.toHaveBeenCalled();
   });
 
@@ -327,6 +327,6 @@ describe('invitation acceptance', () => {
 
     await setPassword(user, 'a-long-enough-pass');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/قُبلت هذه الدعوة من قبل/);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/قبلت هذه الدعوة من قبل/);
   });
 });

@@ -1,8 +1,14 @@
 import Link from 'next/link';
 import { EpisodeThumbnail } from './episode-thumbnail';
-import type { Episode, PublishedArticle, Show } from '@mukhtalif/types';
+import {
+  youtubeThumbnailUrl,
+  type Episode,
+  type PublishedArticle,
+  type Show,
+} from '@mukhtalif/types';
 import { dateTimeAttribute, formatDate, formatDuration, formatNumber } from './formatting';
 import { PlayEpisodeButton, type PlayerEpisode } from './player';
+import { EpisodeLibraryActions, EpisodeProgress } from './episode-library-actions';
 import { publicEpisodeAudioSrc } from '@/lib/player-source';
 
 function PlayIcon({ size = 14 }: { size?: number }) {
@@ -164,6 +170,8 @@ export function EpisodeRow({
           showTitle: showName,
           href,
           durationSec: episode.durationSec,
+          youtubeVideoId: episode.youtubeVideoId,
+          artworkUrl: youtubeThumbnailUrl(episode.youtubeVideoId) ?? undefined,
           audioSrc,
         }
       : null;
@@ -223,5 +231,76 @@ export function EpisodeRow({
       ) : null}
       <span className="episode-row__duration">{duration}</span>
     </div>
+  );
+}
+
+export function EpisodeCard({
+  episode,
+  showName,
+  showArtwork,
+}: {
+  episode: Pick<
+    Episode,
+    'id' | 'titleAr' | 'episodeNumber' | 'durationSec' | 'premium' | 'publishAt' | 'youtubeVideoId'
+  > &
+    Partial<Pick<Episode, 'showNotesAr' | 'showId'>>;
+  showName?: string;
+  showArtwork?: string;
+}) {
+  const href = `/episodes/${encodeURIComponent(episode.id)}`;
+  const audioSrc = publicEpisodeAudioSrc(episode.id);
+  const playable: PlayerEpisode = {
+    id: episode.id,
+    title: episode.titleAr,
+    showTitle: showName,
+    href,
+    durationSec: episode.durationSec,
+    audioSrc: audioSrc ?? '',
+    youtubeVideoId: episode.youtubeVideoId,
+    artworkUrl: youtubeThumbnailUrl(episode.youtubeVideoId) ?? showArtwork,
+  };
+  return (
+    <article className="handoff-episode-card" role="listitem">
+      {((!episode.premium && youtubeThumbnailUrl(episode.youtubeVideoId)) || showArtwork) && (
+        <Link href={href} className="handoff-episode-card__art" tabIndex={-1} aria-hidden="true">
+          {!episode.premium && episode.youtubeVideoId ? (
+            <EpisodeThumbnail videoId={episode.youtubeVideoId} />
+          ) : showArtwork ? (
+            <img src={showArtwork} alt="" loading="lazy" />
+          ) : null}
+        </Link>
+      )}
+      <p className="handoff-episode-card__meta">
+        {showName}
+        {showName ? ' · ' : ''}
+        <bdi>{formatDuration(episode.durationSec)}</bdi>
+      </p>
+      <Link href={href}>
+        <h3>
+          <span className="visually-hidden">الحلقة {formatNumber(episode.episodeNumber)}: </span>
+          {episode.titleAr}
+          {episode.premium ? <span className="visually-hidden"> حصرية</span> : null}
+        </h3>
+      </Link>
+      {episode.showNotesAr && (
+        <p className="handoff-episode-card__description">
+          {episode.showNotesAr.split(/\n/)[0].slice(0, 180)}
+        </p>
+      )}
+      {episode.publishAt ? (
+        <time className="visually-hidden" dateTime={dateTimeAttribute(episode.publishAt)}>
+          {formatDate(episode.publishAt)}
+        </time>
+      ) : null}
+      <div className="handoff-episode-card__actions">
+        {audioSrc && !episode.premium ? (
+          <PlayEpisodeButton episode={playable} variant="icon" />
+        ) : (
+          <Link href={href}>تفاصيل الحلقة</Link>
+        )}
+        <EpisodeLibraryActions episode={playable} compact />
+        <EpisodeProgress episode={playable} />
+      </div>
+    </article>
   );
 }

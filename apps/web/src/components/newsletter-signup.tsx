@@ -58,9 +58,9 @@ export function NewsletterSignup({ apiOrigin }: NewsletterSignupProps) {
   return (
     <section className="newsletter-signup" aria-labelledby={`${prefix}-title`}>
       <h2 className="newsletter-signup__title" id={`${prefix}-title`}>
-        النشرة البريدية
+        رسالة من مختلف
       </h2>
-      <p className="newsletter-signup__intro">ملخصات من مختلف تصل إلى بريدك.</p>
+      <p className="newsletter-signup__intro">قراءات وحلقات تستحق أن تصل إليك.</p>
 
       {state.status === 'success' ? (
         <div className="newsletter-signup__success" role="status" aria-live="polite">
@@ -145,7 +145,7 @@ export function NewsletterSignup({ apiOrigin }: NewsletterSignupProps) {
             type="submit"
             disabled={state.status === 'submitting'}
           >
-            {state.status === 'submitting' ? 'جارٍ الاشتراك…' : 'الاشتراك في النشرة'}
+            {state.status === 'submitting' ? 'جارٍ الاشتراك…' : 'اشترك'}
           </button>
           {state.status === 'error' ? (
             <p className="newsletter-signup__feedback" role="alert">

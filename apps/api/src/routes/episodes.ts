@@ -42,6 +42,7 @@ function audioDeliveryHeaders(storedContentType: string | undefined): Record<str
 const episodeListQuerySchema = listQuerySchema.extend({
   showId: z.string().optional(),
   status: episodeStatusSchema.optional(),
+  sort: z.enum(['latest', 'shortest', 'longest']).optional(),
 });
 
 interface AudioByteRange {
@@ -156,7 +157,7 @@ function audioHandler(operatorView: boolean) {
 export const publicEpisodesRoute = new Hono<AppEnv>()
   .get('/', zValidator('query', episodeListQuerySchema), async (c) => {
     const input = c.req.valid('query');
-    const filter = { showId: input.showId, status: 'published' as const };
+    const filter = { showId: input.showId, status: 'published' as const, sort: input.sort };
     const repo = getRepository(c.env);
     if (!isPaginatedRequest(input)) {
       const episodes = await repo.listEpisodes(filter);
@@ -164,9 +165,7 @@ export const publicEpisodesRoute = new Hono<AppEnv>()
     }
     const query = resolveListQuery(input);
     const page = await repo.listEpisodesPage(filter, query);
-    return c.json(
-      toPaginatedList({ ...page, items: page.items.map(toPublicEpisode) }, query),
-    );
+    return c.json(toPaginatedList({ ...page, items: page.items.map(toPublicEpisode) }, query));
   })
   .get('/:id', async (c) => {
     const episode = await getRepository(c.env).getEpisode(c.req.param('id'));

@@ -39,7 +39,7 @@ export function GuestAppearancePicker({
     try {
       await onAdd(episodeId);
     } catch {
-      setOperationError('تعذّرت إضافة الظهور. حاول مرة أخرى.');
+      setOperationError('تعذرت إضافة الظهور. حاول مرة أخرى.');
     } finally {
       setPendingEpisodeId(null);
     }
@@ -74,7 +74,7 @@ export function GuestAppearancePicker({
       </div>
       <p className="picker-summary">
         {formatResultCount(results.length)}
-        {results.length > 0 ? ' · تُعرض أول 5' : ''}
+        {results.length > 0 ? ' · تعرض أول 5' : ''}
       </p>
       {operationError ? (
         <p className="notice notice--error" role="alert">
@@ -82,7 +82,9 @@ export function GuestAppearancePicker({
         </p>
       ) : null}
       {results.length === 0 ? (
-        <p className="empty-state">لا توجد حلقة مطابقة. جرّب كلمة أخرى أو غيّر البرنامج.</p>
+        <p className="empty-state">
+          لا توجد حلقات مطابقة. حاول البحث بكلمة أخرى أو اختيار برنامج آخر.
+        </p>
       ) : (
         results.slice(0, 5).map((episode) => {
           const show = shows.find((item) => item.id === episode.showId);
@@ -105,7 +107,7 @@ export function GuestAppearancePicker({
                 aria-busy={pendingEpisodeId === episode.id}
                 onClick={() => void addAppearance(episode.id)}
               >
-                {pendingEpisodeId === episode.id ? 'جارٍ الإضافة…' : 'إضافة'}
+                {'إضافة'}
               </Button>
             </div>
           );
@@ -113,7 +115,7 @@ export function GuestAppearancePicker({
       )}
       {results.length > 5 ? (
         <p className="picker-summary">
-          ضيّق البحث بكلمة من العنوان أو برقم الحلقة للوصول إلى ما تريد.
+          ضيق البحث بكلمة من العنوان أو برقم الحلقة للوصول إلى ما تريد.
         </p>
       ) : null}
     </div>

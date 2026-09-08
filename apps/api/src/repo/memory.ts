@@ -66,6 +66,7 @@ import {
 } from '../publishing/article-record';
 import { documentFromPlainText } from '../publishing/rich-text';
 import { matchesSearch, paginate } from './list-query';
+import { createMemoryCustomerRepository } from './customer-memory';
 import type {
   AcceptStudioInvitationResult,
   ArticleFilter,
@@ -674,6 +675,7 @@ function findMemberByAuthId(authUserId: string): MemoryStudioMember | undefined 
 
 export function createMemoryRepository(): Repository {
   return {
+    ...createMemoryCustomerRepository(users, progress, follows),
     async resolveLegacyRedirect(sourcePath) {
       const redirect = legacyRedirects.find(
         (candidate) => candidate.isActive && candidate.sourcePath === sourcePath,
@@ -1003,7 +1005,14 @@ export function createMemoryRepository(): Repository {
         .filter((e) =>
           filter.publishedTo ? Boolean(e.publishAt && e.publishAt <= filter.publishedTo) : true,
         )
-        .sort(compareEpisodesNewest);
+        .sort(
+          (a, b) =>
+            (filter.sort === 'shortest'
+              ? a.durationSec - b.durationSec
+              : filter.sort === 'longest'
+                ? b.durationSec - a.durationSec
+                : 0) || compareEpisodesNewest(a, b),
+        );
     },
     async listEpisodesPage(filter: EpisodeFilter, query: ListQuery): Promise<PageResult<Episode>> {
       const matched = episodes
@@ -1016,7 +1025,14 @@ export function createMemoryRepository(): Repository {
           filter.publishedTo ? Boolean(e.publishAt && e.publishAt <= filter.publishedTo) : true,
         )
         .filter((e) => matchesSearch(query.search, e.titleAr, e.titleEn, e.showNotesAr))
-        .sort(compareEpisodesNewest);
+        .sort(
+          (a, b) =>
+            (filter.sort === 'shortest'
+              ? a.durationSec - b.durationSec
+              : filter.sort === 'longest'
+                ? b.durationSec - a.durationSec
+                : 0) || compareEpisodesNewest(a, b),
+        );
       return paginate(matched, query);
     },
     async getEpisode(episodeId) {
@@ -1320,12 +1336,12 @@ export function createMemoryRepository(): Repository {
     async createFormSubmission(input) {
       const now = new Date().toISOString();
       const submission = {
-        id: id('frm'),
+        id: input.id ?? id('frm'),
         type: input.type,
         payload: structuredClone(input.payload),
         status: 'new' as const,
         internalNotes: '',
-        attachmentRefs: [],
+        attachmentRefs: structuredClone(input.attachmentRefs ?? []),
         sourceMetadata: structuredClone(input.sourceMetadata),
         notificationStatus: 'pending' as const,
         notificationAttemptCount: 0,

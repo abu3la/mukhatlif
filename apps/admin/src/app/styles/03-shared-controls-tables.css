@@ -14,7 +14,9 @@
   line-height: 1.45;
   text-align: center;
   cursor: pointer;
-  transition: background-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
 .button:hover {
@@ -64,7 +66,9 @@
   color: var(--ink);
   font-weight: 500;
   border-radius: 6px;
-  transition: background-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
 .text-link:hover {
@@ -285,7 +289,9 @@
   border-radius: var(--radius-control);
   text-align: start;
   cursor: pointer;
-  transition: background-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
 .filter-rail__item:hover,
@@ -326,7 +332,9 @@
   border: 1px solid var(--field-line);
   border-radius: var(--radius-control);
   line-height: 1.5;
-  transition: border-color 140ms ease, background-color 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
 }
 
 .control:hover {
@@ -431,10 +439,63 @@
   font-size: 13px;
   font-weight: 500;
   border-radius: var(--radius-control);
-  transition: background-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
 .back-link:hover {
   background: var(--sunken);
   color: var(--ink);
+}
+
+/* Keep the action's size and accessible name while replacing its visual label. */
+.button {
+  position: relative;
+}
+
+.button__content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: inherit;
+}
+
+.button[aria-busy='true'] > .button__content {
+  opacity: 0;
+}
+
+.button__spinner {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  inline-size: 18px;
+  block-size: 18px;
+  border: 2px solid currentColor;
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+  animation: button-loading-spin 800ms linear infinite;
+  pointer-events: none;
+}
+
+.button[aria-busy='true']:disabled {
+  opacity: 1;
+  cursor: progress;
+}
+
+.button--primary[aria-busy='true']:disabled:hover {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+@keyframes button-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button__spinner {
+    animation: none;
+  }
 }

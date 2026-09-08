@@ -12,7 +12,7 @@ export function GuestProfileView() {
     return (
       <section className="card form-card" role="status" aria-labelledby="guest-unavailable-title">
         <h1 id="guest-unavailable-title">ملفات الضيوف غير متاحة</h1>
-        <p className="empty-state">إدارة الضيوف غير مفعّلة في مصدر البيانات الحالي.</p>
+        <p className="empty-state">إدارة الضيوف غير مفعلة في مصدر البيانات الحالي.</p>
         <Link to={adminPaths.overview} className="back-link">
           → عودة إلى نظرة عامة
         </Link>

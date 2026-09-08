@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { CLIENT_SURFACE_HEADER } from '@mukhtalif/types';
 import { createHonoAdminRepository } from './hono-admin-repository';
 
 const FORM_SUBMISSION = {
@@ -31,6 +32,66 @@ const FORM_SUBMISSION = {
 } as const;
 
 describe('HonoAdminRepository form submissions', () => {
+  it('downloads private attachments with a fresh bearer token and no public redirect', async () => {
+    const getAccessToken = vi.fn().mockResolvedValue('studio-session');
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response('%PDF-1.7\nprivate attachment', {
+        headers: { 'content-type': 'application/pdf' },
+      }),
+    );
+    const repository = createHonoAdminRepository({
+      baseUrl: 'https://api.example.test',
+      getAccessToken,
+      fetch: fetcher,
+    });
+    const blob = await repository.downloadFormSubmissionAttachment('frm/1', 'file?2');
+    expect(blob.size).toBeGreaterThan(0);
+    expect(blob.type).toBe('application/pdf');
+    expect(getAccessToken).toHaveBeenCalledTimes(1);
+    expect(fetcher.mock.calls[0]?.[0]).toBe(
+      'https://api.example.test/studio/form-submissions/frm%2F1/attachments/file%3F2',
+    );
+    const init = fetcher.mock.calls[0]?.[1];
+    expect(init).toMatchObject({ method: 'GET', cache: 'no-store', redirect: 'error' });
+    const headers = new Headers(init?.headers);
+    expect(headers.get('authorization')).toBe('Bearer studio-session');
+    expect(headers.get(CLIENT_SURFACE_HEADER)).toBe('studio');
+    expect(headers.get('accept')).toBe('application/pdf');
+  });
+
+  it('surfaces permission failures instead of saving an API error as a file', async () => {
+    const repository = createHonoAdminRepository({
+      baseUrl: 'https://api.example.test',
+      fetch: vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(Response.json({ error: 'Forbidden' }, { status: 403 })),
+    });
+    await expect(
+      repository.downloadFormSubmissionAttachment('frm-1', 'file-1'),
+    ).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      operation: 'downloadFormSubmissionAttachment',
+    });
+  });
+
+  it.each([
+    ['text/html', '<html>not a file</html>'],
+    ['application/pdf', ''],
+  ])('rejects malformed attachment bodies (%s)', async (contentType, body) => {
+    const repository = createHonoAdminRepository({
+      baseUrl: 'https://api.example.test',
+      fetch: vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response(body, { headers: { 'content-type': contentType } })),
+    });
+    await expect(
+      repository.downloadFormSubmissionAttachment('frm-1', 'file-1'),
+    ).rejects.toMatchObject({
+      code: 'INVALID_RESPONSE',
+      operation: 'downloadFormSubmissionAttachment',
+    });
+  });
+
   it('requests a filtered page and namespaces the assignee identifier', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
       Response.json({
@@ -76,9 +137,11 @@ describe('HonoAdminRepository form submissions', () => {
   });
 
   it('sends only editable fields and decodes the Studio assignee', async () => {
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
-      Response.json({ ...FORM_SUBMISSION, status: 'in_review', internalNotes: 'تواصل غدًا.' }),
-    );
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        Response.json({ ...FORM_SUBMISSION, status: 'in_review', internalNotes: 'تواصل غدًا.' }),
+      );
     const repository = createHonoAdminRepository({
       baseUrl: 'https://api.example.test',
       fetch: fetcher,

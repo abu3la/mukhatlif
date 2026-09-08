@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AdminRepositoryError } from '@/data';
-import {
-  accessPermissionUpdateErrorMessage,
-} from './access-page';
+import { accessPermissionUpdateErrorMessage } from './access-page';
 import { studioMemberRoleUpdateErrorMessage } from './users-page';
 
 describe('access update messages', () => {
@@ -30,7 +28,7 @@ describe('access update messages', () => {
     });
 
     expect(accessPermissionUpdateErrorMessage(error)).toBe(
-      'تغيّر الدور في جلسة أخرى. حدّث الصفحة ثم حاول مرة أخرى.',
+      'تغير الدور في جلسة أخرى. حدث الصفحة ثم حاول مرة أخرى.',
     );
   });
 });

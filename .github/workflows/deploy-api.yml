@@ -1,0 +1,87 @@
+name: Deploy production API
+on:
+  workflow_run:
+    workflows: ['Verify shared source (no deployment)']
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: production-api
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production-api
+    env:
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+      RELEASE_DIR: /tmp/api-release-${{ github.run_id }}-${{ github.run_attempt }}
+      MUKHTALIF_API_URL: https://api.mukhtalif.net
+      PUBLIC_WEB_URL: https://staging.mukhtalif.net
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+          persist-credentials: false
+      - name: Reject stale main releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$RELEASE_SHA"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @mukhtalif/api build:node
+      - run: node scripts/deploy-hostinger-api.mjs prepare "$RELEASE_DIR"
+      - name: Preserve this source archive for future recovery
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-source-${{ env.RELEASE_SHA }}
+          path: ${{ env.RELEASE_DIR }}/*.zip
+          if-no-files-found: error
+          retention-days: 90
+      - name: Install pinned Hostinger CLI
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl --fail --silent --show-error --location https://github.com/hostinger/api-cli/releases/download/v3.30.0/hostinger-3.30.0-linux-amd64.tar.gz -o hostinger.tar.gz
+          echo '2355939a2e9d96bbb90db111fec8ec72e4b5ea2e498ef33a71f4c66ef933d9d6  hostinger.tar.gz' | sha256sum --check
+          mkdir hostinger-cli
+          tar -xzf hostinger.tar.gz -C hostinger-cli
+          echo "$RUNNER_TEMP/hostinger-cli" >> "$GITHUB_PATH"
+      - name: Confirm recoverable previous deployment
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/deploy-hostinger-api.mjs backup "$RELEASE_DIR"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-rollback-${{ env.RELEASE_SHA }}-${{ github.run_attempt }}
+          path: ${{ env.RELEASE_DIR }}/rollback.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Recheck main before deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$RELEASE_SHA"
+      - name: Publish production API only
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: node scripts/deploy-hostinger-api.mjs deploy "$RELEASE_DIR"
+      - name: Check provider completion and public website
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: node scripts/deploy-hostinger-api.mjs verify "$RELEASE_DIR"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-release-${{ env.RELEASE_SHA }}-${{ github.run_attempt }}
+          path: ${{ env.RELEASE_DIR }}/*.json
+          retention-days: 30

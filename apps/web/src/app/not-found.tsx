@@ -8,9 +8,12 @@ export default function NotFound() {
         <p className="state__text">
           الرابط الذي فتحته لا يقود إلى صفحة على هذا الموقع. قد تكون أُزيلت أو تغيّر عنوانها.
         </p>
-        <Link className="action" href="/">
-          العودة إلى الرئيسية
-        </Link>
+        <div className="public-reading-controls">
+          <Link className="public-primary" href="/">
+            العودة إلى الرئيسية
+          </Link>
+          <Link href="/search">ابحث في مختلف</Link>
+        </div>
       </div>
     </div>
   );

@@ -9,17 +9,17 @@ export function audioFileSize(bytes: number) {
     : `${(bytes / 1024 / 1024).toFixed(1)} م.ب`;
 }
 const labels: Record<AudioTransferSnapshot['phase'], string> = {
-  preparing: 'جارٍ تجهيز الرفع',
-  uploading: 'جارٍ رفع الصوت',
-  paused: 'الرفع متوقف مؤقتًا',
-  error: 'توقف الرفع. يمكنك المتابعة',
-  finalizing: 'جارٍ التحقق من الملف',
-  'verification-error': 'تعذّر تأكيد اكتمال الرفع',
-  cancelling: 'جارٍ إلغاء الرفع',
-  'cancel-error': 'تعذّر تأكيد الإلغاء',
-  cancelled: 'أُلغي الرفع',
-  completed: 'اكتمل رفع الصوت',
-  failed: 'تعذّر إكمال الرفع',
+  preparing: 'تجهيز الملف للرفع',
+  uploading: 'جار رفع الملف الصوتي',
+  paused: 'الرفع متوقف مؤقتا',
+  error: 'توقف الرفع',
+  finalizing: 'التحقق من الملف',
+  'verification-error': 'تعذر تأكيد اكتمال الرفع',
+  cancelling: 'إلغاء الرفع',
+  'cancel-error': 'تعذر تأكيد الإلغاء',
+  cancelled: 'ألغي الرفع',
+  completed: 'اكتمل رفع الملف الصوتي',
+  failed: 'تعذر إكمال الرفع',
 };
 
 function RouterUploadGuard({ active }: { active: boolean }) {
@@ -30,7 +30,7 @@ function RouterUploadGuard({ active }: { active: boolean }) {
   if (blocker.state !== 'blocked') return null;
   return (
     <div className="audio-upload__notice" role="alert">
-      <p>الرفع لم يكتمل. أكمله أو ألغِه قبل مغادرة الصفحة.</p>
+      <p>الرفع لم يكتمل. أكمله أو ألغه قبل مغادرة الصفحة.</p>
       <Button type="button" onClick={() => blocker.reset()}>
         البقاء في الصفحة
       </Button>
@@ -114,7 +114,7 @@ export function AudioUploadPanel({
         />
         <div className="audio-upload__file">
           <div className="audio-upload__identity">
-            <strong dir={fileName ? 'auto' : undefined}>{fileName ?? 'ملف الصوت النهائي'}</strong>
+            {(fileName || file) && <strong dir="auto">{fileName || file?.name}</strong>}
             <span>{file ? audioFileSize(file.size) : 'MP3 أو WAV، حتى 500 م.ب'}</span>
           </div>
           {!disabled && (
@@ -128,16 +128,11 @@ export function AudioUploadPanel({
             </Button>
           )}
         </div>
-        {!state && (
-          <p className="audio-upload__hint">
-            {file
-              ? isNew
-                ? 'الملف جاهز. الرفع ينشئ مسودة ويربط الصوت بها دون نشر الحلقة.'
-                : 'الملف جاهز. اضغط «رفع الملف» لربطه بالحلقة.'
-              : fileName
-                ? 'صوت الحلقة محفوظ. يمكنك اختيار ملف لاستبداله.'
-                : 'اسحب الملف إلى هذه المساحة أو اختره من جهازك.'}
-          </p>
+        {!state && file && isNew && (
+          <p className="audio-upload__hint">رفع الملف ينشئ مسودة للحلقة.</p>
+        )}
+        {!state && !file && !fileName && (
+          <p className="audio-upload__hint">يمكن سحب الملف إلى هنا.</p>
         )}
         {state && (
           <div className="audio-upload__transfer">
@@ -164,25 +159,15 @@ export function AudioUploadPanel({
                 <span>المحفوظ: {audioFileSize(state.confirmed)}</span>
               )}
             </div>
-            <p className="audio-upload__hint">
-              {state.phase === 'completed'
-                ? 'الملف محفوظ ومرتبط بالحلقة.'
-                : state.phase === 'failed'
-                  ? 'راجع رسالة الخطأ قبل المحاولة مجددًا.'
-                  : state.phase === 'cancelled'
-                    ? 'أُلغي رفع الملف الجديد. صوت الحلقة السابق لم يتغير.'
-                    : state.phase === 'finalizing'
-                      ? 'وصلت الأجزاء. نتحقق من التخزين قبل ربط الصوت بالحلقة.'
-                      : state.phase === 'verification-error'
-                        ? 'قد يكون الملف محفوظًا. أعد التحقق دون رفعه مجددًا.'
-                        : state.phase === 'cancel-error'
-                          ? 'تحقق من الاتصال، ثم أعد محاولة الإلغاء.'
-                          : state.phase === 'paused'
-                            ? 'الأجزاء المكتملة محفوظة. أبقِ الصفحة مفتوحة للاستئناف.'
-                            : state.phase === 'error'
-                              ? 'تحقق من الاتصال ثم استأنف من آخر جزء مكتمل.'
-                              : 'يمكنك إيقاف الرفع واستئنافه ما دامت الصفحة مفتوحة.'}
-            </p>
+            {['uploading', 'paused', 'error'].includes(state.phase) && (
+              <p className="audio-upload__hint">أبق الصفحة مفتوحة لاستئناف الرفع.</p>
+            )}
+            {state.phase === 'verification-error' && (
+              <p className="audio-upload__hint">قد يكون الملف محفوظا. أعد التحقق دون رفعه مجددا.</p>
+            )}
+            {state.phase === 'cancel-error' && (
+              <p className="audio-upload__hint">تحقق من الاتصال ثم أعد محاولة الإلغاء.</p>
+            )}
             <div className="audio-upload__actions">
               {phase === 'uploading' && (
                 <Button type="button" onClick={() => transfer?.pause()}>

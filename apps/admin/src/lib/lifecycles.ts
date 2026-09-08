@@ -56,8 +56,8 @@ export const ARTICLE_TRANSITION_ACTIONS = {
 /** Staff-facing subscription actions. Billing-driven transitions are server-owned. */
 export const SUBSCRIPTION_TRANSITION_ACTIONS = {
   active: [],
-  past_due: [{ label: 'تسجيل السداد يدويًا', to: 'active' }],
-  canceled: [{ label: 'إعادة التفعيل يدويًا', to: 'active' }],
+  past_due: [{ label: 'تسجيل السداد يدويا', to: 'active' }],
+  canceled: [{ label: 'إعادة التفعيل يدويا', to: 'active' }],
 } as const satisfies Record<SubscriptionStatus, readonly LifecycleAction<SubscriptionStatus>[]>;
 
 export type LifecycleDomain = 'episode' | 'article' | 'subscription';
@@ -242,7 +242,7 @@ export interface ManualPlusActivationOptions {
   existingSubscription?: Subscription;
 }
 
-/** Implements the "تفعيل بلس يدويًا" action for a user with no subscription record. */
+/** Implements the "تفعيل بلس يدويا" action for a user with no subscription record. */
 export function activatePlusForFreeUser(
   userId: UserId,
   plan: PlusPlan,

@@ -15,9 +15,9 @@ import type { LegacyRedirectResolution } from './legacy-redirect';
 /**
  * Read-only API access for server components.
  *
- * Every content read runs on the server. Anonymous request forms are the only
- * direct browser-to-API flow, and they receive a public origin but no credential
- * or Supabase key.
+ * Editorial page reads run on the server. Anonymous intake forms and the
+ * authenticated customer provider have separate browser-to-API flows; this
+ * module never exports credentials or server configuration to them.
  */
 export class ApiUnavailableError extends Error {
   constructor(readonly detail: string) {
@@ -112,6 +112,7 @@ export function listEpisodes(options: {
   perPage?: number;
   search?: string;
   showId?: string;
+  sort?: 'latest' | 'shortest' | 'longest';
 }): Promise<PaginatedList<Episode>> {
   return read<PaginatedList<Episode>>(
     `/episodes${query({
@@ -119,6 +120,7 @@ export function listEpisodes(options: {
       perPage: options.perPage ?? 12,
       search: options.search,
       showId: options.showId,
+      sort: options.sort,
     })}`,
   );
 }

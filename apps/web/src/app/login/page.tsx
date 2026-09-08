@@ -1,7 +1,14 @@
-import { ComingSoon, comingSoonMetadata } from '@/components/coming-soon';
-
-export const metadata = comingSoonMetadata('تسجيل الدخول', '/login');
-
-export default function LoginPage() {
-  return <ComingSoon section="تسجيل الدخول" />;
+import { CustomerAuth } from '@/components/customer-auth';
+export const metadata = {
+  title: 'تسجيل الدخول',
+  robots: { index: false, follow: false },
+  alternates: { canonical: '/login' },
+};
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  return <CustomerAuth mode="login" next={next} />;
 }

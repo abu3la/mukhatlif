@@ -2,7 +2,7 @@ name: Deploy production Studio
 
 on:
   workflow_run:
-    workflows: ['Verify shared source (no deployment)']
+    workflows: ['Deploy production API']
     types: [completed]
     branches: [main]
 
@@ -18,7 +18,7 @@ jobs:
   changes:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository
+      github.event.workflow_run.event == 'workflow_run' && github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     outputs:
       changed: ${{ steps.classify.outputs.changed }}

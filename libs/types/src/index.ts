@@ -82,6 +82,7 @@ export type {
 export { SOCIAL_PLATFORMS, isSocialPlatform } from './guest';
 export type {
   CareersFormPayload,
+  CareersAttachmentUploadReceipt,
   FormNotificationStatus,
   FormSubmission,
   FormSubmissionAttachmentRef,
@@ -208,3 +209,11 @@ export {
 } from './subscription';
 export type { Follow, PlaybackProgress } from './engagement';
 export type { EpisodeAudioUploadSession } from './audio-upload';
+export type {
+  CustomerGender,
+  CustomerProfile,
+  CustomerPlaylist,
+  CustomerBookmark,
+  CustomerLibraryDocument,
+  CustomerLibrary,
+} from './customer';

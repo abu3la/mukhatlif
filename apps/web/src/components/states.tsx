@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { RetryContentButton } from './public-content-controls';
 
 /**
  * The three states every list and detail page must be able to render.
@@ -30,6 +31,7 @@ export function ErrorState({
     <div className="state state--alert">
       <h2 className="state__title">{title}</h2>
       <p className="state__text">{text}</p>
+      <RetryContentButton />
       {retryHref ? (
         <Link className="action" href={retryHref}>
           العودة
@@ -50,7 +52,11 @@ export function CardSkeletonGrid({
   return (
     <div className={`grid grid--${variant}`} aria-hidden="true">
       {Array.from({ length: count }, (_, index) => (
-        <div key={index} className="skeleton" style={{ blockSize: 168 }} />
+        <div key={index} className="skeleton-card">
+          <div className="skeleton skeleton-card__image" />
+          <div className="skeleton content-skeleton__line" />
+          <div className="skeleton content-skeleton__line content-skeleton__line--short" />
+        </div>
       ))}
     </div>
   );
@@ -60,7 +66,13 @@ export function RowSkeletonList({ count = 6 }: { count?: number }) {
   return (
     <div className="episodes" aria-hidden="true">
       {Array.from({ length: count }, (_, index) => (
-        <div key={index} className="skeleton" style={{ blockSize: 84, marginBlock: 8 }} />
+        <div key={index} className="content-skeleton__item" style={{ marginBlock: 24 }}>
+          <div className="skeleton content-skeleton__image" />
+          <div className="content-skeleton__copy">
+            <div className="skeleton content-skeleton__line" />
+            <div className="skeleton content-skeleton__line content-skeleton__line--short" />
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -69,7 +81,7 @@ export function RowSkeletonList({ count = 6 }: { count?: number }) {
 /** Announces a pending route segment to assistive technology. */
 export function LoadingRegion({ label }: { label: string }) {
   return (
-    <p role="status" aria-live="polite" className="card__meta">
+    <p role="status" aria-live="polite" className="loading-announcement">
       {label}
     </p>
   );

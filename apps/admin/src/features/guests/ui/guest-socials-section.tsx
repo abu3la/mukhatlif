@@ -41,7 +41,7 @@ function GuestSocialEditorRow({ social, onUpdate, onRemove }: GuestSocialEditorR
       await onUpdate(social.id, { platform: nextPlatform });
     } catch {
       setPlatform(previousPlatform);
-      setOperationError('تعذّر تحديث منصة الحساب. حاول مرة أخرى.');
+      setOperationError('تعذر تحديث منصة الحساب. حاول مرة أخرى.');
     } finally {
       setPendingAction(null);
     }
@@ -54,7 +54,7 @@ function GuestSocialEditorRow({ social, onUpdate, onRemove }: GuestSocialEditorR
     try {
       await onUpdate(social.id, { handle });
     } catch {
-      setOperationError('تعذّر حفظ اسم الحساب. بقي التعديل في الحقل، حاول مرة أخرى.');
+      setOperationError('تعذر حفظ اسم الحساب. بقي التعديل في الحقل، حاول مرة أخرى.');
     } finally {
       setPendingAction(null);
     }
@@ -67,7 +67,7 @@ function GuestSocialEditorRow({ social, onUpdate, onRemove }: GuestSocialEditorR
     try {
       await onRemove(social.id);
     } catch {
-      setOperationError('تعذّرت إزالة الحساب. حاول مرة أخرى.');
+      setOperationError('تعذرت إزالة الحساب. حاول مرة أخرى.');
     } finally {
       setPendingAction(null);
     }
@@ -107,7 +107,7 @@ function GuestSocialEditorRow({ social, onUpdate, onRemove }: GuestSocialEditorR
           aria-label={`إزالة حساب ${SOCIAL_PLATFORM_LABELS[platform]}`}
           onClick={() => void removeSocial()}
         >
-          {pendingAction === 'remove' ? '…' : '×'}
+          ×
         </Button>
       </div>
       {operationError ? (
@@ -136,7 +136,7 @@ export function GuestSocialsSection({
     try {
       await onAdd();
     } catch {
-      setOperationError('تعذّر إضافة حساب. حاول مرة أخرى.');
+      setOperationError('تعذر إضافة حساب. حاول مرة أخرى.');
     } finally {
       setAdding(false);
     }
@@ -177,7 +177,7 @@ export function GuestSocialsSection({
         </p>
       ) : null}
       <Button type="button" disabled={adding} aria-busy={adding} onClick={() => void addSocial()}>
-        {adding ? 'جارٍ الإضافة…' : 'إضافة حساب'}
+        {'إضافة حساب'}
       </Button>
     </>
   );

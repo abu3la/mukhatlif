@@ -1037,6 +1037,67 @@ export class HonoAdminRepository implements AdminRepository {
     );
   }
 
+  async downloadFormSubmissionAttachment(
+    submissionId: string,
+    attachmentId: string,
+  ): Promise<Blob> {
+    const operation = 'downloadFormSubmissionAttachment';
+    const path = `/studio/form-submissions/${encodeURIComponent(submissionId)}/attachments/${encodeURIComponent(attachmentId)}`;
+    const headers = await this.mediaUploadAuthHeaders(operation);
+    headers.set('accept', 'application/pdf');
+    let response: Response;
+    try {
+      response = await this.fetcher(`${this.baseUrl}${path}`, {
+        method: 'GET',
+        headers,
+        cache: 'no-store',
+        redirect: 'error',
+      });
+    } catch (cause) {
+      throw new AdminRepositoryError(
+        {
+          code: 'NETWORK',
+          operation,
+          message: 'The attachment could not be downloaded.',
+          retryable: true,
+          context: { path },
+        },
+        { cause },
+      );
+    }
+    if (!response.ok) throw await this.toResponseError(response, operation, path);
+    if (
+      response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !==
+      'application/pdf'
+    ) {
+      throw new AdminRepositoryError({
+        code: 'INVALID_RESPONSE',
+        operation,
+        message: 'The attachment response was not a PDF.',
+        status: response.status,
+        retryable: false,
+        context: { path },
+      });
+    }
+    try {
+      const blob = await response.blob();
+      if (!blob.size) throw new Error('Empty attachment response.');
+      return blob;
+    } catch (cause) {
+      throw new AdminRepositoryError(
+        {
+          code: 'INVALID_RESPONSE',
+          operation,
+          message: 'The attachment response could not be read.',
+          status: response.status,
+          retryable: true,
+          context: { path },
+        },
+        { cause },
+      );
+    }
+  }
+
   async updateFormSubmission(
     id: string,
     command: UpdateFormSubmissionCommand,

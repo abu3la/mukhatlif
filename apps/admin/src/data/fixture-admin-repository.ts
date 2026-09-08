@@ -731,6 +731,27 @@ export class FixtureAdminRepository implements AdminRepository {
     return cloneFormSubmission(submission);
   }
 
+  async downloadFormSubmissionAttachment(
+    submissionId: string,
+    attachmentId: string,
+  ): Promise<Blob> {
+    const operation = 'downloadFormSubmissionAttachment';
+    this.requirePermission(operation, 'forms.view');
+    const submission = this.formSubmissions.find((candidate) => candidate.id === submissionId);
+    if (!submission?.attachmentRefs.some((attachment) => attachment.id === attachmentId)) {
+      throw repositoryError('NOT_FOUND', operation, 'Form attachment not found.', {
+        submissionId,
+        attachmentId,
+      });
+    }
+    throw new AdminRepositoryError({
+      code: 'UNSUPPORTED_CAPABILITY',
+      operation,
+      message: 'Fixture attachments do not contain downloadable files.',
+      retryable: false,
+    });
+  }
+
   async updateFormSubmission(
     id: string,
     command: UpdateFormSubmissionCommand,

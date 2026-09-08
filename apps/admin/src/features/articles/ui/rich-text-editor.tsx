@@ -601,7 +601,7 @@ export function RichTextEditor({
       return;
     }
     if (!isAllowedArticleLink(normalizedUrl)) {
-      setLinkError('اكتب رابطًا يبدأ بـ https:// أو mailto: أو / أو #.');
+      setLinkError('اكتب رابطا يبدأ بـ https:// أو mailto: أو / أو #.');
       return;
     }
 
@@ -662,9 +662,7 @@ export function RichTextEditor({
   );
 
   if (!editor) {
-    return (
-      <div className="article-rich-editor article-rich-editor--loading">جارٍ تجهيز المحرر…</div>
-    );
+    return <div className="article-rich-editor article-rich-editor--loading">تجهيز المحرر…</div>;
   }
 
   function closeMediaEditor() {
@@ -702,12 +700,12 @@ export function RichTextEditor({
       ...(adEditor.label.trim() ? { label: adEditor.label } : {}),
     };
     if (!articleAdPlacementIdSchema.safeParse(candidate.placementId).success) {
-      setAdError('استخدم أحرفًا إنجليزية صغيرة وأرقامًا وشرطات، مثل article-middle-1.');
+      setAdError('استخدم أحرفا إنجليزية صغيرة وأرقاما وشرطات، مثل article-middle-1.');
       return;
     }
     const parsed = articleAdBlockAttributesSchema.safeParse(candidate);
     if (!parsed.success) {
-      setAdError('اسم المساحة يجب أن يكون سطرًا واحدًا وبحد أقصى 80 حرفًا.');
+      setAdError('اسم المساحة يجب أن يكون سطرا واحدا وبحد أقصى 80 حرفا.');
       return;
     }
     if (!adEditor.editing && countNodes('adBlock') >= MAX_ARTICLE_AD_BLOCKS) {
@@ -898,10 +896,10 @@ export function RichTextEditor({
           : AlignLeft;
   const DirectionIcon = textSectionAttributes.direction === 'rtl' ? PilcrowRight : PilcrowLeft;
   const layoutUnavailableTitle = mediaIsSelected
-    ? 'حدد نصًا لتغيير التنسيق'
+    ? 'حدد نصا لتغيير التنسيق'
     : !textSectionIsActive && !selectionIsAtDocumentLevel
       ? 'التنسيق متاح للفقرات والعناوين المستقلة'
-      : 'حدد فقرة أو عنوانًا مستقلًا';
+      : 'حدد فقرة أو عنوانا مستقلا';
   const alignmentOptions: readonly ToolbarIconMenuOption<
     ArticleTextSectionAttributes['alignment']
   >[] = [
@@ -1143,7 +1141,7 @@ export function RichTextEditor({
           aria-label={adEditor.editing ? 'تعديل مساحة إعلانية' : 'إضافة مساحة إعلانية'}
         >
           <label htmlFor={adPlacementInputId}>
-            <span>معرّف المساحة</span>
+            <span>معرف المساحة</span>
             <input
               id={adPlacementInputId}
               className="control"

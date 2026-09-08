@@ -25,7 +25,7 @@ export function guestCreateErrorMessage(error: unknown): string {
       return 'راجع بيانات الضيف ثم حاول مرة أخرى.';
     }
   }
-  return 'تعذّرت إضافة الضيف. حاول مرة أخرى.';
+  return 'تعذرت إضافة الضيف. حاول مرة أخرى.';
 }
 
 function isValidEmail(value: string): boolean {
@@ -91,7 +91,7 @@ export function GuestNewView() {
       nextErrors.name = 'أدخل اسم الضيف بحرفين على الأقل.';
     }
     if (!isValidEmail(command.email ?? '')) {
-      nextErrors.email = 'أدخل بريدًا إلكترونيًا صحيحًا.';
+      nextErrors.email = 'أدخل بريدا إلكترونيا صحيحا.';
     }
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -114,17 +114,13 @@ export function GuestNewView() {
 
   return (
     <div className="guest-new-page">
-      <PageBreadcrumb
-        parentLabel="الضيوف"
-        parentTo={adminPaths.guests}
-        current="ضيف جديد"
-      />
+      <PageBreadcrumb parentLabel="الضيوف" parentTo={adminPaths.guests} current="ضيف جديد" />
       <header className="page-header">
         <div className="page-header__title-row">
           <h1 ref={headingRef} tabIndex={-1}>
             ضيف جديد
           </h1>
-          <div className="page-header__detail">أنشئ ملفًا للضيف قبل ربطه بالحلقات.</div>
+          <div className="page-header__detail">أنشئ ملفا للضيف قبل ربطه بالحلقات.</div>
         </div>
       </header>
 
@@ -232,7 +228,7 @@ export function GuestNewView() {
 
         <div className="guest-create-form__footer">
           <Button type="submit" variant="primary" disabled={pending} aria-busy={pending}>
-            {pending ? 'جارٍ الإضافة…' : 'إضافة الضيف'}
+            {'إضافة الضيف'}
           </Button>
           <div className="guest-create-form__feedback" aria-live="polite">
             {operationError ? (

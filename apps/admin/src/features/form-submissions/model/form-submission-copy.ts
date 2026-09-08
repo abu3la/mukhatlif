@@ -26,10 +26,10 @@ export const FORM_SUBMISSION_STATUS_LABELS = {
 
 export const FORM_NOTIFICATION_STATUS_LABELS = {
   pending: 'بانتظار الإرسال',
-  sending: 'جارٍ الإرسال',
-  sent: 'أُرسل',
-  failed: 'تعذّر الإرسال',
-  unconfigured: 'غير مهيّأ',
+  sending: 'الإرسال',
+  sent: 'أرسل',
+  failed: 'تعذر الإرسال',
+  unconfigured: 'غير مهيأ',
 } as const satisfies Record<FormNotificationStatus, string>;
 
 export function formatFormSubmissionCount(count: number): string {
@@ -38,7 +38,7 @@ export function formatFormSubmissionCount(count: number): string {
     one: 'طلب واحد',
     two: 'طلبان',
     few: 'طلبات',
-    many: 'طلبًا',
+    many: 'طلبا',
   });
 }
 
@@ -151,7 +151,7 @@ export function formSubmissionDisplayFields(
         { label: 'البرنامج', value: submission.payload.showName },
         ...optionalField('البريد الإلكتروني', submission.payload.email, { direction: 'ltr' }),
         { label: 'التقييم العام', value: `${submission.payload.overallRating} من 5` },
-        { label: 'تقييم المقدّم', value: `${submission.payload.hostRating} من 5` },
+        { label: 'تقييم المقدم', value: `${submission.payload.hostRating} من 5` },
         ...optionalField('ملاحظات', submission.payload.notes),
       ];
   }
@@ -160,11 +160,11 @@ export function formSubmissionDisplayFields(
 export function notificationErrorLabel(code: string | undefined): string | undefined {
   if (!code) return undefined;
   const labels: Readonly<Record<string, string>> = {
-    NOTIFICATION_NOT_CONFIGURED: 'إرسال البريد غير مهيّأ.',
-    RECIPIENT_NOT_CONFIGURED: 'لم يُحدّد مستلم لهذا النوع من الطلبات.',
+    NOTIFICATION_NOT_CONFIGURED: 'إرسال البريد غير مهيأ.',
+    RECIPIENT_NOT_CONFIGURED: 'لم يحدد مستلم لهذا النوع من الطلبات.',
     NOTIFICATION_CONFIG_INVALID: 'إعدادات البريد غير صحيحة.',
-    DELIVERY_REJECTED: 'رفض مزوّد البريد الرسالة.',
-    NOTIFICATION_DELIVERY_FAILED: 'تعذّر الاتصال بمزوّد البريد.',
+    DELIVERY_REJECTED: 'رفض مزود البريد الرسالة.',
+    NOTIFICATION_DELIVERY_FAILED: 'تعذر الاتصال بمزود البريد.',
   };
-  return labels[code] ?? 'تعذّر إرسال التنبيه.';
+  return labels[code] ?? 'تعذر إرسال التنبيه.';
 }

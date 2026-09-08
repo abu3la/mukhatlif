@@ -39,7 +39,7 @@ const EMPTY_CONTENT_DATA: AdminStudioContentData = {
 function LoadingState() {
   return (
     <main className="app-state" aria-busy="true" aria-live="polite">
-      <p>جارٍ تحميل استوديو الإدارة…</p>
+      <p>التحميل…</p>
     </main>
   );
 }
@@ -47,7 +47,7 @@ function LoadingState() {
 function ErrorState({ error, onRetry }: { error: Error; onRetry(): void }) {
   return (
     <main className="app-state" role="alert">
-      <h1>تعذر تحميل استوديو الإدارة</h1>
+      <h1>تعذر تحميل لوحة التحكم</h1>
       <p>{error.message}</p>
       <button className="button button--primary" type="button" onClick={onRetry}>
         إعادة المحاولة

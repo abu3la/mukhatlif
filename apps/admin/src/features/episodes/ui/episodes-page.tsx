@@ -11,7 +11,7 @@ import {
   type EpisodeStatus,
   type ShowId,
 } from '@/lib';
-import { PageHeader, PremiumMark, StatusBadge } from '@/shared/ui/primitives';
+import { Button, PageHeader, PremiumMark, StatusBadge } from '@/shared/ui/primitives';
 
 type StatusFilter = 'all' | EpisodeStatus;
 
@@ -196,7 +196,9 @@ export function EpisodesView() {
 
           {filteredEpisodes.length === 0 ? (
             <p className="empty-state">
-              {query ? 'لا توجد حلقة تطابق بحثك. جرّب كلمة أخرى.' : 'لا توجد حلقات في هذه الحالة.'}
+              {query
+                ? 'لا توجد حلقات مطابقة. حاول البحث بكلمة أخرى.'
+                : 'لا توجد حلقات في هذه الحالة.'}
             </p>
           ) : (
             <div className="list-body">
@@ -236,17 +238,16 @@ export function EpisodesView() {
                     {canManageEpisodes ? (
                       <div className="row-actions" aria-label={`إجراءات ${episode.title}`}>
                         {getEpisodeTransitionActions(episode.status).map((action) => (
-                          <button
+                          <Button
                             key={action.to}
                             type="button"
                             className="button button--quiet"
                             disabled={Boolean(rowOperation?.pendingStatus)}
                             onClick={() => void runAction(episode.id, action.to)}
+                            aria-busy={rowOperation?.pendingStatus === action.to}
                           >
-                            {rowOperation?.pendingStatus === action.to
-                              ? 'جارٍ التحديث'
-                              : action.label}
-                          </button>
+                            {action.label}
+                          </Button>
                         ))}
                       </div>
                     ) : null}

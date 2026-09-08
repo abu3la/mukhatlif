@@ -17,7 +17,7 @@ describe('ArticleAiSkillGuide', () => {
     const guide = screen.getByRole('region', { name: 'سكيل المقالات في محادثتك' });
     expect(guide).toHaveTextContent('ChatGPT Desktop');
     expect(guide).toHaveTextContent('Claude');
-    expect(guide).toHaveTextContent('سؤالًا واحدًا في كل مرة');
+    expect(guide).toHaveTextContent('سؤالا واحدا في كل مرة');
     expect(guide).toHaveTextContent('لا ترفق ملف ZIP في رسالة عادية');
 
     const download = within(guide).getByRole('link', { name: 'تنزيل سكيل المقالات' });
