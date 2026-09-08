@@ -451,10 +451,14 @@ describe('ArticleEditorView', () => {
     await user.selectOptions(screen.getByRole('combobox', { name: /^موضع اسم الكاتب/ }), 'end');
     const authorName = screen.getByRole('textbox', { name: /^اسم الكاتب/ });
     expect(authorName).toHaveAttribute('dir', 'auto');
-    await user.type(authorName, 'Jane Doe');
-    await user.type(screen.getByRole('textbox', { name: 'عنوان المقال' }), 'مقال جديد');
-    await user.type(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }), 'new-article');
-    await user.type(screen.getByRole('textbox', { name: 'محتوى المقال' }), 'محتوى المقال.');
+    await user.click(authorName);
+    await user.paste('Jane Doe');
+    await user.click(screen.getByRole('textbox', { name: 'عنوان المقال' }));
+    await user.paste('مقال جديد');
+    await user.click(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }));
+    await user.paste('new-article');
+    await user.click(screen.getByRole('textbox', { name: 'محتوى المقال' }));
+    await user.paste('محتوى المقال.');
 
     const bylineName = container.querySelector('.article-web-preview__byline bdi');
     expect(bylineName).toHaveTextContent('Jane Doe');
