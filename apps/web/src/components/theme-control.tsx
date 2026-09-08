@@ -2,11 +2,16 @@
 import { useSyncExternalStore } from 'react';
 import styles from './site-navigation.module.css';
 const KEY = 'mukhtalif-appearance';
+function applyAppearance(next: 'first' | 'third') {
+  document.documentElement.dataset.concept = next;
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', next === 'third' ? '#1a1b19' : '#ffffff');
+}
 function current() {
   return document.documentElement.dataset.concept === 'third';
 }
 function subscribe(listener: () => void) {
-  const media = window.matchMedia('(prefers-color-scheme: dark)');
   const update = () => {
     let saved: string | null = null;
     try {
@@ -14,17 +19,14 @@ function subscribe(listener: () => void) {
     } catch {
       /* Storage can be unavailable in private browsing. */
     }
-    document.documentElement.dataset.concept =
-      saved === 'first' || saved === 'third' ? saved : media.matches ? 'third' : 'first';
+    applyAppearance(saved === 'third' ? 'third' : 'first');
     listener();
   };
   window.addEventListener('mukhtalif:appearance', listener);
   window.addEventListener('storage', update);
-  media.addEventListener('change', update);
   return () => {
     window.removeEventListener('mukhtalif:appearance', listener);
     window.removeEventListener('storage', update);
-    media.removeEventListener('change', update);
   };
 }
 export function ThemeControl() {
@@ -36,7 +38,7 @@ export function ThemeControl() {
       aria-label={dark ? 'تفعيل المظهر الفاتح' : 'تفعيل المظهر الداكن'}
       onClick={() => {
         const next = dark ? 'first' : 'third';
-        document.documentElement.dataset.concept = next;
+        applyAppearance(next);
         try {
           localStorage.setItem(KEY, next);
         } catch {
