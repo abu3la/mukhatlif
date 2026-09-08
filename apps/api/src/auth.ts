@@ -8,6 +8,8 @@ export type AppEnv = {
   Bindings: Env;
   Variables: {
     authUserId: string | null;
+    /** Confirmed email from the verified Auth response; never browser metadata. */
+    authEmail: string | null;
     /** Declared client product, or null when the caller did not say. */
     clientSurface: ClientSurface | null;
     permissions: PermissionId[];
@@ -25,6 +27,7 @@ export type AppEnv = {
  */
 export const resolveUser: MiddlewareHandler<AppEnv> = async (c, next) => {
   c.set('authUserId', null);
+  c.set('authEmail', null);
   c.set('permissions', []);
   c.set('studioMember', null);
   c.set('user', null);
@@ -45,6 +48,7 @@ export const resolveUser: MiddlewareHandler<AppEnv> = async (c, next) => {
       }
       if (data.user) {
         c.set('authUserId', data.user.id);
+        c.set('authEmail', data.user.email_confirmed_at ? (data.user.email ?? null) : null);
         const [user, studioMember] = await Promise.all([
           repo.getUserByAuthId(data.user.id),
           repo.getStudioMemberByAuthId(data.user.id),
@@ -66,6 +70,7 @@ export const resolveUser: MiddlewareHandler<AppEnv> = async (c, next) => {
       c.set('user', user);
       c.set('studioMember', studioMember?.status === 'active' ? studioMember : null);
       if (user || studioMember) c.set('authUserId', `dev:${devUserId}`);
+      c.set('authEmail', user?.email ?? studioMember?.email ?? null);
     }
   }
 

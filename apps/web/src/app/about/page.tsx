@@ -1,153 +1,71 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import styles from './about.module.css';
+import { ShowCard } from '@/components/cards';
+import { ApiUnavailableError, listShows } from '@/lib/api';
 
-const LISTENING_PLATFORMS = [
-  {
-    label: 'سبوتيفاي',
-    href: 'https://open.spotify.com/show/6m9xb0r6xCBtTvq4UnnYbh',
-  },
-  {
-    label: 'آبل بودكاست',
-    href: 'https://podcasts.apple.com/sa/podcast/id1532674246',
-  },
-  {
-    label: 'يوتيوب',
-    href: 'https://www.youtube.com/channel/UC8vdjzu_0QMQlG9qNT5D_AQ',
-  },
-] as const;
-
-type Presenter = {
-  name: string;
-  show: string;
-  href?: string;
-};
-
-const PRESENTERS: readonly Presenter[] = [
-  { name: 'أحمد عطار', show: 'بودكاست بترولي', href: '/shows/petroly' },
-  { name: 'ماجد رشدي', show: 'بودكاست سيرة', href: '/shows/seera' },
-  { name: 'محمد المرشدي', show: 'بودكاست غلاف', href: '/shows/gilaf' },
-  { name: 'د. عادل رضوان', show: 'بودكاست مناوب' },
-  { name: 'محمد الشيباني', show: 'بودكاست قضية' },
-];
-
-const TEAM = [
-  { name: 'محمد بازيد', role: 'رئيس مجلس الإدارة' },
-  { name: 'أحمد عطار', role: 'المدير التنفيذي' },
-  { name: 'عماد ناجي', role: 'المدير الإداري' },
-  { name: 'محمد نعمان غريواتي', role: 'مدير العمليات' },
-  { name: 'محمد عبدالعزيز', role: 'مدير المحتوى' },
-  { name: 'عبدالرحمن عثمان', role: 'مدير التسويق' },
-  { name: 'علاء الدين عثمان', role: 'مسؤول المنصات' },
-  { name: 'عبدالرحمن معشي', role: 'معد البرامج' },
-  { name: 'أحمد نور', role: 'محرر الفيديوهات القصيرة' },
-] as const;
-
-const description =
-  'تعرّف على قضية مختلف، مقدمي برامجها، والفريق الذي يصنع محتوى لمسار مهني يشبهك.';
-
+export const revalidate = 60;
 export const metadata: Metadata = {
-  title: { absolute: 'من نحن | مختلف' },
-  description,
+  title: 'من نحن',
+  description: 'مختلف، منصة إعلامية تضع المهنة والإنسان في قلب الحكاية.',
   alternates: { canonical: '/about' },
-  openGraph: {
-    title: 'من نحن | مختلف',
-    description,
-  },
 };
-
-export default function AboutPage() {
+const team = [
+  ['محمد بازيد', 'رئيس مجلس الإدارة'],
+  ['أحمد عطار', 'المدير التنفيذي'],
+  ['عماد ناجي', 'المدير الإداري'],
+  ['محمد نعمان غريواتي', 'مدير العمليات'],
+  ['محمد عبدالعزيز', 'مدير المحتوى'],
+  ['عبدالرحمن عثمان', 'مدير التسويق'],
+  ['علاء الدين عثمان', 'مسؤول المنصات'],
+  ['عبدالرحمن معشي', 'معد البرامج'],
+  ['أحمد نور', 'محرر الفيديوهات القصيرة'],
+] as const;
+export default async function AboutPage() {
+  let shows: Awaited<ReturnType<typeof listShows>> = [];
+  try {
+    shows = (await listShows()).slice(0, 6);
+  } catch (error) {
+    if (!(error instanceof ApiUnavailableError)) throw error;
+  }
   return (
-    <div className={styles.page}>
+    <div className="content-page public-page">
       <div className="content-container">
-        <section className={styles.hero} aria-labelledby="about-title">
-          <div className={styles.heroCopy}>
-            <div className={styles.titleLine}>
-              <span className={styles.mark} aria-hidden="true" />
-              <h1 className={styles.title} id="about-title">
-                من نحن
-              </h1>
-            </div>
-
-            <p className={styles.statement}>المهنة وهمومها قضيتنا.</p>
-            <p className={styles.mission}>
-              نهدف إلى أن يعيش كل شخص يومًا مهنيًا يناسب قيمه وظروفه وإمكاناته، لذلك
-              اخترنا المهنة وهمومها قضيتنا. مختلف، لمسار مهني يشبهك.
-            </p>
-
-            <nav className={styles.platforms} aria-label="منصات الاستماع">
-              <span className={styles.platformsLabel}>استمع لنا عبر:</span>
-              {LISTENING_PLATFORMS.map((platform) => (
-                <a key={platform.href} className={styles.platformLink} href={platform.href}>
-                  {platform.label}
-                </a>
-              ))}
-            </nav>
-          </div>
-
-          <div className={styles.third}>
-            <span className={styles.thirdValue} aria-hidden="true">
-              ١ من ٣
-            </span>
-            <p className={styles.thirdText}>
-              نقضي ثلث أعمارنا في أعمالنا، لذلك نؤمن بأن الشخص السعيد في عمله سعيد في
-              حياته.
-            </p>
-          </div>
-        </section>
-
-        <section className={styles.section} aria-labelledby="presenters-title">
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle} id="presenters-title">
-              مقدمو البرامج
-            </h2>
-            <Link className={styles.sectionLink} href="/shows">
-              كل البرامج
-            </Link>
-          </div>
-          <p className={styles.sectionIntro}>
-            نحاور لنقدم محتوى يليق بذائقتكم ويقترب من أسئلتكم المهنية.
+        <header className="public-page-head">
+          <h1>من نحن</h1>
+          <p>مختلف، منصة إعلامية تضع المهنة والإنسان في قلب الحكاية.</p>
+        </header>
+        <section className="public-about-story" aria-labelledby="story-title">
+          <h2 id="story-title">حكايتنا</h2>
+          <p>
+            اختارت مختلف المهنة وهمومها موضوعًا يجمع برامجها وحواراتها. ننطلق من أثر العمل في
+            حياتنا، ونفتح مساحة للتجارب والأفكار التي تساعدنا على فهم مساراتنا المهنية.
           </p>
-
-          <ul className={styles.presenterList} role="list">
-            {PRESENTERS.map((presenter) => (
-              <li key={presenter.show} className={styles.presenterRow}>
-                <span className={styles.presenterName}>{presenter.name}</span>
-                <span className={styles.presenterShow}>{presenter.show}</span>
-                {presenter.href ? (
-                  <Link
-                    className={styles.presenterLink}
-                    href={presenter.href}
-                    aria-label={`عرض ${presenter.show}`}
-                  >
-                    عرض البرنامج
-                  </Link>
-                ) : (
-                  <span className={styles.comingSoon}>جاري البناء</span>
-                )}
-              </li>
-            ))}
-          </ul>
         </section>
-
-        <section className={styles.section} aria-labelledby="team-title">
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle} id="team-title">
-              فريق مختلف
-            </h2>
-          </div>
-          <p className={styles.sectionIntro}>
-            يعمل خلف كل برنامج فريق يجمع التحرير والإنتاج والتشغيل والتسويق.
-          </p>
-
-          <ul className={styles.teamList} role="list">
-            {TEAM.map((member) => (
-              <li key={member.name} className={styles.teamMember}>
-                <span className={styles.teamName}>{member.name}</span>
-                <span className={styles.teamRole}>{member.role}</span>
-              </li>
+        {shows.length ? (
+          <div className="public-about-shows">
+            {shows.map((show) => (
+              <ShowCard key={show.id} show={show} />
             ))}
-          </ul>
+          </div>
+        ) : null}
+        <section className="public-mission" aria-labelledby="mission-title">
+          <h2 id="mission-title">قضيتنا: لمسار مهني يشبهك.</h2>
+          <p>
+            نهدف إلى أن يعيش كل شخص يومًا مهنيًا يناسب قيمه وظروفه وإمكاناته، لذلك اخترنا المهنة
+            وهمومها قضيتنا.
+          </p>
+          <Link href="/mission">اقرأ عن قضيتنا</Link>
+        </section>
+        <section id="team" className="public-team" aria-labelledby="team-title">
+          <h2 id="team-title">من وراء مختلف</h2>
+          <div>
+            {team.map(([name, role]) => (
+              <article key={name}>
+                <h3>{name}</h3>
+                <p>{role}</p>
+              </article>
+            ))}
+          </div>
         </section>
       </div>
     </div>

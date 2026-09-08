@@ -9,7 +9,7 @@ import {
   FormSubmissionRepositoryContext,
   type AdminAuthContextValue,
 } from '@/application';
-import { createFixtureAdminRepository } from '@/data';
+import { AdminRepositoryError, createFixtureAdminRepository } from '@/data';
 import { demoData } from '@/lib';
 import { FormSubmissionDetailsView } from './form-submission-details-page';
 import { FormSubmissionsView } from './form-submissions-page';
@@ -118,6 +118,81 @@ describe('Studio form-submission inbox', () => {
   afterEach(() => {
     cleanup();
     for (const client of activeClients.splice(0)) client.clear();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it('lets a viewer download a private attachment and releases its temporary URL', async () => {
+    const user = userEvent.setup();
+    const createObjectURL = vi.fn(() => 'blob:private-attachment');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal(
+      'URL',
+      class extends URL {
+        static createObjectURL = createObjectURL;
+        static revokeObjectURL = revokeObjectURL;
+      },
+    );
+    const clicked: { href: string; download: string }[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      clicked.push({ href: this.href, download: this.download });
+    });
+    const attachment = {
+      id: 'file-1',
+      fileName: 'السيرة.pdf',
+      mimeType: 'application/pdf',
+      byteSize: 123,
+    };
+    const repository = renderPage(
+      '/requests/frm-1',
+      ['forms.view'],
+      [{ ...submission('frm-1'), attachmentRefs: [attachment] }],
+    );
+    const blob = new Blob(['%PDF-1.7'], { type: 'application/pdf' });
+    const download = vi
+      .spyOn(repository, 'downloadFormSubmissionAttachment')
+      .mockResolvedValue(blob);
+    const button = await screen.findByRole('button', { name: 'تنزيل ملف السيرة.pdf' });
+    expect(screen.queryByRole('link', { name: /السيرة/ })).not.toBeInTheDocument();
+    await user.click(button);
+    expect(download).toHaveBeenCalledWith('frm-1', 'file-1');
+    expect(createObjectURL).toHaveBeenCalledWith(blob);
+    expect(clicked).toEqual([{ href: 'blob:private-attachment', download: 'السيرة.pdf' }]);
+    expect(document.querySelector('a[download]')).toBeNull();
+    await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:private-attachment'), {
+      timeout: 1500,
+    });
+  });
+
+  it('shows a download permission error and allows a retry without exposing a file URL', async () => {
+    const user = userEvent.setup();
+    const attachment = {
+      id: 'file-1',
+      fileName: 'السيرة.pdf',
+      mimeType: 'application/pdf',
+      byteSize: 123,
+    };
+    const repository = renderPage(
+      '/requests/frm-1',
+      ['forms.view'],
+      [{ ...submission('frm-1'), attachmentRefs: [attachment] }],
+    );
+    vi.spyOn(repository, 'downloadFormSubmissionAttachment').mockRejectedValue(
+      new AdminRepositoryError({
+        code: 'FORBIDDEN',
+        operation: 'downloadFormSubmissionAttachment',
+        message: 'Forbidden',
+        retryable: false,
+      }),
+    );
+    const button = await screen.findByRole('button', { name: 'تنزيل ملف السيرة.pdf' });
+    await user.click(button);
+    expect(await screen.findByRole('alert')).toHaveTextContent('لا تملك صلاحية تنزيل هذا الملف.');
+    expect(button).toBeEnabled();
+    expect(document.querySelector('a[download]')).toBeNull();
   });
 
   it('filters the paged list by submission type with a live control', async () => {

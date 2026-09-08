@@ -21,12 +21,28 @@ import { ApiConfigurationError, getFormNotificationConfig, getFormRateLimitSecre
 import { FormEmailNotificationError, ResendEmailNotifier } from '../notifications/form-email';
 import { getRepository, type CreateFormSubmissionRecordInput, type Repository } from '../repo';
 import { formRateLimitKey } from '../security/form-rate-limit';
+import {
+  acceptedAttachmentKey,
+  attachmentStorage,
+  claimCareerAttachments,
+  FormAttachmentError,
+  MAX_CAREERS_ATTACHMENT_BYTES,
+  readBoundedBody,
+  uploadCareerAttachment,
+} from '../security/form-attachments';
 
 const MAX_PUBLIC_FORM_BODY_BYTES = 48_000;
 const RATE_LIMIT = 6;
 const RATE_WINDOW_SECONDS = 15 * 60;
 const NOTIFICATION_STALE_MS = 5 * 60_000;
 const receipt: FormSubmissionReceipt = { accepted: true };
+
+function isDefinitiveDatabaseRejection(error: unknown): boolean {
+  if (!error || typeof error !== 'object' || !('code' in error)) return false;
+  // PostgreSQL reports these only after rejecting/rolling back the statement.
+  // Transport errors, timeouts and REST response-shape errors are ambiguous.
+  return typeof error.code === 'string' && /^(22|23|40|42)[A-Z0-9]{3}$/.test(error.code);
+}
 
 type NotificationAttempt =
   | { status: 'sent' | 'failed' | 'unconfigured'; submission: FormSubmission }
@@ -204,6 +220,37 @@ export const publicFormSubmissionsRoute = new Hono<AppEnv>()
     await next();
     c.header('Cache-Control', 'no-store');
   })
+  .post('/careers/attachments', async (c) => {
+    if (!c.req.header('content-type')?.startsWith('multipart/form-data;')) {
+      return c.json({ error: 'A PDF upload is required' }, 415);
+    }
+    const clientAddress =
+      c.env.CLIENT_ADDRESS ?? c.req.header('cf-connecting-ip')?.trim() ?? 'unknown';
+    const rateKey = await formRateLimitKey(
+      getFormRateLimitSecret(c.env),
+      'careers_attachment',
+      clientAddress,
+    );
+    const rate = await getRepository(c.env).claimFormSubmissionRateLimit(rateKey, 6, 60 * 60);
+    if (!rate.allowed) {
+      c.header('Retry-After', String(rate.retryAfterSeconds));
+      return c.json({ error: 'Too many attachment uploads', code: 'RATE_LIMITED' }, 429);
+    }
+    try {
+      const limit = MAX_CAREERS_ATTACHMENT_BYTES + 16384;
+      if (Number(c.req.header('content-length')) > limit)
+        return c.json({ error: 'File exceeds the 10 MB limit' }, 413);
+      const bytes = await readBoundedBody(c.req.raw.body, limit);
+      const form = await new Response(bytes, {
+        headers: { 'content-type': c.req.header('content-type')! },
+      }).formData();
+      return c.json(await uploadCareerAttachment(c.env, form), 201);
+    } catch (error) {
+      if (error instanceof FormAttachmentError)
+        return c.json({ error: error.message, code: 'ATTACHMENT_ERROR' }, error.status);
+      return c.json({ error: 'Invalid attachment upload' }, 400);
+    }
+  })
   .post('/:type', async (c) => {
     const type = c.req.param('type');
     if (!(FORM_SUBMISSION_TYPES as readonly string[]).includes(type)) {
@@ -241,12 +288,57 @@ export const publicFormSubmissionsRoute = new Hono<AppEnv>()
     // `publicFormSubmissionSchemas` is keyed by the same discriminant. The
     // indexed lookup loses that correlation in TypeScript, so restore it only at
     // this validated boundary before handing the discriminated record to storage.
+    const requestId = crypto.randomUUID();
+    const attachmentTokens =
+      'attachmentTokens' in parsed.data ? (parsed.data.attachmentTokens ?? []) : [];
+    let attachments: Awaited<ReturnType<typeof claimCareerAttachments>> | undefined;
+    if (attachmentTokens.length) {
+      if (formType !== 'careers' || !('email' in parsed.data.payload))
+        return c.json({ error: 'Attachments are not allowed on this form' }, 400);
+      try {
+        attachments = await claimCareerAttachments(
+          c.env,
+          attachmentTokens,
+          parsed.data.payload.email!,
+          requestId,
+        );
+      } catch (error) {
+        if (error instanceof FormAttachmentError)
+          return c.json({ error: error.message, code: 'ATTACHMENT_ERROR' }, error.status);
+        return c.json({ error: 'Attachments are unavailable' }, 503);
+      }
+    }
     const input = {
+      id: `frm-${requestId.replaceAll('-', '')}`,
       type: formType,
       payload: parsed.data.payload as FormSubmissionPayload,
-      sourceMetadata: sourceMetadata(c, crypto.randomUUID(), now),
+      sourceMetadata: sourceMetadata(c, requestId, now),
+      ...(attachments ? { attachmentRefs: attachments.refs } : {}),
     } as CreateFormSubmissionRecordInput;
-    const submission = await repo.createFormSubmission(input);
+    let submission: FormSubmission;
+    try {
+      submission = await repo.createFormSubmission(input);
+    } catch (error) {
+      // A lost response may follow a successful commit. Reconcile the exact
+      // server-generated ID before releasing a lease or removing its file.
+      const recovered = await repo.getFormSubmission(input.id!).catch(() => null);
+      if (recovered?.sourceMetadata.requestId === requestId) {
+        submission = recovered;
+      } else if (isDefinitiveDatabaseRejection(error)) {
+        await attachments?.release().catch(() => undefined);
+        throw error;
+      } else {
+        // Even a successful empty read cannot rule out a still-running commit.
+        // Keep the lease and accepted copy intact for subsequent reconciliation.
+        return c.json(
+          { error: 'Submission status could not be confirmed', code: 'SUBMISSION_STATUS_UNKNOWN' },
+          503,
+        );
+      }
+    }
+    // The accepted copy is already durable. Temporary cleanup cannot turn a
+    // successfully saved application into a duplicate-inducing error response.
+    await attachments?.finish().catch(() => undefined);
     await attemptNotification(c.env, repo, submission.id);
     return c.json(receipt, 202);
   });
@@ -272,6 +364,32 @@ export const studioFormSubmissionsRoute = new Hono<AppEnv>()
   .get('/:id', async (c) => {
     const submission = await getRepository(c.env).getFormSubmission(c.req.param('id'));
     return submission ? c.json(submission) : c.json({ error: 'Form submission not found' }, 404);
+  })
+  .get('/:id/attachments/:attachmentId', async (c) => {
+    const submission = await getRepository(c.env).getFormSubmission(c.req.param('id'));
+    const attachment = submission?.attachmentRefs.find(
+      (item) => item.id === c.req.param('attachmentId'),
+    );
+    if (!attachment) return c.json({ error: 'Attachment not found' }, 404);
+    try {
+      const { bucket } = attachmentStorage(c.env);
+      const object = await bucket.get(acceptedAttachmentKey(c.env, attachment.id));
+      if (!object || object.size !== attachment.byteSize)
+        return c.json({ error: 'Attachment not found' }, 404);
+      c.header('Content-Type', 'application/pdf');
+      c.header('Content-Length', String(object.size));
+      c.header(
+        'Content-Disposition',
+        `attachment; filename="application.pdf"; filename*=UTF-8''${encodeURIComponent(attachment.fileName).replaceAll("'", '%27')}`,
+      );
+      c.header('X-Content-Type-Options', 'nosniff');
+      c.header('Content-Security-Policy', "sandbox; default-src 'none'");
+      return c.body(object.body);
+    } catch (error) {
+      if (error instanceof FormAttachmentError)
+        return c.json({ error: error.message }, error.status);
+      return c.json({ error: 'Attachment is unavailable' }, 503);
+    }
   })
   .patch(
     '/:id',

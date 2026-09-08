@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { RetryContentButton } from './public-content-controls';
 
 /**
  * The three states every list and detail page must be able to render.
@@ -30,6 +31,7 @@ export function ErrorState({
     <div className="state state--alert">
       <h2 className="state__title">{title}</h2>
       <p className="state__text">{text}</p>
+      <RetryContentButton />
       {retryHref ? (
         <Link className="action" href={retryHref}>
           العودة

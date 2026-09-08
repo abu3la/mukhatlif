@@ -1,15 +1,16 @@
 /**
  * Arabic-locale formatting.
  *
- * The listener handoff uses Arabic-Indic digits throughout public editorial
+ * The listener handoff uses Latin digits and Gregorian dates throughout public editorial
  * dates, episode numbers, and durations.
  */
-const LOCALE = 'ar-u-nu-arab';
+const LOCALE = 'ar-SA-u-ca-gregory-nu-latn';
 
 const DATE_FORMAT = new Intl.DateTimeFormat(LOCALE, {
   year: 'numeric',
   month: 'long',
   day: 'numeric',
+  timeZone: 'Asia/Riyadh',
 });
 
 export function formatDate(iso: string | undefined): string {
@@ -36,9 +37,12 @@ export function formatNumber(value: number): string {
   return NUMBER_FORMAT.format(value);
 }
 
-/** Compact episode duration from the listener handoff, e.g. "٥٢ د". */
+/** Compact episode duration from the listener handoff, e.g. "52 دقيقة". */
 export function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '';
   const totalMinutes = Math.round(seconds / 60);
-  return `${formatNumber(totalMinutes)} د`;
+  if (totalMinutes < 60) return `${formatNumber(totalMinutes)} دقيقة`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes ? `${hours} س ${minutes} د` : `${hours} س`;
 }

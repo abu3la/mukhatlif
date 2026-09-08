@@ -1,29 +1,17 @@
 import Link from 'next/link';
 import type { HomeSummary } from '@mukhtalif/types';
-import { ArticleCard, EpisodeRow, ShowCard } from '@/components/cards';
-import { formatNumber } from '@/components/formatting';
+import { ArticleCard, EpisodeCard, ShowCard } from '@/components/cards';
 import { EmptyState, ErrorState } from '@/components/states';
 import { WeeklyEpisodeCard } from '@/components/weekly-episodes';
 import { NewsletterSignup } from '@/components/newsletter-signup';
+import { ContinueListening } from '@/components/customer-content';
+import { LatestEpisodeAction, RailControls } from '@/components/public-content-controls';
+import { ListeningPlatforms } from '@/components/listening-platforms';
 import { apiOrigin } from '@/lib/config';
 import { ApiUnavailableError, getHomeSummary } from '@/lib/api';
+import { publicEpisodeAudioSrc } from '@/lib/player-source';
 
 export const revalidate = 60;
-
-const LISTENING_PLATFORMS = [
-  {
-    label: 'سبوتيفاي',
-    href: 'https://open.spotify.com/show/6m9xb0r6xCBtTvq4UnnYbh',
-  },
-  {
-    label: 'آبل بودكاست',
-    href: 'https://podcasts.apple.com/sa/podcast/id1532674246',
-  },
-  {
-    label: 'يوتيوب',
-    href: 'https://www.youtube.com/channel/UC8vdjzu_0QMQlG9qNT5D_AQ',
-  },
-] as const;
 
 export default async function HomePage() {
   let summary: HomeSummary;
@@ -42,81 +30,131 @@ export default async function HomePage() {
       </div>
     );
   }
-
-  const showsById = new Map(summary.shows.map((show) => [show.id, show]));
+  const shows = new Map(summary.shows.map((show) => [show.id, show]));
+  const latest = [...(summary.weeklyEpisodes?.episodes ?? []), ...summary.latestEpisodes]
+    .filter((episode) => !episode.premium)
+    .sort((a, b) => (b.publishAt ?? '').localeCompare(a.publishAt ?? ''))[0];
+  const latestShowTitle = latest
+    ? (summary.weeklyEpisodes?.episodes.find((episode) => episode.id === latest.id)?.showTitleAr ??
+      shows.get(latest.showId)?.titleAr)
+    : undefined;
+  const audioSrc = latest ? publicEpisodeAudioSrc(latest.id) : null;
   const hasAnything =
     Boolean(summary.weeklyEpisodes) ||
     summary.shows.length > 0 ||
     summary.latestEpisodes.length > 0 ||
     summary.latestArticles.length > 0;
-
   return (
-    <div className="home-page content-page">
+    <div className="home-page content-page public-home">
       <div className="content-container">
-        <section className="home-hero" aria-labelledby="home-title">
-          <span className="home-hero__mark" aria-hidden="true" />
-          <h1 className="home-hero__title" id="home-title">
-            لمسار مهني يشبهك.
-          </h1>
-          <p className="home-hero__lede">
-            نقضي ثلث أعمارنا في أعمالنا، لذلك نؤمن بأن الشخص السعيد في عمله سعيد في
-            حياته. اخترنا المهنة وهمومها قضيتنا، في الإذاعة المهنية الأولى في الوطن
-            العربي.
+        <section className="handoff-hero" aria-labelledby="home-title">
+          <div className="handoff-hero__title">
+            <h1 id="home-title">
+              <span>لمسار مهني</span>
+              <strong>يشبهك.</strong>
+            </h1>
+          </div>
+          <p className="handoff-hero__mission">
+            نهدف إلى أن يعيش كل شخص يومًا مهنيًا يناسب قيمه وظروفه وإمكاناته، لذلك اخترنا المهنة
+            وهمومها قضيتنا.
           </p>
-          <div className="platform-links" aria-label="منصات الاستماع">
-            <span className="platform-links__label">استمع لنا عبر:</span>
-            {LISTENING_PLATFORMS.map((platform) => (
-              <a key={platform.href} className="platform-links__link" href={platform.href}>
-                {platform.label}
-              </a>
-            ))}
+          <div className="handoff-hero__action">
+            {latest && audioSrc ? (
+              <>
+                <LatestEpisodeAction
+                  episode={{
+                    id: latest.id,
+                    title: latest.titleAr,
+                    showTitle: latestShowTitle,
+                    href: '/episodes/' + encodeURIComponent(latest.id),
+                    audioSrc,
+                    durationSec: latest.durationSec,
+                    youtubeVideoId: latest.youtubeVideoId,
+                    artworkUrl: latest.youtubeVideoId
+                      ? `https://i.ytimg.com/vi/${latest.youtubeVideoId}/hqdefault.jpg`
+                      : shows.get(latest.showId)?.artworkUrl,
+                  }}
+                />
+                <p>
+                  {latest.titleAr}
+                  {latestShowTitle ? ' · ' + latestShowTitle : ''}
+                </p>
+              </>
+            ) : (
+              <Link className="public-primary" href="/episodes">
+                استكشف الحلقات
+              </Link>
+            )}
+          </div>
+          <ListeningPlatforms />
+          <div className="handoff-hero__scene">
+            <img
+              src="/handoff/mukhtalif-scene.png"
+              alt="مختلف: أخيرًا مكان يناقش همومك الوظيفية"
+              width="1656"
+              height="932"
+              fetchPriority="high"
+            />
           </div>
         </section>
-
         {summary.weeklyEpisodes ? (
-          <section className="content-section weekly-episodes" aria-labelledby="home-weekly-episodes">
+          <section
+            className="content-section weekly-episodes"
+            aria-labelledby="home-weekly-episodes"
+          >
             <div className="content-section__header">
               <div>
                 <h2 className="content-section__title" id="home-weekly-episodes">
                   {summary.weeklyEpisodes.title}
                 </h2>
-                <p className="content-section__meta">
-                  الحلقات المنشورة خلال آخر ٧ أيام من برامج إذاعة مختلف
-                </p>
+                <p className="content-section__meta">حلقات نُشرت خلال آخر 7 أيام</p>
               </div>
-              <Link className="content-section__more" href="/episodes">
-                كل الحلقات
-              </Link>
+              <RailControls target="home-weekly-rail" />
             </div>
             <div
+              id="home-weekly-rail"
               className="weekly-episodes__track"
               role="list"
               tabIndex={0}
-              aria-label="حلقات منشورة خلال آخر ٧ أيام"
+              aria-label="حلقات منشورة خلال آخر 7 أيام"
             >
               {summary.weeklyEpisodes.episodes.map((episode) => (
                 <WeeklyEpisodeCard key={episode.id} episode={episode} />
               ))}
             </div>
           </section>
+        ) : summary.latestEpisodes.length > 0 ? (
+          <section className="content-section" aria-labelledby="home-episodes">
+            <div className="content-section__header">
+              <h2 className="content-section__title" id="home-episodes">
+                أحدث الحلقات
+              </h2>
+              <Link href="/episodes">كل الحلقات</Link>
+            </div>
+            <div className="public-episode-grid" role="list">
+              {summary.latestEpisodes.map((episode) => (
+                <EpisodeCard
+                  key={episode.id}
+                  episode={episode}
+                  showName={shows.get(episode.showId)?.titleAr}
+                />
+              ))}
+            </div>
+          </section>
         ) : null}
-
         {!hasAnything ? (
           <EmptyState
             title="لا يوجد محتوى منشور بعد"
             text="سيظهر هنا أول برنامج وأول حلقة فور نشرهما."
           />
         ) : null}
-
-        {summary.shows.length > 0 ? (
-          <section className="content-section" aria-labelledby="home-shows">
+        {summary.shows.length ? (
+          <section className="content-section public-home-shows" aria-labelledby="home-shows">
             <div className="content-section__header">
               <h2 className="content-section__title" id="home-shows">
-                البرامج
+                برامج مختلف
               </h2>
-              <p className="content-section__meta">
-                {`${formatNumber(summary.shows.length)} من برامج شبكة مختلف`}
-              </p>
+              <Link href="/shows">استكشف البرامج</Link>
             </div>
             <div className="shows-grid">
               {summary.shows.map((show) => (
@@ -125,41 +163,28 @@ export default async function HomePage() {
             </div>
           </section>
         ) : null}
-
-        {!summary.weeklyEpisodes && summary.latestEpisodes.length > 0 ? (
-          <section className="content-section" aria-labelledby="home-episodes">
-            <div className="content-section__header">
-              <h2 className="content-section__title" id="home-episodes">
-                أحدث الحلقات
-              </h2>
-              <Link className="content-section__more" href="/episodes">
-                كل الحلقات
-              </Link>
-            </div>
-            <div className="episode-list" role="list">
-              {summary.latestEpisodes.map((episode) => (
-                <EpisodeRow
-                  key={episode.id}
-                  episode={episode}
-                  showName={showsById.get(episode.showId)?.titleAr}
-                />
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {summary.latestArticles.length > 0 ? (
-          <section className="content-section home-articles" aria-labelledby="home-articles">
+        <section className="content-section public-continue" aria-labelledby="home-continue">
+          <div className="content-section__header">
+            <h2 className="content-section__title" id="home-continue">
+              أكمل الاستماع
+            </h2>
+            <Link href="/library?tab=history">سجل الاستماع</Link>
+          </div>
+          <ContinueListening />
+        </section>
+        {summary.latestArticles.length ? (
+          <section
+            className="content-section home-articles public-home-articles"
+            aria-labelledby="home-articles"
+          >
             <div className="content-section__header">
               <h2 className="content-section__title" id="home-articles">
                 قراءات من مختلف
               </h2>
-              <Link className="content-section__more" href="/articles">
-                كل المقالات
-              </Link>
+              <Link href="/articles">كل القراءات</Link>
             </div>
-            <div className="grid grid--articles">
-              {summary.latestArticles.map((article) => (
+            <div className="public-article-collection">
+              {summary.latestArticles.slice(0, 4).map((article) => (
                 <ArticleCard key={article.id} article={article} />
               ))}
             </div>

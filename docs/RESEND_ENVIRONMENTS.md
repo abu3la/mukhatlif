@@ -152,6 +152,32 @@ only `aaahashmi95@gmail.com`. In production, Supabase sends to the actual invite
 member after the Studio authorization check. Test the development invitation
 flow with the owned address before enabling production SMTP.
 
+### Development Auth setup status, 8 September 2026
+
+The separate development Auth sending domain is `auth.devmail.mukhtalif.net`.
+It is verified in Resend after adding its exact three TXT/CNAME records through
+the logged-in Hostinger DNS editor. Complete before/after inventories prove all
+20 earlier DNS records were preserved and only the three Auth records were added.
+The saved Hostinger API identity still returns HTTP 403; browser DNS access and
+Supabase development database access are working.
+
+The prepared credential is `mukhtalif-auth-development`, with Sending access
+limited to `auth.devmail.mukhtalif.net`. Automatic approval review rejected its
+creation and requires explicit owner approval for that permission and scope.
+No key was issued and Supabase custom SMTP remains disabled. After approval,
+store the new key as the SMTP password only on development project
+`acomtixjibgkauzeltsn`, using `smtp.resend.com:465`, username `resend`, sender
+`no-reply@auth.devmail.mukhtalif.net`, and sender name `مختلف - التطوير`.
+Never print the key or put it in source, command history, or a PR.
+
+Custom Auth SMTP is not yet complete, and no successful signup-confirmation,
+password-recovery, email-change or invitation delivery is asserted by this
+record. Keep the existing form sender `forms@devmail.mukhtalif.net` and its
+restricted credential separate. The development Supabase Site URL and nine
+scoped callback/reset/invitation redirect patterns have been saved; see
+`design-handoff-audit.md` for the exact values and database receipts. Those
+settings alone do not establish mail delivery or a completed release.
+
 ## 5. Release verification
 
 Development:

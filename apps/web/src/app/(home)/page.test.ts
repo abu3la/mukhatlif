@@ -1,3 +1,5 @@
+import { PlayerProvider } from '@/components/player';
+import { anonymousCustomerFixture } from '@/test/customer-fixture';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +11,11 @@ const { mockGetHomeSummary } = vi.hoisted(() => ({
 vi.mock('@/lib/api', () => ({
   ApiUnavailableError: class ApiUnavailableError extends Error {},
   getHomeSummary: mockGetHomeSummary,
+}));
+
+vi.mock('@/lib/config', () => ({
+  apiOrigin: () => 'https://api.test',
+  publicEpisodeAudioSrc: (id: string) => 'https://api.test/episodes/' + id + '/audio',
 }));
 
 afterEach(() => {
@@ -44,13 +51,16 @@ describe('HomePage weekly episodes placement', () => {
     });
 
     const { default: HomePage } = await import('./page');
-    const html = renderToStaticMarkup(await HomePage());
+    const html = renderToStaticMarkup(
+      React.createElement(PlayerProvider, { children: await HomePage() }),
+    );
     const heroEnd = html.indexOf('</section>');
     const weeklyStart = html.indexOf('<section class="content-section weekly-episodes"');
 
     expect(heroEnd).toBeGreaterThan(-1);
     expect(weeklyStart).toBe(heroEnd + '</section>'.length);
     expect(html).not.toContain('لا يوجد محتوى منشور بعد');
+    expect(html).toContain('حلقة هذا الأسبوع · بترولي');
     expect(html.match(/class="newsletter-signup"/g)).toHaveLength(1);
   });
 
@@ -59,7 +69,13 @@ describe('HomePage weekly episodes placement', () => {
     mockGetHomeSummary.mockResolvedValue({ shows: [], latestEpisodes: [], latestArticles: [] });
     const { default: HomePage } = await import('./page');
     const { SiteFooter } = await import('@/components/site-chrome');
-    expect(renderToStaticMarkup(await HomePage())).toContain('newsletter-signup__form');
-    expect(renderToStaticMarkup(React.createElement(SiteFooter))).not.toContain('newsletter-signup');
+    expect(
+      renderToStaticMarkup(React.createElement(PlayerProvider, { children: await HomePage() })),
+    ).toContain('newsletter-signup__form');
+    expect(renderToStaticMarkup(React.createElement(SiteFooter))).not.toContain(
+      'newsletter-signup',
+    );
   });
 });
+
+vi.mock('@/components/customer-provider', () => ({ useCustomer: () => anonymousCustomerFixture }));

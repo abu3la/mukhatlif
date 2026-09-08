@@ -150,7 +150,9 @@ export const publicFormSubmissionSchemas = {
   sponsorship: publicEnvelope(sponsorshipFormPayloadSchema),
   partnership: publicEnvelope(partnershipFormPayloadSchema),
   guest_suggestion: publicEnvelope(guestSuggestionFormPayloadSchema),
-  careers: publicEnvelope(careersFormPayloadSchema),
+  careers: publicEnvelope(careersFormPayloadSchema).extend({
+    attachmentTokens: z.array(z.string().min(1).max(2000)).max(2).optional(),
+  }),
   production_service: publicEnvelope(productionServiceFormPayloadSchema),
   guest_review: publicEnvelope(guestReviewFormPayloadSchema),
 } as const;

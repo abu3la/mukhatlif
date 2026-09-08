@@ -1,7 +1,4 @@
-import type {
-  FormSubmissionPayloadByType,
-  FormSubmissionType,
-} from '@mukhtalif/types';
+import type { FormSubmissionPayloadByType, FormSubmissionType } from '@mukhtalif/types';
 
 export type PublicRequestType = FormSubmissionType;
 
@@ -26,7 +23,14 @@ export function buildRequestPayload<Type extends PublicRequestType>(
         contactName: text(formData, 'contactName'),
         email: text(formData, 'email'),
         phone: text(formData, 'phone'),
-        message: optionalText(formData, 'message'),
+        message:
+          [
+            text(formData, 'message'),
+            text(formData, 'program') && `البرنامج: ${text(formData, 'program')}`,
+            text(formData, 'budget') && `الميزانية المقترحة: ${text(formData, 'budget')}`,
+          ]
+            .filter(Boolean)
+            .join('\n\n') || undefined,
       } as FormSubmissionPayloadByType[Type];
     case 'partnership':
       return {
@@ -46,7 +50,13 @@ export function buildRequestPayload<Type extends PublicRequestType>(
         socialUrl: optionalText(formData, 'socialUrl'),
         city: optionalText(formData, 'city'),
         phone: optionalText(formData, 'phone'),
-        notes: optionalText(formData, 'notes'),
+        notes:
+          [
+            text(formData, 'topic') && `موضوع الحوار: ${text(formData, 'topic')}`,
+            text(formData, 'notes'),
+          ]
+            .filter(Boolean)
+            .join('\n\n') || undefined,
       } as FormSubmissionPayloadByType[Type];
     case 'careers':
       return {

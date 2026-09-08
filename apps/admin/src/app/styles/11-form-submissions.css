@@ -297,6 +297,22 @@
   overflow-wrap: anywhere;
 }
 
+.submission-attachment-info {
+  display: grid;
+  min-inline-size: 0;
+  gap: 4px;
+}
+
+.submission-attachments .button {
+  flex: 0 0 auto;
+}
+
+.submission-attachment-error {
+  color: #862522;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
 .submission-attachments span {
   flex: 0 0 auto;
   color: var(--muted);

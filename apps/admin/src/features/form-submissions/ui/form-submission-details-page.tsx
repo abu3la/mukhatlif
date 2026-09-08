@@ -43,6 +43,92 @@ function operationErrorMessage(error: unknown, action: 'save' | 'retry'): string
     : 'تعذّر إعادة إرسال البريد. حاول مرة أخرى.';
 }
 
+function AttachmentDownload({
+  submissionId,
+  attachment,
+}: {
+  submissionId: string;
+  attachment: FormSubmission['attachmentRefs'][number];
+}) {
+  const repository = useFormSubmissionRepository();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const mounted = useRef(false);
+  const inFlight = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  async function download() {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setPending(true);
+    setError(null);
+    try {
+      const blob = await repository.downloadFormSubmissionAttachment(submissionId, attachment.id);
+      if (!mounted.current) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download =
+        Array.from(attachment.fileName, (character) => {
+          const code = character.charCodeAt(0);
+          return code < 32 || code === 127 || character === '/' || character === '\\'
+            ? '_'
+            : character;
+        }).join('') || 'attachment.pdf';
+      document.body.append(link);
+      try {
+        link.click();
+      } finally {
+        link.remove();
+        // Keep the URL alive long enough for the browser's download to begin.
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } catch (cause) {
+      if (!mounted.current) return;
+      const code = isAdminRepositoryError(cause) ? cause.code : null;
+      setError(
+        code === 'FORBIDDEN' || code === 'UNAUTHENTICATED'
+          ? 'لا تملك صلاحية تنزيل هذا الملف. سجّل الدخول بحساب مخوّل.'
+          : code === 'NOT_FOUND'
+            ? 'الملف غير متاح. حدّث الصفحة ثم حاول مرة أخرى.'
+            : 'تعذّر تنزيل الملف. حاول مرة أخرى.',
+      );
+    } finally {
+      inFlight.current = false;
+      if (mounted.current) setPending(false);
+    }
+  }
+
+  return (
+    <li>
+      <div className="submission-attachment-info">
+        <bdi dir="auto">{attachment.fileName}</bdi>
+        <span>{attachment.mimeType === 'application/pdf' ? 'PDF' : attachment.mimeType}</span>
+        {error ? (
+          <p role="alert" className="submission-attachment-error">
+            {error}
+          </p>
+        ) : null}
+      </div>
+      <Button
+        type="button"
+        disabled={pending}
+        aria-busy={pending}
+        aria-label={`تنزيل ملف ${attachment.fileName}`}
+        onClick={() => void download()}
+      >
+        {pending ? 'جارٍ التنزيل…' : 'تنزيل'}
+      </Button>
+    </li>
+  );
+}
+
 function DetailContent({
   submission,
   onUpdated,
@@ -57,9 +143,10 @@ function DetailContent({
   const [assigneeId, setAssigneeId] = useState(submission.assigneeId ?? '');
   const [internalNotes, setInternalNotes] = useState(submission.internalNotes);
   const [pendingAction, setPendingAction] = useState<'save' | 'retry' | null>(null);
-  const [feedback, setFeedback] = useState<
-    { readonly kind: 'success' | 'error'; readonly message: string } | null
-  >(null);
+  const [feedback, setFeedback] = useState<{
+    readonly kind: 'success' | 'error';
+    readonly message: string;
+  } | null>(null);
 
   useEffect(() => {
     setStatus(submission.status);
@@ -76,8 +163,7 @@ function DetailContent({
     assigneeId !== (submission.assigneeId ?? '') ||
     internalNotes !== submission.internalNotes;
   const notificationCanRetry =
-    submission.notificationStatus !== 'sent' &&
-    submission.notificationStatus !== 'sending';
+    submission.notificationStatus !== 'sent' && submission.notificationStatus !== 'sending';
   const fields = formSubmissionDisplayFields(submission);
 
   async function saveChanges() {
@@ -204,10 +290,11 @@ function DetailContent({
             </header>
             <ul className="submission-attachments">
               {submission.attachmentRefs.map((attachment) => (
-                <li key={attachment.id}>
-                  <bdi dir="auto">{attachment.fileName}</bdi>
-                  <span>{attachment.mimeType}</span>
-                </li>
+                <AttachmentDownload
+                  key={attachment.id}
+                  submissionId={submission.id}
+                  attachment={attachment}
+                />
               ))}
             </ul>
           </section>
@@ -414,7 +501,11 @@ export function FormSubmissionDetailsView() {
         headingRef={headingRef}
         headingTabIndex={-1}
       />
-      <DetailContent submission={submission} onUpdated={handleUpdated} />
+      <DetailContent
+        key={`${viewer?.id}:${submission.id}`}
+        submission={submission}
+        onUpdated={handleUpdated}
+      />
     </div>
   );
 }

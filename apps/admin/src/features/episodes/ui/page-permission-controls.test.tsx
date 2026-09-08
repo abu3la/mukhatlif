@@ -277,7 +277,8 @@ describe('episode YouTube editor controls', () => {
     renderEpisodeEditor(MANAGE_PERMISSIONS, '/episodes/episode_9', studio);
 
     const input = screen.getByRole('textbox', { name: /^رابط الحلقة في YouTube/ });
-    await user.type(input, 'https://youtu.be/Ioch353mcfc?t=12');
+    await user.click(input);
+    await user.paste('https://youtu.be/Ioch353mcfc?t=12');
     expect(screen.getByRole('img', { name: 'معاينة صورة فيديو الحلقة' })).toHaveAttribute(
       'src',
       'https://i.ytimg.com/vi/Ioch353mcfc/hqdefault.jpg',
@@ -316,7 +317,8 @@ describe('episode YouTube editor controls', () => {
     const studio = videoStudio();
     renderEpisodeEditor(MANAGE_PERMISSIONS, '/episodes/episode_9', studio);
     const input = screen.getByRole('textbox', { name: /^رابط الحلقة في YouTube/ });
-    await user.type(input, 'https://youtube.com.example.test/watch?v=Ioch353mcfc');
+    await user.click(input);
+    await user.paste('https://youtube.com.example.test/watch?v=Ioch353mcfc');
     await user.click(screen.getByRole('button', { name: 'حفظ التغييرات' }));
     expect(studio.saveEpisode).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent('أدخل رابط حلقة صالحًا من YouTube.');
@@ -324,7 +326,8 @@ describe('episode YouTube editor controls', () => {
     expect(screen.queryByRole('img', { name: 'معاينة صورة فيديو الحلقة' })).not.toBeInTheDocument();
 
     await user.clear(input);
-    await user.type(input, 'https://www.youtube.com/watch?v=Ioch353mcfc');
+    await user.click(input);
+    await user.paste('https://www.youtube.com/watch?v=Ioch353mcfc');
     expect(input).toHaveAttribute('aria-invalid', 'false');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'حفظ التغييرات' }));
@@ -494,7 +497,8 @@ describe('page mutation controls', () => {
 
     const title = screen.getByRole('textbox', { name: 'عنوان القسم' });
     await user.clear(title);
-    await user.type(title, 'حصاد مختلف');
+    await user.click(title);
+    await user.paste('حصاد مختلف');
     await user.click(screen.getByRole('switch', { name: 'عرض القسم في الصفحة الرئيسية' }));
     await user.click(screen.getByRole('button', { name: 'حفظ إعدادات القسم' }));
 
@@ -541,17 +545,16 @@ describe('page mutation controls', () => {
     );
     expect(within(breadcrumb).getByText('برنامج جديد')).toHaveAttribute('aria-current', 'page');
 
-    await user.type(screen.getByRole('textbox', { name: 'اسم البرنامج' }), ' خارج الإطار ');
-    await user.type(
-      screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }),
-      'outside-the-frame',
-    );
-    await user.type(screen.getByRole('textbox', { name: 'المضيف' }), ' نور الهدى ');
-    await user.type(screen.getByRole('textbox', { name: 'التصنيف' }), ' ثقافة ');
-    await user.type(
-      screen.getByRole('textbox', { name: 'وصف البرنامج' }),
-      ' حوارات تتجاوز المألوف. ',
-    );
+    await user.click(screen.getByRole('textbox', { name: 'اسم البرنامج' }));
+    await user.paste(' خارج الإطار ');
+    await user.click(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }));
+    await user.paste('outside-the-frame');
+    await user.click(screen.getByRole('textbox', { name: 'المضيف' }));
+    await user.paste(' نور الهدى ');
+    await user.click(screen.getByRole('textbox', { name: 'التصنيف' }));
+    await user.paste(' ثقافة ');
+    await user.click(screen.getByRole('textbox', { name: 'وصف البرنامج' }));
+    await user.paste(' حوارات تتجاوز المألوف. ');
     await user.click(screen.getByRole('switch', { name: 'برنامج حصري' }));
     await user.click(screen.getByRole('button', { name: 'حفظ البرنامج' }));
 
@@ -579,11 +582,15 @@ describe('page mutation controls', () => {
     );
     expect(within(breadcrumb).getByText('مقال جديد')).toHaveAttribute('aria-current', 'page');
 
-    await user.type(screen.getByRole('textbox', { name: 'عنوان المقال' }), ' مستقبل العمل ');
-    await user.type(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }), 'future-of-work');
-    await user.type(screen.getByRole('textbox', { name: 'محتوى المقال' }), 'نص المقال التجريبي.');
+    await user.click(screen.getByRole('textbox', { name: 'عنوان المقال' }));
+    await user.paste(' مستقبل العمل ');
+    await user.click(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }));
+    await user.paste('future-of-work');
+    await user.click(screen.getByRole('textbox', { name: 'محتوى المقال' }));
+    await user.paste('نص المقال التجريبي.');
     await user.click(screen.getByRole('checkbox', { name: /إعداد نشرة لهذا المقال/ }));
-    await user.type(screen.getByRole('textbox', { name: 'عنوان الرسالة' }), 'رسالة الأسبوع');
+    await user.click(screen.getByRole('textbox', { name: 'عنوان الرسالة' }));
+    await user.paste('رسالة الأسبوع');
     await user.click(screen.getByRole('button', { name: 'حفظ المسودة' }));
 
     expect(createArticle).toHaveBeenCalledWith(

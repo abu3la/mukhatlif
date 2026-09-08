@@ -14,7 +14,7 @@ import { ApiUnavailableError, listGuests } from '@/lib/api';
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: 'مكتبة الضيوف',
+  title: 'الضيوف',
   description: 'تعرّف إلى ضيوف شبكة مختلف وحلقاتهم المنشورة على يوتيوب.',
   alternates: { canonical: '/guests' },
 };
@@ -55,14 +55,14 @@ export default async function GuestsPage({ searchParams }: { searchParams: Searc
       : 'ستظهر ملفات الضيوف هنا بعد نشرها.';
 
   return (
-    <div className="content-page guest-library">
+    <div className="content-page guest-library public-page">
       <div className="content-container">
         <section className="guest-library__hero" aria-labelledby="guest-library-title">
           <div className="guest-library__intro">
             <h1 className="guest-library__title" id="guest-library-title">
-              ضيوفنا
+              الضيوف
             </h1>
-            <p className="guest-library__lede">ننتقي ضيوفنا لنثري الحوار</p>
+            <p className="guest-library__lede">ضيوف يفتحون لنا بابًا على تجاربهم.</p>
           </div>
           <p className="guest-library__count" aria-label={guestCountLabel(guests.pageInfo.total)}>
             <strong>{guestCountLabel(guests.pageInfo.total)}</strong>
@@ -137,6 +137,11 @@ export default async function GuestsPage({ searchParams }: { searchParams: Searc
             </>
           )}
         </section>
+        <div className="public-service-footer">
+          <Link className="public-primary" href="/suggest">
+            اقترح ضيفًا
+          </Link>
+        </div>
       </div>
     </div>
   );

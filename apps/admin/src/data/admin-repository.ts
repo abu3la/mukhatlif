@@ -270,6 +270,7 @@ export interface AdminRepository {
 
   listFormSubmissions(query: AdminFormSubmissionListQuery): Promise<PaginatedList<FormSubmission>>;
   getFormSubmission(id: string): Promise<FormSubmission>;
+  downloadFormSubmissionAttachment(submissionId: string, attachmentId: string): Promise<Blob>;
   updateFormSubmission(id: string, command: UpdateFormSubmissionCommand): Promise<FormSubmission>;
   retryFormSubmissionNotification(id: string): Promise<FormSubmission>;
 

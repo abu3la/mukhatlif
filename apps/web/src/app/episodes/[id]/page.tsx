@@ -2,7 +2,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Episode, Show } from '@mukhtalif/types';
-import { EpisodeRow } from '@/components/cards';
+import { EpisodeCard } from '@/components/cards';
+import { EpisodeMoments } from '@/components/episode-moments';
+import { EpisodeChapters } from '@/components/episode-chapters';
+import { EpisodeLibraryActions } from '@/components/episode-library-actions';
+import { ShareButton } from '@/components/public-content-controls';
+import { publishedChapters, singleQuery } from '@/lib/public-content';
 import { EpisodeVideo } from '@/components/episode-video';
 import {
   dateTimeAttribute,
@@ -44,9 +49,17 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   }
 }
 
-export default async function EpisodePage({ params }: Params) {
+export default async function EpisodePage({
+  params,
+  searchParams,
+}: Params & { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { id } = await params;
   const episode = await loadEpisode(id);
+  const at = Number(singleQuery((await searchParams).t));
+  const initialSeconds = Number.isFinite(at)
+    ? Math.max(0, Math.min(Math.floor(at), episode.durationSec))
+    : 0;
+  const chapters = publishedChapters(episode.showNotesAr, episode.durationSec);
 
   // The show is supporting context: a failure here must not lose the episode.
   let show: Show | null = null;
@@ -86,12 +99,16 @@ export default async function EpisodePage({ params }: Params) {
           href: `/episodes/${encodeURIComponent(episode.id)}`,
           durationSec: episode.durationSec,
           audioSrc,
+          youtubeVideoId: episode.youtubeVideoId,
+          artworkUrl: episode.youtubeVideoId
+            ? `https://i.ytimg.com/vi/${episode.youtubeVideoId}/hqdefault.jpg`
+            : show?.artworkUrl,
         }
       : null;
 
   return (
     <div className="content-page">
-      <article className="content-container content-container--narrow episode-detail">
+      <article className="content-container episode-detail public-episode-detail">
         <header>
           <p className="episode-detail__breadcrumb">
             {show ? (
@@ -112,23 +129,58 @@ export default async function EpisodePage({ params }: Params) {
           </p>
           <h1 className="episode-detail__title">{episode.titleAr}</h1>
           {standfirst ? <p className="episode-detail__standfirst">{standfirst}</p> : null}
+          <div className="public-reading-controls">
+            {playerEpisode ? <EpisodeLibraryActions episode={playerEpisode} /> : null}
+            <ShareButton
+              title={episode.titleAr}
+              path={
+                '/episodes/' +
+                encodeURIComponent(id) +
+                (initialSeconds ? '?t=' + initialSeconds : '')
+              }
+            />
+          </div>
         </header>
 
+        {!episode.premium ? (
+          <EpisodeVideo
+            videoId={episode.youtubeVideoId}
+            title={episode.titleAr}
+            initialSeconds={initialSeconds}
+          />
+        ) : null}
         {playerEpisode ? (
           <section className="episode-audio-section" aria-labelledby="episode-audio-heading">
             <h2 id="episode-audio-heading" className="episode-notes__title">
               الاستماع للحلقة
             </h2>
-            <InlineEpisodePlayer episode={playerEpisode} />
+            <InlineEpisodePlayer episode={playerEpisode} initialSeconds={initialSeconds} />
           </section>
-        ) : null}
-        {!episode.premium ? (
-          <EpisodeVideo videoId={episode.youtubeVideoId} title={episode.titleAr} />
         ) : null}
         {episode.premium ? (
           <p className="episode-detail__premium-note">
             هذه الحلقة حصرية للمشتركين، والاستماع غير متاح عبر النسخة العامة حاليًا.
           </p>
+        ) : null}
+
+        {!episode.premium && chapters.length ? (
+          <EpisodeChapters
+            key={episode.id}
+            chapters={chapters}
+            episode={playerEpisode}
+            videoId={episode.youtubeVideoId}
+          />
+        ) : null}
+
+        {!episode.premium ? (
+          <EpisodeMoments
+            key={episode.id}
+            episodeId={episode.id}
+            title={episode.titleAr}
+            episode={playerEpisode}
+            videoId={episode.youtubeVideoId}
+            initialSeconds={initialSeconds}
+          />
         ) : null}
 
         {noteParagraphs.length > 0 ? (
@@ -159,9 +211,9 @@ export default async function EpisodePage({ params }: Params) {
                 كل الحلقات
               </Link>
             </div>
-            <div className="episode-list" role="list">
+            <div className="public-episode-grid" role="list">
               {relatedEpisodes.map((relatedEpisode) => (
-                <EpisodeRow
+                <EpisodeCard
                   key={relatedEpisode.id}
                   episode={relatedEpisode}
                   showName={show.titleAr}
