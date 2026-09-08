@@ -88,7 +88,7 @@ function statusLabel(status: PlayerStatus, error: string | null): string {
     case 'loading':
       return 'جارٍ تجهيز الصوت…';
     case 'playing':
-      return 'قيد التشغيل';
+      return '';
     case 'paused':
       return 'متوقفة مؤقتًا';
     case 'ended':
@@ -728,13 +728,15 @@ export function PlayerBar({ className }: { className?: string }) {
             <strong className={styles.episodeTitle}>{episode.title}</strong>
           )}
           {episode.showTitle ? <span className={styles.showTitle}>{episode.showTitle}</span> : null}
-          <span
-            className={classes(styles.status, player.error && styles.error)}
-            role={player.error ? 'alert' : 'status'}
-            aria-live="polite"
-          >
-            {message}
-          </span>
+          {message && (
+            <span
+              className={classes(styles.status, player.error && styles.error)}
+              role={player.error ? 'alert' : 'status'}
+              aria-live="polite"
+            >
+              {message}
+            </span>
+          )}
         </div>
         <Transport episode={episode} />
         <Timeline episode={episode} />
@@ -774,13 +776,15 @@ export function InlineEpisodePlayer({
       <div className={styles.inlineHead}>
         <div>
           <h2 className={styles.inlineTitle}>{episode.title}</h2>
-          <p
-            className={classes(styles.inlineStatus, current && player.error && styles.error)}
-            role={current && player.error ? 'alert' : 'status'}
-            aria-live="polite"
-          >
-            {message}
-          </p>
+          {message && (
+            <p
+              className={classes(styles.inlineStatus, current && player.error && styles.error)}
+              role={current && player.error ? 'alert' : 'status'}
+              aria-live="polite"
+            >
+              {message}
+            </p>
+          )}
         </div>
       </div>
       <div className={styles.inlineControls}>
