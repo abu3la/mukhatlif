@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { customerError, type CustomerProfilePatch } from '@/lib/customer-utils';
 import { useCustomer } from './customer-provider';
 import {
@@ -50,9 +50,10 @@ function AccountRow({
 }
 
 export function CustomerAccount() {
+  const { user } = useCustomer();
   return (
     <CustomerGate>
-      <AccountContent />
+      <AccountContent key={user?.id} />
     </CustomerGate>
   );
 }
@@ -160,7 +161,15 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
   const [busy, setBusy] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
   const [passwordChallenge, setPasswordChallenge] = useState(false);
-  const [pendingPassword, setPendingPassword] = useState('');
+  const pendingCredentials = useRef<{ currentPassword: string; password: string } | null>(null);
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+      pendingCredentials.current = null;
+    };
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -225,18 +234,24 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
             password: currentPassword,
           });
           if (verified.error) throw verified.error;
+          if (!active.current) return;
           const challenge = await auth.reauthenticate();
           if (challenge.error) throw challenge.error;
-          setPendingPassword(password);
+          if (!active.current) return;
+          pendingCredentials.current = { currentPassword, password };
           setPasswordChallenge(true);
           setMessage('أرسلنا رمزًا إلى بريدك لتأكيد تغيير كلمة المرور.');
         } else {
+          const credentials = pendingCredentials.current;
+          if (!credentials || !active.current) return;
           const { error: failure } = await auth.updateUser({
-            password: pendingPassword,
+            password: credentials.password,
+            current_password: credentials.currentPassword,
             nonce: String(fields.get('code')).trim(),
           });
           if (failure) throw failure;
-          setPendingPassword('');
+          pendingCredentials.current = null;
+          if (!active.current) return;
           customer.notify('حفظنا كلمة المرور الجديدة.');
           onClose();
         }
@@ -263,7 +278,7 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
       title={edit === 'email' && pendingEmail ? 'أكّد بريدك الجديد' : editTitles[edit]}
       onClose={() => {
         if (!busy) {
-          setPendingPassword('');
+          pendingCredentials.current = null;
           onClose();
         }
       }}

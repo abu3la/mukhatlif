@@ -41,6 +41,8 @@ const auth = {
   verifyOtp: vi.fn(),
   refreshSession: vi.fn(),
   getUser: vi.fn(),
+  reauthenticate: vi.fn(),
+  signOut: vi.fn(),
 };
 let root: Root;
 let container: HTMLDivElement;
@@ -88,9 +90,18 @@ async function requestEmailChange() {
   field('email').value = 'New@Example.test';
   await submit();
 }
+async function requestPasswordChange() {
+  signedIn();
+  await mount(createElement(CustomerAccount));
+  await click('كلمة المرور');
+  field('currentPassword').value = 'current-test-password';
+  field('password').value = 'new-test-password';
+  await submit();
+}
 
 beforeEach(() => {
   vi.resetAllMocks();
+  window.history.replaceState(null, '', '/');
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   Object.defineProperties(HTMLDialogElement.prototype, {
     showModal: {
@@ -133,6 +144,9 @@ beforeEach(() => {
     publicRead: vi.fn(),
   };
   auth.signUp.mockResolvedValue({ data: { session: null }, error: null });
+  auth.signInWithPassword.mockResolvedValue({ data: { user: { id: 'customer-a' } }, error: null });
+  auth.reauthenticate.mockResolvedValue({ data: {}, error: null });
+  auth.signOut.mockResolvedValue({ error: null });
   auth.updateUser.mockResolvedValue({ data: {}, error: null });
   auth.verifyOtp.mockResolvedValue({ data: {}, error: null });
   auth.refreshSession.mockResolvedValue({ data: {}, error: null });
@@ -223,6 +237,138 @@ describe('customer email change dialog', () => {
       expect(container.textContent).not.toContain('أكدنا هذا البريد');
     },
   );
+});
+
+describe('customer password change credentials', () => {
+  it('sends the current password and nonce with the update after verifying the current password', async () => {
+    await requestPasswordChange();
+    expect(auth.signInWithPassword).toHaveBeenCalledWith({
+      email: 'old@example.test',
+      password: 'current-test-password',
+    });
+    expect(auth.reauthenticate).toHaveBeenCalledOnce();
+    expect(auth.updateUser).not.toHaveBeenCalled();
+    field('code').value = '123456';
+    await submit();
+    expect(auth.updateUser).toHaveBeenCalledWith({
+      password: 'new-test-password',
+      current_password: 'current-test-password',
+      nonce: '123456',
+    });
+    expect(container.querySelector('dialog')).toBeNull();
+    await click('كلمة المرور');
+    expect(field('currentPassword').value).toBe('');
+    expect(field('password').value).toBe('');
+    expect(field('code')).toBeNull();
+  });
+  it('does not request a nonce or change the password after incorrect current credentials', async () => {
+    auth.signInWithPassword.mockResolvedValueOnce({ error: { code: 'invalid_credentials' } });
+    await requestPasswordChange();
+    expect(auth.reauthenticate).not.toHaveBeenCalled();
+    expect(auth.updateUser).not.toHaveBeenCalled();
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('غير صحيحة');
+  });
+  it('clears pending credentials on cancellation', async () => {
+    await requestPasswordChange();
+    await click('إلغاء');
+    await click('كلمة المرور');
+    expect(field('currentPassword').value).toBe('');
+    expect(field('password').value).toBe('');
+    expect(field('code')).toBeNull();
+    await submit();
+    expect(auth.updateUser).not.toHaveBeenCalled();
+  });
+  it('closes the password challenge when the active account changes', async () => {
+    await requestPasswordChange();
+    fake.customer.user = { ...fake.customer.user!, id: 'customer-b', email: 'b@example.test' };
+    fake.customer.profile = { ...fake.customer.profile!, id: 'customer-b' };
+    await mount(createElement(CustomerAccount));
+    expect(container.querySelector('dialog')).toBeNull();
+    await click('كلمة المرور');
+    expect(field('currentPassword').value).toBe('');
+    expect(field('password').value).toBe('');
+    expect(field('code')).toBeNull();
+    expect(auth.updateUser).not.toHaveBeenCalled();
+  });
+  it('does not restore a late password challenge after switching accounts', async () => {
+    let resolve!: (value: unknown) => void;
+    auth.reauthenticate.mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    await requestPasswordChange();
+    fake.customer.user = { ...fake.customer.user!, id: 'customer-b', email: 'b@example.test' };
+    fake.customer.profile = { ...fake.customer.profile!, id: 'customer-b' };
+    await mount(createElement(CustomerAccount));
+    await act(async () => resolve({ data: {}, error: null }));
+    expect(container.querySelector('dialog')).toBeNull();
+    expect(auth.updateUser).not.toHaveBeenCalled();
+    expect(fake.customer.notify).not.toHaveBeenCalled();
+  });
+});
+
+describe('customer Auth link states', () => {
+  it.each([
+    [true, '?error=access_denied'],
+    [false, '?error=access_denied'],
+    [true, '#error_code=otp_expired'],
+    [false, '#error_code=otp_expired'],
+    [true, '?error_description=untrusted-provider-details'],
+    [false, '?error_description=untrusted-provider-details'],
+  ] as const)(
+    'blocks failed recovery links even when signed in (%s, %s)',
+    async (authenticated, suffix) => {
+      if (authenticated) signedIn();
+      window.history.replaceState(null, '', `/reset${suffix}`);
+      await mount(createElement(CustomerAuth, { mode: 'reset', next: '/library' }));
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+        'انتهت صلاحية الرابط',
+      );
+      expect(container.querySelector('form')).toBeNull();
+      expect(container.textContent).not.toContain('untrusted-provider-details');
+      expect(container.querySelector('a[href="/forgot?next=%2Flibrary"]')).not.toBeNull();
+      expect(auth.updateUser).not.toHaveBeenCalled();
+    },
+  );
+  it('preserves the successful recovery update and signout flow', async () => {
+    signedIn();
+    await mount(createElement(CustomerAuth, { mode: 'reset', next: '/library' }));
+    field('password').value = 'recovered-test-password';
+    field('passwordConfirm').value = 'recovered-test-password';
+    await submit();
+    expect(auth.updateUser).toHaveBeenCalledWith({ password: 'recovered-test-password' });
+    expect(auth.signOut).toHaveBeenCalledOnce();
+    expect(fake.replace).toHaveBeenCalledWith('/login?next=%2Flibrary');
+  });
+  it.each(['?', '#'])(
+    'keeps partial email confirmation guidance visible for %s messages',
+    async (separator) => {
+      signedIn();
+      fake.customer.profile!.onboarded = true;
+      const message =
+        'Confirmation link accepted. Please proceed to confirm link sent to the other email';
+      window.history.replaceState(
+        null,
+        '',
+        `/auth/callback${separator}message=${encodeURIComponent(message)}`,
+      );
+      await mount(createElement(CustomerAuth, { mode: 'callback', next: '/account' }));
+      expect(container.textContent).toContain('أكّد البريد الآخر');
+      expect(container.textContent).toContain('رسالة التأكيد الأخرى');
+      expect(container.querySelector('a[href="/account"]')).not.toBeNull();
+      expect(fake.replace).not.toHaveBeenCalled();
+    },
+  );
+  it('does not display arbitrary callback messages', async () => {
+    signedIn();
+    fake.customer.profile!.onboarded = true;
+    window.history.replaceState(null, '', '/auth/callback?message=untrusted-message');
+    await mount(createElement(CustomerAuth, { mode: 'callback', next: '/account' }));
+    expect(container.textContent).not.toContain('untrusted-message');
+    expect(fake.replace).toHaveBeenCalledWith('/account');
+  });
 });
 
 describe('customer playlist loading', () => {

@@ -44,15 +44,27 @@ export function CustomerAuth({
   const [busy, setBusy] = useState(false);
   const [resendAfter, setResendAfter] = useState(0);
   const [callbackChecked, setCallbackChecked] = useState(false);
+  const [linkError, setLinkError] = useState('');
+  const [emailChangePending, setEmailChangePending] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const client = customer.client;
 
   useEffect(() => {
-    if (mode !== 'callback') return;
+    if (mode !== 'callback' && mode !== 'reset') return;
     const hash = new URLSearchParams(window.location.hash.slice(1));
     const search = new URLSearchParams(window.location.search);
-    if (hash.get('error') || search.get('error'))
-      setError('انتهت صلاحية الرابط أو تعذّر تأكيده. اطلب رسالة جديدة.');
+    const failed = [hash, search].some((params) =>
+      ['error', 'error_code', 'error_description'].some((key) => Boolean(params.get(key))),
+    );
+    setLinkError(failed ? 'انتهت صلاحية الرابط أو تعذّر تأكيده. اطلب رسالة جديدة.' : '');
+    setEmailChangePending(
+      !failed &&
+        [hash, search].some(
+          (params) =>
+            params.get('message') ===
+            'Confirmation link accepted. Please proceed to confirm link sent to the other email',
+        ),
+    );
     setCallbackChecked(true);
   }, [mode]);
 
@@ -64,7 +76,8 @@ export function CustomerAuth({
       !customer.user
     )
       return;
-    if (mode === 'callback' && (!callbackChecked || error)) return;
+    if (mode === 'callback' && (!callbackChecked || linkError || emailChangePending || error))
+      return;
     router.replace(
       customer.profile.onboarded ? next : `/onboarding?next=${encodeURIComponent(next)}`,
     );
@@ -76,6 +89,8 @@ export function CustomerAuth({
     next,
     router,
     callbackChecked,
+    linkError,
+    emailChangePending,
     error,
   ]);
 
@@ -90,6 +105,8 @@ export function CustomerAuth({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (mode === 'reset' && (!callbackChecked || linkError || customer.loading || !customer.user))
+      return;
     const form = event.currentTarget;
     const invalid = validateCustomerForm(form);
     setErrors(invalid);
@@ -211,14 +228,29 @@ export function CustomerAuth({
 
   if (mode === 'callback')
     return (
-      <CustomerAuthFrame title={copy.callback[0]} intro={copy.callback[1]}>
-        {error || customer.error ? (
+      <CustomerAuthFrame
+        title={emailChangePending ? 'أكّد البريد الآخر.' : copy.callback[0]}
+        intro={emailChangePending ? 'بقيت خطوة لإتمام تغيير بريدك.' : copy.callback[1]}
+      >
+        {linkError || error || customer.error ? (
           <>
-            <p role="alert">{error || customer.error}</p>
+            <p role="alert">{linkError || error || customer.error}</p>
             <Link className="customer-primary" href={`/confirm?next=${encodeURIComponent(next)}`}>
               أرسل رسالة جديدة
             </Link>
             <Link href={`/login?next=${encodeURIComponent(next)}`}>تسجيل الدخول</Link>
+          </>
+        ) : emailChangePending ? (
+          <>
+            <p role="status">
+              افتح رسالة التأكيد الأخرى في بريدك الحالي أو الجديد، واستخدم رابطها لإكمال التغيير.
+            </p>
+            <Link
+              className="customer-primary"
+              href={customer.user ? '/account' : '/login?next=%2Faccount'}
+            >
+              {customer.user ? 'العودة إلى حسابي' : 'تسجيل الدخول'}
+            </Link>
           </>
         ) : (
           <>
@@ -234,6 +266,18 @@ export function CustomerAuth({
             )}
           </>
         )}
+      </CustomerAuthFrame>
+    );
+
+  if (mode === 'reset' && linkError)
+    return (
+      <CustomerAuthFrame title={copy.reset[0]} intro={copy.reset[1]}>
+        <p className="customer-error" role="alert">
+          {linkError}
+        </p>
+        <Link className="customer-primary" href={`/forgot?next=${encodeURIComponent(next)}`}>
+          أرسل رابطًا جديدًا
+        </Link>
       </CustomerAuthFrame>
     );
 
@@ -394,7 +438,12 @@ export function CustomerAuth({
             </Link>
           </>
         ) : (
-          <button className="customer-primary" disabled={busy || !client}>
+          <button
+            className="customer-primary"
+            disabled={
+              busy || !client || (mode === 'reset' && (!callbackChecked || customer.loading))
+            }
+          >
             {busy ? 'جارٍ المتابعة…' : submitLabel}
           </button>
         )}

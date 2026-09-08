@@ -103,8 +103,10 @@ The development Supabase Site URL is now
 `https://web.mukhtalif-development.workers.dev`. Nine scoped Web callback/reset
 and Studio invitation redirect patterns are saved; the exact allowlist is in
 `design-handoff-audit.md`. Email signup and confirmation are enabled, while
-Google is disabled. Auth SMTP remains pending DNS verification for the separate
-`auth.devmail.mukhtalif.net` domain. Hosted email, customer/library and attachment
+Google is disabled. The separate `auth.devmail.mukhtalif.net` domain is now
+verified in Resend. Custom SMTP remains disabled: automatic approval review
+rejected issuance of the dedicated, domain-restricted sending key and requires
+explicit owner approval for that credential. Hosted email, customer/library and attachment
 acceptance, coordinated deployment and final visual sign-off remain outstanding.
 
 ## Verification and recovery
