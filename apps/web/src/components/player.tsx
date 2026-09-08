@@ -480,13 +480,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
 function PlayIcon({ paused }: { paused: boolean }) {
   return paused ? (
-    <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M8 5.8v12.4L18 12 8 5.8Z" fill="currentColor" />
+    <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M7 4.8v14.4L19 12z" fill="currentColor" />
     </svg>
   ) : (
-    <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="6.5" y="5.5" width="4" height="13" rx="1" fill="currentColor" />
-      <rect x="13.5" y="5.5" width="4" height="13" rx="1" fill="currentColor" />
+    <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M6 5h4v14H6zm8 0h4v14h-4z" fill="currentColor" />
     </svg>
   );
 }
@@ -531,6 +530,7 @@ export function PlayEpisodeButton({
         className,
       )}
       aria-label={label}
+      title={label}
       aria-pressed={playing}
       aria-busy={loading}
       onClick={() =>
@@ -571,6 +571,7 @@ function Transport({
         type="button"
         className={styles.button}
         aria-label="الرجوع 15 ثانية"
+        title="الرجوع 15 ثانية"
         disabled={!canSeek}
         onClick={() => player.skip(-15)}
       >
@@ -581,6 +582,7 @@ function Transport({
         type="button"
         className={styles.button}
         aria-label="التقديم 15 ثانية"
+        title="التقديم 15 ثانية"
         disabled={!canSeek}
         onClick={() => player.skip(15)}
       >
@@ -633,6 +635,7 @@ function RateControl({ disabled = false }: { disabled?: boolean }) {
         value={player.playbackRate}
         disabled={disabled}
         aria-label="سرعة التشغيل"
+        title="سرعة التشغيل"
         onChange={(event) => {
           const value = Number(event.currentTarget.value);
           const rate = PLAYBACK_RATES.find((candidate) => candidate === value);
@@ -713,17 +716,10 @@ export function PlayerBar({ className }: { className?: string }) {
           type="button"
           className={styles.closeButton}
           aria-label="إغلاق المشغل"
+          title="إغلاق المشغل"
           onClick={player.close}
         >
-          <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="m6.8 6.8 10.4 10.4m0-10.4L6.8 17.2"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-            />
-          </svg>
+          <BrandIcon name="close" className={styles.icon} />
         </button>
       </div>
     </section>
@@ -872,6 +868,7 @@ function PlayerTools() {
       <button
         className={styles.button}
         aria-label="قائمة الانتظار"
+        title="قائمة الانتظار"
         onClick={() => void openQueue()}
       >
         <BrandIcon name="queue" />
@@ -879,6 +876,7 @@ function PlayerTools() {
       <button
         className={styles.button}
         aria-label="احفظ اللحظة"
+        title="احفظ اللحظة"
         onClick={() => {
           if (customer.requireAccount()) {
             setMessage('');

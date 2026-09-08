@@ -98,6 +98,8 @@
   content: '';
   position: absolute;
   inset: 0;
+  /* The reference includes the hero gutters in the pattern's containing box. */
+  inset-inline: calc(-1 * var(--gutter));
   z-index: -1;
   background: var(--fg);
   opacity: 0.022;
@@ -782,6 +784,9 @@ html[data-concept='third'] .public-listening img {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-template-rows: auto auto auto auto auto;
     gap: 16px;
+  }
+  .handoff-hero::before {
+    mask-size: 140% auto;
   }
   .handoff-hero__scene {
     grid-column: 1/5;

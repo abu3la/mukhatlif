@@ -88,7 +88,8 @@
   cursor: pointer;
   transition:
     color 140ms ease,
-    background-color 140ms ease;
+    background-color 140ms ease,
+    border-color 140ms ease;
 }
 
 .button:hover,
@@ -365,11 +366,34 @@
   padding-inline: 26px;
 }
 .transport {
-  gap: 6px;
+  gap: 8px;
 }
-.transport > .button {
+.transport > .button,
+.tools > .button,
+.barInner > .closeButton {
+  inline-size: 44px;
+  block-size: 44px;
+  flex: none;
+  padding: 0;
   background: #1d2154;
   border: 1px solid #3a3f78;
+  font-weight: 500;
+}
+.transport > .button:hover:not(:disabled),
+.tools > .button:hover:not(:disabled),
+.barInner > .closeButton:hover {
+  background: #262b73;
+  border-color: #4a5090;
+  color: #fff;
+}
+.bar .playButton {
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  border: 1px solid #38df82;
+}
+.bar .playButton:hover {
+  border-color: #5ce69a;
 }
 .bar .range,
 .inline .range {
@@ -383,23 +407,30 @@
   background: #1d2154;
   color: #eaebf6;
   border-color: #3a3f78;
-  border-radius: 8px;
+  border-radius: 999px;
+  min-width: 44px;
   min-height: 44px;
+  padding-inline: 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.rateSelect:hover:not(:disabled) {
+  background: #262b73;
+  border-color: #4a5090;
+  color: #fff;
 }
 .rateField > span {
   display: none;
 }
 .tools {
   display: flex;
-  gap: 2px;
+  gap: 6px;
   align-items: center;
 }
-.tools .button {
-  width: 44px;
-}
-.tools .button svg {
-  width: 20px;
-  height: 20px;
+.tools > .button svg,
+.barInner > .closeButton .icon {
+  inline-size: 16px;
+  block-size: 16px;
 }
 .spinner {
   display: block;
@@ -458,6 +489,7 @@
   }
   .barInner > .transport {
     grid-area: transport;
+    gap: 6px;
   }
   .barInner > .transport > .button {
     display: none;

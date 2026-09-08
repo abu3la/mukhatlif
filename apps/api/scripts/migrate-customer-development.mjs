@@ -14,15 +14,16 @@ const MIGRATION = '0024_customer_accounts_library.sql';
 const REVIEWED_SHA256 = '1cd0cb196fa4f1d99034255b99f0b14ca83ac87f1df5e4c16a0650e7b1f59a32';
 const apiDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-export function developmentConnection(input) {
+export function developmentConnection(input, { cliLoginRole = false } = {}) {
   if (!input || input.includes(PRODUCTION_REF))
     throw new Error('A development-only database URL is required');
   const url = new URL(input);
   const user = decodeURIComponent(url.username);
-  const direct = url.hostname === `db.${DEVELOPMENT_REF}.supabase.co` && user === 'postgres';
+  const loginRole = cliLoginRole ? 'cli_login_postgres' : 'postgres';
+  const direct = url.hostname === `db.${DEVELOPMENT_REF}.supabase.co` && user === loginRole;
   const pooler =
     /^[a-z0-9-]+\.pooler\.supabase\.com$/.test(url.hostname) &&
-    user === `postgres.${DEVELOPMENT_REF}`;
+    user === `${loginRole}.${DEVELOPMENT_REF}`;
   if (
     !['postgres:', 'postgresql:'].includes(url.protocol) ||
     (!direct && !pooler) ||
@@ -43,6 +44,9 @@ export function developmentConnection(input) {
     PGUSER: user,
     PGPASSWORD: decodeURIComponent(url.password),
     PGDATABASE: 'postgres',
+    // Apply the CLI's supported postgres role to every psql/pg_dump process.
+    // An inherited PGOPTIONS must not alter the role of either connection mode.
+    PGOPTIONS: cliLoginRole ? '-c role=postgres' : '',
     PGSSLMODE: url.searchParams.get('sslmode') ?? 'require',
     PGCONNECT_TIMEOUT: '15',
   };
@@ -67,10 +71,13 @@ function run(binary, args, env, input) {
 
 const stateSql = `select json_build_object(
   'database', current_database(),
+  'effectiveRole', current_user,
+  'sessionRole', session_user,
   'ledger', (select coalesce(json_agg(filename order by filename), '[]') from public.schema_migrations),
   'tables', (select coalesce(json_agg(tablename order by tablename), '[]') from pg_tables
     where schemaname='public' and tablename in ('customer_profiles','customer_libraries')),
   'counts', json_build_object(
+    'authUsers', (select count(*) from auth.users),
     'users', (select count(*) from public.users), 'studioMembers', (select count(*) from public.studio_members),
     'episodes', (select count(*) from public.episodes), 'articles', (select count(*) from public.articles),
     'follows', (select count(*) from public.follows), 'progress', (select count(*) from public.playback_progress),
@@ -123,10 +130,10 @@ rollback;`;
 
 export function main(args = process.argv.slice(2)) {
   const value = (flag) => args[args.indexOf(flag) + 1];
-  const known = new Set(['--env-file', '--backup-dir', '--pg-bin', '--apply']);
+  const known = new Set(['--env-file', '--backup-dir', '--pg-bin', '--apply', '--cli-login-role']);
   for (let index = 0; index < args.length; index++) {
     if (!known.has(args[index])) throw new Error('Unsupported argument');
-    if (args[index] !== '--apply') {
+    if (!['--apply', '--cli-login-role'].includes(args[index])) {
       if (!args[index + 1] || args[index + 1].startsWith('--'))
         throw new Error('Missing flag value');
       index++;
@@ -138,8 +145,13 @@ export function main(args = process.argv.slice(2)) {
   if (source.SUPABASE_URL && source.SUPABASE_URL !== `https://${DEVELOPMENT_REF}.supabase.co`) {
     throw new Error('Supplied environment is not the development project');
   }
-  const connection = developmentConnection(source.MUKHTALIF_DEVELOPMENT_DB_URL);
-  const env = { ...process.env, ...connection };
+  const cliLoginRole = args.includes('--cli-login-role');
+  const connection = developmentConnection(source.MUKHTALIF_DEVELOPMENT_DB_URL, { cliLoginRole });
+  // libpq host-address/service overrides must never redirect a verified URL.
+  const inherited = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !key.startsWith('PG')),
+  );
+  const env = { ...inherited, ...connection };
   const binaryDir = args.includes('--pg-bin') ? value('--pg-bin') : '/opt/homebrew/opt/libpq/bin';
   const sql = (query) =>
     run(join(binaryDir, 'psql'), ['-X', '-At', '-v', 'ON_ERROR_STOP=1'], env, query);
@@ -150,6 +162,12 @@ export function main(args = process.argv.slice(2)) {
       'Migration differs from the reviewed SHA-256; review it before updating this guard',
     );
   const before = JSON.parse(sql(stateSql));
+  if (before.effectiveRole !== 'postgres') {
+    throw new Error('Development preflight requires the effective postgres database role');
+  }
+  if (before.sessionRole !== (cliLoginRole ? 'cli_login_postgres' : 'postgres')) {
+    throw new Error('Development preflight requires the expected database login role');
+  }
   if (before.database !== 'postgres' || !before.ledger.includes('0023_episode_youtube.sql')) {
     throw new Error('Development schema preflight failed: migration 0023 must already be recorded');
   }

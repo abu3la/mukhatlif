@@ -1,5 +1,6 @@
 'use client';
 import { useSyncExternalStore } from 'react';
+import styles from './site-navigation.module.css';
 const KEY = 'mukhtalif-appearance';
 function current() {
   return document.documentElement.dataset.concept === 'third';
@@ -31,7 +32,7 @@ export function ThemeControl() {
   return (
     <button
       type="button"
-      className="theme-control"
+      className={styles.themeControl}
       aria-label={dark ? 'تفعيل المظهر الفاتح' : 'تفعيل المظهر الداكن'}
       onClick={() => {
         const next = dark ? 'first' : 'third';
@@ -48,7 +49,7 @@ export function ThemeControl() {
         <circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
         <path d="M10 2.5a7.5 7.5 0 0 1 0 15Z" fill="currentColor" />
       </svg>
-      <span>{dark ? 'فاتح' : 'داكن'}</span>
+      <span>{dark ? 'المظهر الفاتح' : 'المظهر الداكن'}</span>
     </button>
   );
 }

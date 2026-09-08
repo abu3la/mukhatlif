@@ -152,6 +152,21 @@ only `aaahashmi95@gmail.com`. In production, Supabase sends to the actual invite
 member after the Studio authorization check. Test the development invitation
 flow with the owned address before enabling production SMTP.
 
+### Development Auth setup status, 8 September 2026
+
+The separate development Auth sending domain is `auth.devmail.mukhtalif.net`.
+Its DNS verification is still pending; the Hostinger API returns HTTP 403 on the
+DNS setup path. Do not confuse this with Supabase database access, which has
+been restored and used to verify development migration 0024.
+
+Custom Auth SMTP is not yet complete, and no successful signup-confirmation,
+password-recovery, email-change or invitation delivery is asserted by this
+record. Keep the existing form sender `forms@devmail.mukhtalif.net` and its
+restricted credential separate. The development Supabase Site URL and nine
+scoped callback/reset/invitation redirect patterns have been saved; see
+`design-handoff-audit.md` for the exact values and database receipts. Those
+settings alone do not establish mail delivery or a completed release.
+
 ## 5. Release verification
 
 Development:

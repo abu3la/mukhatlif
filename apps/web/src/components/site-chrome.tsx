@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { SiteNavigation } from './site-navigation';
-import { ThemeControl } from './theme-control';
-import { BrandIcon } from './brand-icon';
+import styles from './site-navigation.module.css';
 
 export function BrandLogo() {
   return (
@@ -26,24 +25,11 @@ export function BrandLogo() {
 export function SiteHeader() {
   return (
     <header className="site-header">
-      <div className="shell site-header__inner">
-        <Link className="site-header__brand" href="/" aria-label="مختلف - الرئيسية">
+      <div className={styles.headerInner}>
+        <Link className={styles.brand} href="/" aria-label="مختلف - الرئيسية">
           <BrandLogo />
         </Link>
         <SiteNavigation />
-        <div className="site-header__actions">
-          <Link className="icon-action site-search" href="/search" aria-label="ابحث في مختلف">
-            <BrandIcon name="search" />
-          </Link>
-          <Link className="nav-library" href="/library">
-            <BrandIcon name="library" />
-            <span>مكتبتي</span>
-          </Link>
-          <Link className="icon-action" href="/account" aria-label="حسابي">
-            <BrandIcon name="user" />
-          </Link>
-          <ThemeControl />
-        </div>
       </div>
     </header>
   );
