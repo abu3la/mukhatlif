@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { readFileSync } from 'node:fs';
 import { URL } from 'node:url';
@@ -42,8 +42,14 @@ async function snapshot(db) {
 }
 
 describe('development 0023 ledger reconciliation', () => {
+  let db;
+  // A fresh PostgreSQL WASM engine can take more than 5s to start on shared CI.
+  // Budget fixture initialization separately; assertions retain Vitest's default timeout.
+  beforeEach(async () => {
+    db = await fixture();
+  }, 15000);
+
   it('verifies the actual migration read-only and records only the missing ledger entry', async () => {
-    const db = await fixture();
     const before = await snapshot(db);
     const result = await db.exec(verification);
     expect(result.at(-1).rows[0]).toEqual({
@@ -87,7 +93,6 @@ describe('development 0023 ledger reconciliation', () => {
       "alter table public.episodes drop constraint episodes_youtube_video_id_format; alter table public.episodes add constraint episodes_youtube_video_id_format check(youtube_video_id is null or youtube_video_id ~ '^[A-Za-z0-9_-]{11}$') not valid;",
     ],
   ])('refuses to record the ledger for %s', async (_name, change) => {
-    const db = await fixture();
     await db.exec(change);
     await expect(db.exec(verification)).rejects.toThrow('0023 verification failed');
     await expect(db.exec(reconciliation)).rejects.toThrow('0023 verification failed');
@@ -102,7 +107,6 @@ describe('development 0023 ledger reconciliation', () => {
   });
 
   it('refuses to replay an existing ledger entry', async () => {
-    const db = await fixture();
     await db.exec(reconciliation);
     await expect(db.exec(reconciliation)).rejects.toThrow('already exists');
     await db.exec('rollback;');
@@ -116,7 +120,6 @@ describe('development 0023 ledger reconciliation', () => {
   });
 
   it('requires the exact preceding migration ledger entry', async () => {
-    const db = await fixture();
     await db.exec('delete from public.schema_migrations;');
     await expect(db.exec(reconciliation)).rejects.toThrow('0022 ledger prerequisite missing');
     await db.exec('rollback;');

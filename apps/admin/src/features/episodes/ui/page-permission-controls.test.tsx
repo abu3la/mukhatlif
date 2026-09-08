@@ -581,7 +581,8 @@ describe('page mutation controls', () => {
 
     await user.type(screen.getByRole('textbox', { name: 'عنوان المقال' }), ' مستقبل العمل ');
     await user.type(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }), 'future-of-work');
-    await user.type(screen.getByRole('textbox', { name: 'محتوى المقال' }), 'نص المقال التجريبي.');
+    await user.click(screen.getByRole('textbox', { name: 'محتوى المقال' }));
+    await user.paste('نص المقال التجريبي.');
     await user.click(screen.getByRole('checkbox', { name: /إعداد نشرة لهذا المقال/ }));
     await user.type(screen.getByRole('textbox', { name: 'عنوان الرسالة' }), 'رسالة الأسبوع');
     await user.click(screen.getByRole('button', { name: 'حفظ المسودة' }));
