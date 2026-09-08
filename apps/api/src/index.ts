@@ -22,6 +22,7 @@ import { studioMembersRoute } from './routes/studio-members';
 import { publicMediaRoute, studioMediaRoute } from './routes/media';
 import { publicRedirectsRoute } from './routes/redirects';
 import { customerAccountRoute, customerLibraryRoute } from './routes/customer';
+import { customerSchemaHealthRoute } from './routes/customer-health';
 import {
   CustomerConflictError,
   CustomerItemNotFoundError,
@@ -49,6 +50,10 @@ import {
  * the confusion this split exists to end.
  */
 const app = new Hono<AppEnv>();
+
+// Infrastructure readiness must still fail generically when Auth/CORS config
+// is unavailable, and must never resolve or provision a requesting identity.
+app.route('/health/customer-schema', customerSchemaHealthRoute);
 
 app.use(
   '*',

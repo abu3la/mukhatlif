@@ -6,6 +6,8 @@ export class CustomerLibraryLimitError extends Error {}
 export class CustomerItemNotFoundError extends Error {}
 
 export interface CustomerRepository {
+  /** Read-only release gate; reveals neither customer data nor database errors. */
+  isCustomerSchemaReady(): Promise<boolean>;
   /** Identity and email must come from the verified Auth response, never request JSON. */
   provisionCustomer(
     authUserId: string,

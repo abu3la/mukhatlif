@@ -2,7 +2,7 @@
 
 Migration `0024_customer_accounts_library.sql` adds private customer profile and library tables plus three service-role-only functions. It does not change Studio roles, memberships, publication data or existing customer records. New account provisioning is an explicit authenticated API call and independently checks the confirmed Supabase Auth identity.
 
-As of September 8, the migration has **not been applied to development**. The available Supabase CLI identity lists production and an unrelated project; its read-only query for development `acomtixjibgkauzeltsn` returns HTTP 403. The development service-role key can use existing tables but cannot apply schema changes. Production `pacpdxvujkjvnaeeuute` remains outside this task.
+As of September 8, the migration has **not been applied to development**. The available Supabase CLI identity lists production and an unrelated project; its read-only query for development `acomtixjibgkauzeltsn` returns HTTP 403. The development service-role key can use existing tables but cannot apply schema changes. Production `pacpdxvujkjvnaeeuute` remains outside this task. A subsequent check through the saved CLI login and Chrome dashboard still lacks development access; read-only development REST checks confirm that the 0024 ledger entry and both customer tables are absent.
 
 The migration and transaction/rollback behavior execute in the API test suite using an isolated PGlite PostgreSQL database containing the relevant current identity tables. `scripts/customer-postgres.test.mjs` runs the actual migration, release smoke transaction, browser-role denial and service-role identity checks. Run it with `pnpm --filter @mukhtalif/api test`; this validates SQL behavior, not hosted deployment. API identity, profile, library isolation and concurrent-write tests also pass.
 
@@ -24,3 +24,9 @@ If a post-commit verification fails, do not blindly rerun or remove the schema. 
 The schema is additive, so reverting application code while retaining the tables is the first recovery choice. `supabase/customer-development-rollback.sql` is a manual empty-schema rollback and refuses to run if either new table contains customer data. Never run it after real customer use without a reviewed preservation plan. The full backup remains a separate recovery artifact, not a reason to overwrite newer data.
 
 After verified development migration, deploy API through the existing guarded development script, then the Web build using the matching development Auth/public key. Verify signup, profile changes, saves, playlists and reload persistence against that deployment. Do not copy development data or credentials into production.
+
+## Deployment schema check
+
+`GET /health/customer-schema` returns only `{ "ready": true }` with HTTP 200 when migration 0024 is recorded and both customer tables expose their required columns. Missing schema, a query failure or timeout returns `{ "ready": false }` with HTTP 503. It performs no provisioning or writes and exposes no customer data.
+
+The development release verifier requires this result before publishing Studio/Web. Working 401 account guards are insufficient: an API can reject anonymous requests while its account tables are missing. This check protects consumer deployment; it does not apply the migration or replace the backup, SQL privilege checks and hosted account verification above.

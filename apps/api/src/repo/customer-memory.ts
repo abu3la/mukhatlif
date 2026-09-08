@@ -33,6 +33,9 @@ export function createMemoryCustomerRepository(
     ...structuredClone(details.get(user.id) ?? defaultCustomerDetails()),
   });
   return {
+    async isCustomerSchemaReady() {
+      return true;
+    },
     async provisionCustomer(authUserId, email, input) {
       const existing = users.find(
         (user) => user.authUserId === authUserId || `dev:${user.id}` === authUserId,

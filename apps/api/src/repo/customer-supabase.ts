@@ -59,6 +59,39 @@ export function createSupabaseCustomerRepository(db: SupabaseClient): CustomerRe
   }
 
   return {
+    async isCustomerSchemaReady() {
+      const migration = '0024_customer_accounts_library.sql';
+      const signal = AbortSignal.timeout(5_000);
+      try {
+        const ledger = await db
+          .from('schema_migrations')
+          .select('filename')
+          .eq('filename', migration)
+          .retry(false)
+          .abortSignal(signal)
+          .maybeSingle();
+        if (ledger.error || ledger.data?.filename !== migration) return false;
+        // Selecting zero rows validates every required column without reading
+        // profile details or library documents. Do not execute customer RPCs.
+        const results = await Promise.all([
+          db
+            .from('customer_profiles')
+            .select('user_id,gender,birth_date,interests,onboarded,updated_at')
+            .limit(0)
+            .retry(false)
+            .abortSignal(signal),
+          db
+            .from('customer_libraries')
+            .select('user_id,document,revision,updated_at')
+            .limit(0)
+            .retry(false)
+            .abortSignal(signal),
+        ]);
+        return results.every((result) => !result.error);
+      } catch {
+        return false;
+      }
+    },
     getCustomerProfile,
     async provisionCustomer(authUserId, email, input) {
       const { data, error } = await db.rpc('provision_customer_account', {

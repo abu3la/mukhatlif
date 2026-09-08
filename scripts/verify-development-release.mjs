@@ -72,11 +72,18 @@ if (mode === 'config') {
   const response = await check(`${api}/`);
   if ((await response.json()).name !== 'mukhtalif-api')
     throw Error('API identity response mismatch');
+  const readiness = await check(`${api}/health/customer-schema`);
+  if ((await readiness.json()).ready !== true)
+    throw Error(
+      'Development customer schema is not ready; apply and verify migration 0024 before deploying consumers.',
+    );
   await check(`${api}/shows`);
   await check(`${api}/studio/me`, 401);
   await check(`${api}/app/account`, 401);
   await check(`${api}/app/library`, 401);
-  console.log('Development API identity, data read and authentication guard verified.');
+  console.log(
+    'Development API identity, customer schema, data read and authentication guard verified.',
+  );
 } else if (mode === 'public') {
   for (const origin of [web, studio]) {
     const routes =

@@ -36,14 +36,19 @@ GitHub repository/environment secrets required:
 - `STUDIO_DEVELOPMENT_ANON_KEY`: matching Supabase project `acomtixjibgkauzeltsn`,
   `anon` role only. The build guard rejects production or service-role keys.
 
-API secrets stay in Cloudflare. No secret-put, database migration/import, DNS
+API secrets stay in Cloudflare. Web receives only the matching public development
+Auth configuration through its Worker bindings. No database migration/import, DNS
 change or R2 object operation is performed by this workflow. The existing shared
 R2 bindings are preserved. Never inject Hostinger credentials into this workflow.
 
 ## Verification and recovery
 
 Guarded builds pin destinations and public development URLs. API verification
-uses `/`, `/shows`, and unauthenticated `/studio/me` (401). `/health/live` is a
+uses `/`, `/shows`, unauthenticated `/studio/me`, `/app/account` and
+`/app/library` (401), plus `/health/customer-schema` (200 with `ready: true`).
+The schema check must pass after API publication and before either consumer
+publishes. Missing migration 0024 or its tables stops the release; the workflow
+never applies migrations itself. `/health/live` is a
 Node-entry-only endpoint and must not be assumed to exist on Workers. Web/Studio
 checks visit `/`, `/login`, `/episodes`; Web must return `noindex`.
 These are read-only smoke checks, not authenticated media-upload acceptance.
