@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ApiUnavailableError, listShows } from '@/lib/api';
 import { EmptyState, ErrorState } from '@/components/states';
-import { singleQuery } from '@/lib/public-content';
+import { categoryLabel, singleQuery } from '@/lib/public-content';
 export const revalidate = 60;
 export const metadata: Metadata = {
   title: 'أعمالنا',
@@ -49,7 +49,7 @@ export default async function WorkPage({
                 href={'/work?category=' + encodeURIComponent(item)}
                 aria-current={selected === item ? 'page' : undefined}
               >
-                {item}
+                {categoryLabel(item)}
               </Link>
             ))}
           </nav>

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ShowCard } from '@/components/cards';
 import { EmptyState, ErrorState } from '@/components/states';
 import { ApiUnavailableError, listShows } from '@/lib/api';
-import { singleQuery } from '@/lib/public-content';
+import { categoryLabel, singleQuery } from '@/lib/public-content';
 
 export const revalidate = 60;
 export const metadata: Metadata = {
@@ -52,7 +52,7 @@ export default async function ShowsPage({
                 key={item}
                 aria-current={selected === item ? 'page' : undefined}
               >
-                {item}
+                {categoryLabel(item)}
               </Link>
             ))}
           </nav>

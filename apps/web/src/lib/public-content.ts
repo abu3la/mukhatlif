@@ -2,6 +2,21 @@ export function singleQuery(value: string | string[] | undefined, maximum = 160)
   return (Array.isArray(value) ? (value[0] ?? '') : (value ?? '')).trim().slice(0, maximum);
 }
 
+const RSS_CATEGORY_LABELS = new Map<string, string>([
+  ['Careers', 'الحياة المهنية'],
+  ['Society & Culture', 'المجتمع والثقافة'],
+  ['Courses', 'دورات تعليمية'],
+  ['Education', 'التعليم'],
+  ['Health & Fitness', 'الصحة واللياقة'],
+  ['Business', 'الأعمال'],
+  ['True Crime', 'جرائم حقيقية'],
+  ['TV & Film', 'التلفزيون والسينما'],
+]);
+
+export function categoryLabel(category: string): string {
+  return RSS_CATEGORY_LABELS.get(category) ?? category;
+}
+
 export const EPISODE_SORTS = ['latest', 'shortest', 'longest'] as const;
 export type EpisodeSort = (typeof EPISODE_SORTS)[number];
 export function episodeSort(value: string): EpisodeSort {
