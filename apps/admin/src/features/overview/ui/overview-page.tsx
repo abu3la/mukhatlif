@@ -51,10 +51,10 @@ export function OverviewView() {
 
       <section className="card section-card" aria-labelledby="latest-episodes-title">
         <div className="section-card__header">
-          <h2 id="latest-episodes-title">أحدث الحلقات</h2>
+          <h2 id="latest-episodes-title">أحدث الحلقات المنشورة</h2>
           {canViewEpisodes ? (
             <Link to={`${adminPaths.episodes}?status=published`} className="button button--quiet">
-              كل الحلقات
+              عرض الحلقات المنشورة
             </Link>
           ) : null}
         </div>

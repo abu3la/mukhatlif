@@ -122,7 +122,7 @@ export function StudioShell({
         <div className="studio-sidebar__header">
           <Link to={homePath} className="studio-brand" aria-label="الانتقال إلى أول صفحة متاحة">
             <BrandMark height={24} />
-            <span>استوديو الإدارة</span>
+            <span>لوحة التحكم</span>
           </Link>
 
           {website && (
@@ -195,10 +195,10 @@ export function StudioShell({
               aria-busy={isSubmitting}
               onClick={() => {
                 setSignOutError('');
-                void signOut().catch(() => setSignOutError('تعذّر تسجيل الخروج.'));
+                void signOut().catch(() => setSignOutError('تعذر تسجيل الخروج.'));
               }}
             >
-              {isSubmitting ? 'جارٍ الخروج…' : 'تسجيل الخروج'}
+              {'تسجيل الخروج'}
             </Button>
             {signOutError ? (
               <p className="studio-sign-out-error" role="alert">

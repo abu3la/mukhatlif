@@ -28,22 +28,22 @@ import { Button, Field, Input } from '@/shared/ui/primitives';
 function linkErrorMessage(error: unknown): string {
   if (error instanceof AdminAuthError) {
     if (error.code === 'EXPIRED_LINK') {
-      return 'انتهت صلاحية الرابط أو استُخدم من قبل. اطلب من مسؤول الاستوديو إرسال دعوة جديدة.';
+      return 'انتهت صلاحية الرابط أو استخدم من قبل. اطلب من مسؤول الاستوديو إرسال دعوة جديدة.';
     }
     if (error.code === 'INVALID_LINK' || error.code === 'INVALID_CREDENTIALS') {
-      return 'الرابط غير صالح. تأكد من فتحه كاملًا من رسالة الدعوة.';
+      return 'الرابط غير صالح. تأكد من فتحه كاملا من رسالة الدعوة.';
     }
     if (error.code === 'RATE_LIMITED') {
-      return 'تكررت المحاولات بسرعة. انتظر قليلًا ثم حاول مرة أخرى.';
+      return 'تكررت المحاولات بسرعة. انتظر قليلا ثم حاول مرة أخرى.';
     }
     if (error.code === 'NETWORK') {
-      return 'تعذّر الاتصال بخدمة الدخول. تحقق من الشبكة وحاول مرة أخرى.';
+      return 'تعذر الاتصال بخدمة الدخول. تحقق من الشبكة وحاول مرة أخرى.';
     }
     if (error.code === 'UNSUPPORTED') {
       return 'هذه النسخة المحلية لا ترسل روابط بالبريد.';
     }
   }
-  return 'تعذّر التحقق من الرابط. حاول مرة أخرى.';
+  return 'تعذر التحقق من الرابط. حاول مرة أخرى.';
 }
 
 function acceptErrorMessage(error: unknown): string {
@@ -52,16 +52,16 @@ function acceptErrorMessage(error: unknown): string {
   // when the fresh password sign-in below fails, so do not mislead the invitee
   // into thinking their new password was discarded.
   if (error instanceof AdminAuthError) {
-    return 'حُفظت كلمة المرور، لكن تعذّر بدء الجلسة. سجّل الدخول بكلمة المرور التي اخترتها.';
+    return 'حفظت كلمة المرور، لكن تعذر بدء الجلسة. سجل الدخول بكلمة المرور التي اخترتها.';
   }
   if (error instanceof AdminRepositoryError) {
-    if (error.code === 'CONFLICT') return 'قُبلت هذه الدعوة من قبل. سجّل الدخول بكلمة مرورك.';
+    if (error.code === 'CONFLICT') return 'قبلت هذه الدعوة من قبل. سجل الدخول بكلمة مرورك.';
     if (error.code === 'FORBIDDEN') return 'لا توجد دعوة مرتبطة بهذا الحساب.';
     if (error.code === 'VALIDATION') {
-      return `كلمة المرور لا تحقق الحد الأدنى: ${MIN_ADMIN_PASSWORD_LENGTH} محرفًا على الأقل.`;
+      return `كلمة المرور لا تحقق الحد الأدنى: ${MIN_ADMIN_PASSWORD_LENGTH} محرفا على الأقل.`;
     }
   }
-  return 'تعذّر إكمال الدعوة. حاول مرة أخرى.';
+  return 'تعذر إكمال الدعوة. حاول مرة أخرى.';
 }
 
 export function InviteView({
@@ -126,7 +126,7 @@ export function InviteView({
         }
         setError(
           state.status === 'active'
-            ? 'قُبلت هذه الدعوة من قبل. سجّل الدخول بكلمة مرورك.'
+            ? 'قبلت هذه الدعوة من قبل. سجل الدخول بكلمة مرورك.'
             : 'لا توجد دعوة إلى الاستوديو مرتبطة بهذا الرابط.',
         );
         await authGateway.signOut();
@@ -147,7 +147,7 @@ export function InviteView({
     }
     const invitationEmail = invitation?.email;
     if (!invitationEmail) {
-      setError('تعذّر تحديد بريد الدعوة. افتح رابط الدعوة من البريد مرة أخرى.');
+      setError('تعذر تحديد بريد الدعوة. افتح رابط الدعوة من البريد مرة أخرى.');
       return;
     }
     setBusy(true);
@@ -176,14 +176,7 @@ export function InviteView({
         <header className="auth-panel__header">
           <BrandMark height={30} />
           <div>
-            <h1 id="invite-title">قبول دعوة الاستوديو</h1>
-            <p>
-              {step === 'link'
-                ? 'تُرسل الدعوات من داخل الاستوديو فقط.'
-                : step === 'password'
-                  ? 'بقي أن تختار كلمة مرور لحسابك.'
-                  : 'اكتمل إعداد حسابك.'}
-            </p>
+            <h1 id="invite-title">قبول دعوة الانضمام للفريق</h1>
           </div>
         </header>
 
@@ -191,7 +184,7 @@ export function InviteView({
           <>
             {busy ? (
               <p className="notice" role="status" aria-live="polite">
-                جارٍ التحقق من الرابط…
+                التحقق من الرابط…
               </p>
             ) : null}
             {error ? (
@@ -223,7 +216,7 @@ export function InviteView({
                 ) : null}
               </p>
             ) : null}
-            <Field label={`كلمة المرور (${MIN_ADMIN_PASSWORD_LENGTH} محرفًا على الأقل)`}>
+            <Field label={`كلمة المرور (${MIN_ADMIN_PASSWORD_LENGTH} محرفا على الأقل)`}>
               <Input
                 type="password"
                 name="new-password"
@@ -262,7 +255,7 @@ export function InviteView({
               disabled={busy || password.length < MIN_ADMIN_PASSWORD_LENGTH}
               aria-busy={busy}
             >
-              {busy ? 'جارٍ الحفظ…' : 'حفظ كلمة المرور والدخول'}
+              {'حفظ كلمة المرور والدخول'}
             </Button>
           </form>
         ) : null}
@@ -270,7 +263,7 @@ export function InviteView({
         {step === 'done' ? (
           <div className="auth-form">
             <p className="notice" role="status">
-              أصبح حسابك جاهزًا. يمكنك الدخول إلى الاستوديو الآن.
+              تم تفعيل الحساب.
             </p>
             <Button
               className="auth-form__submit"
@@ -278,7 +271,7 @@ export function InviteView({
               variant="primary"
               onClick={() => void navigate(adminPaths.overview, { replace: true })}
             >
-              الدخول إلى الاستوديو
+              الدخول إلى لوحة التحكم
             </Button>
           </div>
         ) : null}

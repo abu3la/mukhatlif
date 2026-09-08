@@ -6,13 +6,13 @@ export function RouteErrorView() {
   const message = isRouteErrorResponse(error)
     ? error.status === 404
       ? 'لم نجد الصفحة المطلوبة.'
-      : 'تعذّر فتح الصفحة المطلوبة.'
-    : 'تعذّر عرض هذه الصفحة. حاول مرة أخرى.';
+      : 'تعذر فتح الصفحة المطلوبة.'
+    : 'تعذر عرض هذه الصفحة. حاول مرة أخرى.';
 
   return (
     <main className="route-error" dir="rtl">
       <section className="card form-card">
-        <h1>تعذّر إكمال الطلب</h1>
+        <h1>تعذر إكمال الطلب</h1>
         <p>{message}</p>
         <Link to={adminPaths.overview} className="back-link">
           → العودة إلى نظرة عامة

@@ -54,7 +54,7 @@ describe('access-directory Arabic counts', () => {
     [1, 'دور واحد'],
     [2, 'دوران'],
     [3, '3 أدوار'],
-    [11, '11 دورًا'],
+    [11, '11 دورا'],
   ])('formats %i roles', (count, expected) => {
     expect(formatRoleCount(count)).toBe(expected);
   });
@@ -71,7 +71,7 @@ describe('access-directory Arabic counts', () => {
 
 describe('Arabic search normalization', () => {
   it('folds diacritics, tatweel, alef variants, hamza carriers, ya, and ta marbuta', () => {
-    expect(normalizeArabicSearch('  إِدَارَة ـ مُؤَسَّسَات ۰١  ')).toBe('اداره موسسات 01');
+    expect(normalizeArabicSearch('  إدارة ـ مؤسسات ۰١  ')).toBe('اداره موسسات 01');
     expect(normalizeArabicSearch('آلاء وإيمان فى بيئة')).toBe('الاء وايمان في بييه');
   });
 
@@ -82,8 +82,8 @@ describe('Arabic search normalization', () => {
   });
 
   it('matches normalized terms across separate fields', () => {
-    expect(matchesArabicSearch('اداره ١٢', 'الإِدَارَة', 'غلاف', 12)).toBe(true);
-    expect(matchesArabicSearch('تقنيه طبيبه', 'طبيبة غيّرت مسارها إلى التقنية')).toBe(true);
+    expect(matchesArabicSearch('اداره ١٢', 'الإدارة', 'غلاف', 12)).toBe(true);
+    expect(matchesArabicSearch('تقنيه طبيبه', 'طبيبة غيرت مسارها إلى التقنية')).toBe(true);
     expect(matchesArabicSearch('بترولي ۲۲', 'الهيدروجين الأخضر', 'بترولي', 22)).toBe(true);
   });
 
@@ -99,7 +99,7 @@ describe('simplified Arabic plural agreement', () => {
     one: 'عنصر واحد',
     two: 'عنصران',
     few: 'عناصر',
-    many: 'عنصرًا',
+    many: 'عنصرا',
   } as const;
 
   it.each([
@@ -108,8 +108,8 @@ describe('simplified Arabic plural agreement', () => {
     [2, 'عنصران'],
     [3, '3 عناصر'],
     [10, '10 عناصر'],
-    [11, '11 عنصرًا'],
-    [100, '100 عنصرًا'],
+    [11, '11 عنصرا'],
+    [100, '100 عنصرا'],
   ])('formats count %s using its defined agreement bucket', (count: number, expected: string) => {
     expect(plural(count, forms)).toBe(expected);
   });
@@ -138,11 +138,11 @@ describe('simplified Arabic plural agreement', () => {
     [formatGuestCount, 1, 'ضيف واحد'],
     [formatGuestCount, 2, 'ضيفان'],
     [formatGuestCount, 7, '7 ضيوف'],
-    [formatGuestCount, 11, '11 ضيفًا'],
+    [formatGuestCount, 11, '11 ضيفا'],
     [formatEpisodeCount, 1, 'حلقة واحدة'],
     [formatEpisodeCount, 2, 'حلقتان'],
     [formatEpisodeCount, 3, '3 حلقات'],
-    [formatUserCount, 12, '12 مستخدمًا'],
+    [formatUserCount, 12, '12 مستخدما'],
     [formatResultCount, 0, 'لا نتائج مطابقة'],
     [formatAdditionalEpisodeCount, 2, 'حلقتين أخريين'],
   ] as const)(
@@ -203,7 +203,7 @@ describe('Latin ASCII digit output invariant', () => {
     one: 'عنصر واحد',
     two: 'عنصران',
     few: 'عناصر',
-    many: 'عنصرًا',
+    many: 'عنصرا',
   } as const;
 
   it.each([

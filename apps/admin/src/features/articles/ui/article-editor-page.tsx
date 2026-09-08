@@ -32,11 +32,7 @@ import {
   type RichTextDocument,
 } from '@/lib';
 import { Button, Field, Input, PageBreadcrumb, Select, Textarea } from '@/shared/ui/primitives';
-import {
-  EMPTY_ARTICLE_DOCUMENT,
-  RichTextEditor,
-  type RichTextValue,
-} from './rich-text-editor';
+import { EMPTY_ARTICLE_DOCUMENT, RichTextEditor, type RichTextValue } from './rich-text-editor';
 import {
   copyAiArticleTemplate,
   parseAiArticleDraft,
@@ -191,8 +187,8 @@ function mergeMediaAssets(
 function editorErrorMessage(error: unknown, operation: Exclude<EditorOperation, null>): string {
   if (!isAdminRepositoryError(error)) {
     return operation === 'send'
-      ? 'تعذّر إرسال النشرة. حاول مرة أخرى.'
-      : 'تعذّر إكمال الإجراء. حاول مرة أخرى.';
+      ? 'تعذر إرسال النشرة. حاول مرة أخرى.'
+      : 'تعذر إكمال الإجراء. حاول مرة أخرى.';
   }
 
   const remoteCode = error.context?.remoteCode ?? error.context?.reason;
@@ -200,44 +196,44 @@ function editorErrorMessage(error: unknown, operation: Exclude<EditorOperation, 
     return 'تحتاج مسودة Mailchimp إلى تحديث قبل الإرسال.';
   }
   if (remoteCode === 'NEWSLETTER_SYNC_IN_PROGRESS') {
-    return 'تُحدّث مسودة Mailchimp الآن. انتظر قليلًا ثم تحقق من الحالة.';
+    return 'تحدث مسودة Mailchimp الآن. انتظر قليلا ثم تحقق من الحالة.';
   }
-  if (remoteCode === 'NEWSLETTER_SENT') return 'أُرسلت هذه النشرة من قبل.';
+  if (remoteCode === 'NEWSLETTER_SENT') return 'أرسلت هذه النشرة من قبل.';
   if (remoteCode === 'CAMPAIGN_EXISTS') {
     return 'لا يمكن إيقاف النشرة بعد إنشاء حملة Mailchimp.';
   }
   if (remoteCode === 'MAILCHIMP_AUDIENCE_CONFIRMATION_MISMATCH') {
-    return 'تغيّر جمهور Mailchimp منذ فتح التأكيد. حدّث الصفحة وراجع بيانات الجمهور قبل المحاولة.';
+    return 'تغير جمهور Mailchimp منذ فتح التأكيد. حدث الصفحة وراجع بيانات الجمهور قبل المحاولة.';
   }
   if (remoteCode === 'NEWSLETTER_CONFIRMATION_STALE') {
-    return 'تغيّرت نسخة المقال أو مسودة Mailchimp بعد فتح التأكيد. حدّث الصفحة وراجع آخر حالة قبل المحاولة.';
+    return 'تغيرت نسخة المقال أو مسودة Mailchimp بعد فتح التأكيد. حدث الصفحة وراجع آخر حالة قبل المحاولة.';
   }
   if (remoteCode === 'ARTICLE_CHANGED_DURING_SYNC') {
-    return 'تغيّر المقال أثناء تحديث Mailchimp. احفظ آخر نسخة ثم أعد تحديث المسودة.';
+    return 'تغير المقال أثناء تحديث Mailchimp. احفظ آخر نسخة ثم أعد تحديث المسودة.';
   }
   if (
     remoteCode === 'NEWSLETTER_SYNC_UNKNOWN' ||
     remoteCode === 'NEWSLETTER_CAMPAIGN_PARTIAL_FAILURE' ||
     remoteCode === 'NEWSLETTER_SYNC_STATE_UNKNOWN'
   ) {
-    return 'حالة مسودة Mailchimp غير مؤكدة. لا تُنشئ مسودة أخرى. راجع الحملة في Mailchimp واطلب معالجة الحالة.';
+    return 'حالة مسودة Mailchimp غير مؤكدة. لا تنشئ مسودة أخرى. راجع الحملة في Mailchimp واطلب معالجة الحالة.';
   }
   if (remoteCode === 'NEWSLETTER_SEND_STATE_UNKNOWN') {
-    return 'حالة الإرسال غير مؤكدة. لا ترسل النشرة مجددًا. استخدم التحقق من حالة الإرسال.';
+    return 'حالة الإرسال غير مؤكدة. لا ترسل النشرة مجددا. استخدم التحقق من حالة الإرسال.';
   }
   if (
     error.code === 'CONFLICT' &&
     (remoteCode === 'ARTICLE_VERSION_CONFLICT' || remoteCode === 'ARTICLE_WRITE_CONFLICT')
   ) {
-    return 'تغيّر المقال في جلسة أخرى. أعد تحميل الصفحة قبل متابعة التحرير.';
+    return 'تغير المقال في جلسة أخرى. أعد تحميل الصفحة قبل متابعة التحرير.';
   }
   switch (error.code) {
     case 'CONFLICT':
       return operation === 'save'
-        ? 'تعذّر الحفظ بسبب تعارض في نسخة المقال أو معرّف الرابط.'
-        : 'تعذّر إكمال الإجراء بسبب تعارض في حالة المقال.';
+        ? 'تعذر الحفظ بسبب تعارض في نسخة المقال أو معرف الرابط.'
+        : 'تعذر إكمال الإجراء بسبب تعارض في حالة المقال.';
     case 'UNAUTHENTICATED':
-      return 'انتهت جلسة الدخول. سجّل الدخول ثم حاول مرة أخرى.';
+      return 'انتهت جلسة الدخول. سجل الدخول ثم حاول مرة أخرى.';
     case 'FORBIDDEN':
       return 'ليس لديك صلاحية لإكمال هذا الإجراء.';
     case 'VALIDATION':
@@ -249,21 +245,21 @@ function editorErrorMessage(error: unknown, operation: Exclude<EditorOperation, 
       return 'Mailchimp غير مهيأ في الخادم.';
     case 'NETWORK':
     case 'REMOTE_UNAVAILABLE':
-      return 'تعذّر الاتصال بالخادم. تحقق من اتصالك ثم حاول مرة أخرى.';
+      return 'تعذر الاتصال بالخادم. تحقق من اتصالك ثم حاول مرة أخرى.';
     default:
-      return 'تعذّر إكمال الإجراء. حاول مرة أخرى.';
+      return 'تعذر إكمال الإجراء. حاول مرة أخرى.';
   }
 }
 
 function newsletterStatusLabel(article?: Article, dirty = false): string {
-  if (!article || !article.newsletter.enabled) return 'غير مفعّلة';
-  if (article.newsletter.status === 'sent') return 'أُرسلت';
-  if (article.newsletter.status === 'sending') return 'جارٍ الإرسال';
-  if (article.newsletter.status === 'syncing') return 'جارٍ تحديث مسودة Mailchimp';
+  if (!article || !article.newsletter.enabled) return 'غير مفعلة';
+  if (article.newsletter.status === 'sent') return 'أرسلت';
+  if (article.newsletter.status === 'sending') return 'الإرسال';
+  if (article.newsletter.status === 'syncing') return 'تحديث مسودة Mailchimp';
   if (article.newsletter.status === 'sync_unknown') return 'نتيجة إنشاء المسودة غير مؤكدة';
   if (dirty || article.newsletter.needsSync) return 'تحتاج المسودة إلى تحديث';
   if (article.newsletter.status === 'campaign_created') return 'مسودة Mailchimp جاهزة';
-  return 'مسودة داخل الاستوديو';
+  return 'مسودة النشرة';
 }
 
 function SeoCounter({ value, maximum }: { readonly value: string; readonly maximum: number }) {
@@ -422,7 +418,7 @@ function NewsletterExportMenu({
         }
       }}
     >
-      <button
+      <Button
         ref={triggerRef}
         type="button"
         className="button button--primary article-publisher__export-trigger"
@@ -431,11 +427,12 @@ function NewsletterExportMenu({
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => void toggleMenu()}
+        aria-busy={preparing}
       >
         <FileDown aria-hidden="true" focusable="false" size={18} strokeWidth={1.9} />
-        <span>{preparing ? 'جارٍ تجهيز خيارات التصدير…' : 'تصدير البريد للإرسال'}</span>
+        <span>{'تصدير البريد للإرسال'}</span>
         <ChevronDown aria-hidden="true" focusable="false" size={16} strokeWidth={1.9} />
-      </button>
+      </Button>
       {open ? (
         <div
           ref={menuRef}
@@ -640,7 +637,7 @@ export function ArticleEditorView() {
       if (requestId === mailchimpRequestRef.current) setMailchimp(capability);
     } catch {
       if (requestId === mailchimpRequestRef.current) {
-        setMailchimpError('تعذّر التحقق من إعداد Mailchimp. أعد المحاولة.');
+        setMailchimpError('تعذر التحقق من إعداد Mailchimp. أعد المحاولة.');
       }
     } finally {
       if (requestId === mailchimpRequestRef.current) setMailchimpLoading(false);
@@ -673,7 +670,7 @@ export function ArticleEditorView() {
       .catch(() => {
         if (active) {
           setAuthorDirectoryError(
-            'تعذّر تحميل أعضاء فريق الاستوديو. اختر كاتبًا آخر وأدخل اسمه، أو أعد تحميل الصفحة.',
+            'تعذر تحميل أعضاء فريق الاستوديو. اختر كاتبا آخر وأدخل اسمه، أو أعد تحميل الصفحة.',
           );
         }
       })
@@ -691,7 +688,7 @@ export function ArticleEditorView() {
       setMediaAssets((current) => mergeMediaAssets(current, assets));
       setMediaLoadError('');
     } catch {
-      setMediaLoadError('تعذّر تحميل مكتبة الصور. يمكنك متابعة تحرير النص والمحاولة لاحقًا.');
+      setMediaLoadError('تعذر تحميل مكتبة الصور. يمكنك متابعة تحرير النص والمحاولة لاحقا.');
       throw new Error('Article media library is unavailable.');
     }
   }, [listArticleMedia]);
@@ -707,7 +704,7 @@ export function ArticleEditorView() {
       })
       .catch(() => {
         if (active) {
-          setMediaLoadError('تعذّر تحميل مكتبة الصور. يمكنك متابعة تحرير النص والمحاولة لاحقًا.');
+          setMediaLoadError('تعذر تحميل مكتبة الصور. يمكنك متابعة تحرير النص والمحاولة لاحقا.');
         }
       });
     return () => {
@@ -768,7 +765,7 @@ export function ArticleEditorView() {
     if (!selectedCoverImage || busy || !canManage) return;
     const coverAlt = fields.coverAlt.trim();
     if (!coverAlt) {
-      setCoverUploadError('أضف وصفًا بديلًا قبل رفع صورة الغلاف.');
+      setCoverUploadError('أضف وصفا بديلا قبل رفع صورة الغلاف.');
       return;
     }
 
@@ -789,11 +786,11 @@ export function ArticleEditorView() {
       setMediaAssets((current) => mergeMediaAssets(current, [uploaded]));
       setSelectedCoverImage(null);
       if (!uploaded.publicUrl) {
-        setCoverUploadError('رُفعت الصورة، لكن رابط العرض غير متاح. راجع إعداد تخزين الصور.');
+        setCoverUploadError('رفعت الصورة، لكن رابط العرض غير متاح. راجع إعداد تخزين الصور.');
         return;
       }
       changeField('coverUrl', uploaded.publicUrl);
-      setCoverUploadFeedback('رُفعت صورة الغلاف وأضيفت إلى المقال.');
+      setCoverUploadFeedback('رفعت صورة الغلاف وأضيفت إلى المقال.');
     } catch (cause) {
       setCoverUploadError(articleImageErrorMessage(cause));
     } finally {
@@ -808,26 +805,26 @@ export function ArticleEditorView() {
         authorFields.type === 'studio_member'
           ? authorFields.studioMemberId
             ? undefined
-            : 'اختر عضوًا من فريق الاستوديو.'
+            : 'اختر عضوا من فريق الاستوديو.'
           : authorFields.customDisplayName.trim().length >= 2
             ? undefined
             : 'اكتب اسم الكاتب من حرفين على الأقل.',
       content: hasArticleContent(richText.document)
         ? undefined
-        : 'أضف نصًا أو صورة أو فيديو إلى محتوى المقال.',
+        : 'أضف نصا أو صورة أو فيديو إلى محتوى المقال.',
     };
     setValidationErrors(nextValidationErrors);
     if (nextValidationErrors.title || nextValidationErrors.author || nextValidationErrors.content) {
       return 'راجع عنوان المقال وكاتبه ومحتواه.';
     }
     if (!fields.slug.trim()) {
-      return 'أضف معرّف الرابط.';
+      return 'أضف معرف الرابط.';
     }
     if (!SLUG_PATTERN.test(fields.slug.trim())) {
-      return 'اكتب معرّف الرابط بحروف إنجليزية صغيرة وأرقام وشرطات فقط.';
+      return 'اكتب معرف الرابط بحروف إنجليزية صغيرة وأرقام وشرطات فقط.';
     }
     if (fields.coverUrl.trim() && !fields.coverAlt.trim()) {
-      return 'أضف وصفًا بديلًا لصورة الغلاف.';
+      return 'أضف وصفا بديلا لصورة الغلاف.';
     }
     if (
       !isAllowedCoverUrl(fields.coverUrl, mediaAssets) ||
@@ -923,7 +920,7 @@ export function ArticleEditorView() {
     try {
       const saved = await persistArticle();
       if (!saved) return;
-      setFeedback('حُفظت المسودة.');
+      setFeedback('حفظت المسودة.');
       if (!routeArticleId) navigate(adminPaths.article(saved.id), { replace: true });
     } catch (cause) {
       setError(editorErrorMessage(cause, 'save'));
@@ -943,7 +940,7 @@ export function ArticleEditorView() {
       const nextStatus = currentArticle?.status === 'published' ? 'draft' : 'published';
       const transitioned = await transitionArticleStatus(saved.id, nextStatus, saved.version);
       setWorkingVersion(transitioned.version);
-      setFeedback(nextStatus === 'published' ? 'نُشر المقال.' : 'أُعيد المقال إلى المسودات.');
+      setFeedback(nextStatus === 'published' ? 'نشر المقال.' : 'أعيد المقال إلى المسودات.');
       if (!routeArticleId) navigate(adminPaths.article(saved.id), { replace: true });
     } catch (cause) {
       setError(editorErrorMessage(cause, 'publish'));
@@ -962,9 +959,9 @@ export function ArticleEditorView() {
     setAiImportFeedback('');
     try {
       await copyAiArticleTemplate();
-      setAiImportFeedback('نُسخ القالب. أضف موضوعك ومصادرك إلى المساعد، ثم الصق ناتج JSON هنا.');
+      setAiImportFeedback('نسخ القالب. أضف موضوعك ومصادرك إلى المساعد، ثم الصق ناتج JSON هنا.');
     } catch {
-      setAiImportError('تعذّر نسخ القالب. انسخه يدويًا أو امنح المتصفح إذن الحافظة.');
+      setAiImportError('تعذر نسخ القالب. انسخه يدويا أو امنح المتصفح إذن الحافظة.');
     }
   }
 
@@ -993,13 +990,13 @@ export function ArticleEditorView() {
       setValidationErrors((current) => ({ ...current, title: undefined, content: undefined }));
       setDirty(true);
       setEmailPreview(null);
-      setFeedback('أُضيفت مسودة AI إلى المحرر. راجعها ثم احفظها.');
-      setAiImportFeedback('أُضيفت المسودة. لم يُنشر المقال ولم يُرسل أي بريد.');
+      setFeedback('أضيفت مسودة AI إلى المحرر. راجعها ثم احفظها.');
+      setAiImportFeedback('أضيفت المسودة. لم ينشر المقال ولم يرسل أي بريد.');
     } catch (cause) {
       setAiImportError(
         cause instanceof AiArticleImportError
           ? cause.message
-          : 'تعذّر استيراد المسودة. راجع ناتج AI ثم حاول مرة أخرى.',
+          : 'تعذر استيراد المسودة. راجع ناتج AI ثم حاول مرة أخرى.',
       );
     }
   }
@@ -1011,7 +1008,7 @@ export function ArticleEditorView() {
     try {
       setEmailPreview(await previewArticleNewsletter(workingArticleId));
       setFeedback(
-        mailchimp?.mode === 'simulation' ? 'جُهّز البريد للتصدير المحلي.' : 'جُهّز البريد للتصدير.',
+        mailchimp?.mode === 'simulation' ? 'جهز البريد للتصدير المحلي.' : 'جهز البريد للتصدير.',
       );
       return true;
     } catch (cause) {
@@ -1030,12 +1027,12 @@ export function ArticleEditorView() {
       await copyNewsletterExport(format === 'html' ? emailPreview.html : emailPreview.text);
       setFeedback(
         format === 'html'
-          ? 'نُسخ HTML للنشرة. الصقه يدويًا في محرر Mailchimp.'
-          : 'نُسخت النسخة النصية للنشرة.',
+          ? 'نسخ HTML للنشرة. الصقه يدويا في محرر Mailchimp.'
+          : 'نسخت النسخة النصية للنشرة.',
       );
       return true;
     } catch {
-      setError('تعذّر نسخ ملف النشرة. استخدم التنزيل بدلًا من ذلك.');
+      setError('تعذر نسخ ملف النشرة. استخدم التنزيل بدلا من ذلك.');
       return false;
     }
   }
@@ -1052,12 +1049,12 @@ export function ArticleEditorView() {
       );
       setFeedback(
         format === 'html'
-          ? 'نُزّل ملف HTML للنشرة. يمكنك رفعه أو لصقه في Mailchimp.'
-          : 'نُزّلت النسخة النصية للنشرة.',
+          ? 'نزل ملف HTML للنشرة. يمكنك رفعه أو لصقه في Mailchimp.'
+          : 'نزلت النسخة النصية للنشرة.',
       );
       return true;
     } catch {
-      setError('تعذّر تنزيل ملف النشرة. حدّث قالب البريد ثم حاول مرة أخرى.');
+      setError('تعذر تنزيل ملف النشرة. حدث قالب البريد ثم حاول مرة أخرى.');
       return false;
     }
   }
@@ -1075,7 +1072,7 @@ export function ArticleEditorView() {
     )
       return;
     if (!fields.newsletterEnabled || !fields.newsletterSubject.trim()) {
-      setError('فعّل النشرة وأضف عنوان الرسالة أولًا.');
+      setError('فعل النشرة وأضف عنوان الرسالة أولا.');
       return;
     }
     setOperation('campaign');
@@ -1091,11 +1088,11 @@ export function ArticleEditorView() {
       setFeedback(
         mailchimp.mode === 'simulation'
           ? created
-            ? 'أُنشئت مسودة Mailchimp في المحاكاة المحلية.'
-            : 'حُدّثت مسودة Mailchimp في المحاكاة المحلية.'
+            ? 'أنشئت مسودة Mailchimp في المحاكاة المحلية.'
+            : 'حدثت مسودة Mailchimp في المحاكاة المحلية.'
           : created
-            ? 'أُنشئت مسودة Mailchimp.'
-            : 'حُدّثت مسودة Mailchimp.',
+            ? 'أنشئت مسودة Mailchimp.'
+            : 'حدثت مسودة Mailchimp.',
       );
       if (!routeArticleId) navigate(adminPaths.article(saved.id), { replace: true });
     } catch (cause) {
@@ -1162,7 +1159,7 @@ export function ArticleEditorView() {
         setFeedback(
           result.operation === 'not_sent'
             ? 'لم تبدأ محاكاة الإرسال. عادت الحملة إلى مسودة محلية.'
-            : 'اكتملت محاكاة الإرسال محليًا. لم تُرسل الرسالة عبر Mailchimp.',
+            : 'اكتملت محاكاة الإرسال محليا. لم ترسل الرسالة عبر Mailchimp.',
         );
       } else if (result.operation === 'accepted') {
         setFeedback('استلم Mailchimp طلب الإرسال. تحقق من الحالة بعد قليل.');
@@ -1171,7 +1168,7 @@ export function ArticleEditorView() {
       } else if (result.operation === 'already_sent') {
         setFeedback('كانت النشرة مرسلة من قبل.');
       } else {
-        setFeedback('أُرسلت النشرة.');
+        setFeedback('أرسلت النشرة.');
       }
     } catch (cause) {
       setError(editorErrorMessage(cause, 'send'));
@@ -1195,8 +1192,8 @@ export function ArticleEditorView() {
       } else {
         setFeedback(
           mailchimp?.mode === 'simulation'
-            ? 'اكتملت محاكاة الإرسال محليًا. لم تُرسل الرسالة عبر Mailchimp.'
-            : 'أكّد Mailchimp إرسال النشرة.',
+            ? 'اكتملت محاكاة الإرسال محليا. لم ترسل الرسالة عبر Mailchimp.'
+            : 'أكد Mailchimp إرسال النشرة.',
         );
       }
     } catch (cause) {
@@ -1210,7 +1207,7 @@ export function ArticleEditorView() {
     return (
       <section className="card permission-state" role="status">
         <h1>المقال غير موجود</h1>
-        <p>قد يكون المقال حُذف أو تغيّر معرّفه.</p>
+        <p>قد يكون المقال حذف أو تغير معرفه.</p>
       </section>
     );
   }
@@ -1314,13 +1311,13 @@ export function ArticleEditorView() {
               <p className="article-publisher__ai-intro">
                 {isNewRoute ? (
                   <>
-                    اختر قالبًا سريعًا لمسودة واحدة، أو نزّل سكيلًا متوافقًا مع{' '}
+                    اختر قالبا سريعا لمسودة واحدة، أو نزل سكيلا متوافقا مع{' '}
                     <bdi dir="ltr">ChatGPT Desktop</bdi>&nbsp;و&nbsp;
-                    <bdi dir="ltr">Claude</bdi> ليسألك في المحادثة سؤالًا واحدًا في كل مرة، ثم يعيد
-                    JSON قابلًا للاستيراد.
+                    <bdi dir="ltr">Claude</bdi> ليسألك في المحادثة سؤالا واحدا في كل مرة، ثم يعيد
+                    JSON قابلا للاستيراد.
                   </>
                 ) : (
-                  <>انسخ قالبًا سريعًا لإنشاء مسودة منظمة، ثم الصق ناتج JSON هنا.</>
+                  <>انسخ قالبا سريعا لإنشاء مسودة منظمة، ثم الصق ناتج JSON هنا.</>
                 )}
               </p>
               <div
@@ -1341,18 +1338,23 @@ export function ArticleEditorView() {
                     disabled={!canManage || busy}
                     onClick={() => void copyAiTemplate()}
                   >
-                    <ClipboardCopy aria-hidden="true" focusable="false" size={17} strokeWidth={1.9} />
+                    <ClipboardCopy
+                      aria-hidden="true"
+                      focusable="false"
+                      size={17}
+                      strokeWidth={1.9}
+                    />
                     نسخ القالب
                   </Button>
                 </section>
                 {isNewRoute ? <ArticleAiSkillGuide /> : null}
               </div>
               <p className="article-publisher__ai-boundary">
-                هذه الأدوات تنشئ مسودة فقط. لا تنشر المقال ولا ترسل بريدًا.
+                هذه الأدوات تنشئ مسودة فقط. لا تنشر المقال ولا ترسل بريدا.
               </p>
               <Field
                 label="ناتج AI بصيغة JSON"
-                hint="الصق الناتج كاملًا كما هو. لا يُرسل شيء إلى الموقع أو Mailchimp عند الاستيراد."
+                hint="الصق الناتج كاملا كما هو. لا يرسل شيء إلى الموقع أو Mailchimp عند الاستيراد."
               >
                 <Textarea
                   className="article-publisher__ai-input"
@@ -1384,11 +1386,15 @@ export function ArticleEditorView() {
                   استيراد إلى المسودة
                 </Button>
                 <p>
-                  سيستبدل العنوان والمحتوى الحاليين. تبقى صورة الغلاف والكاتب وإعدادات النشرة كما هي.
+                  سيستبدل العنوان والمحتوى الحاليين. تبقى صورة الغلاف والكاتب وإعدادات النشرة كما
+                  هي.
                 </p>
               </div>
               {aiImportError ? (
-                <p className="article-publisher__ai-status article-publisher__ai-status--error" role="alert">
+                <p
+                  className="article-publisher__ai-status article-publisher__ai-status--error"
+                  role="alert"
+                >
                   {aiImportError}
                 </p>
               ) : aiImportFeedback ? (
@@ -1428,7 +1434,7 @@ export function ArticleEditorView() {
                   </span>
                 ) : null}
               </Field>
-              <Field label="المعرّف في الرابط" hint="حروف إنجليزية صغيرة وأرقام وشرطات فقط.">
+              <Field label="المعرف في الرابط" hint="حروف إنجليزية صغيرة وأرقام وشرطات فقط.">
                 <Input
                   dir="ltr"
                   value={fields.slug}
@@ -1442,10 +1448,7 @@ export function ArticleEditorView() {
                   required
                 />
               </Field>
-              <Field
-                label="ملخص المقال (اختياري)"
-                hint="يظهر تحت العنوان وفي قوائم المحتوى. اتركه فارغًا إذا لم تحتج إليه."
-              >
+              <Field label="ملخص المقال (اختياري)" hint="يظهر تحت العنوان وفي قوائم المحتوى.">
                 <Textarea
                   aria-label="ملخص المقال"
                   value={fields.excerpt}
@@ -1459,10 +1462,7 @@ export function ArticleEditorView() {
             <fieldset className="article-author-editor">
               <legend>كاتب المقال</legend>
               <div className="article-author-editor__fields">
-                <Field
-                  label="نوع الكاتب (مطلوب)"
-                  hint="أعضاء الفريق هنا من فريق الاستوديو، وليسوا من المشتركين أو المستمعين."
-                >
+                <Field label="نوع الكاتب (مطلوب)">
                   <Select
                     value={authorFields.type}
                     disabled={!canManage || busy}
@@ -1502,7 +1502,7 @@ export function ArticleEditorView() {
                       }
                     >
                       <option value="" disabled>
-                        {authorDirectoryLoading ? 'جارٍ تحميل أعضاء الفريق…' : 'اختر عضوًا'}
+                        {authorDirectoryLoading ? 'تحميل أعضاء الفريق…' : 'اختر عضوا'}
                       </option>
                       {availableAuthorCandidates.map((candidate) => (
                         <option key={candidate.studioMemberId} value={candidate.studioMemberId}>
@@ -1517,7 +1517,7 @@ export function ArticleEditorView() {
                     ) : null}
                   </Field>
                 ) : (
-                  <Field label="اسم الكاتب (مطلوب)" hint="سيظهر هذا الاسم للقراء.">
+                  <Field label="اسم الكاتب (مطلوب)">
                     <Input
                       dir="auto"
                       value={authorFields.customDisplayName}
@@ -1546,7 +1546,7 @@ export function ArticleEditorView() {
                 <Field
                   className="article-author-editor__placement"
                   label="موضع اسم الكاتب (مطلوب)"
-                  hint="يُطبّق على المقال والنشرة الأسبوعية."
+                  hint="يطبق على المقال والنشرة الأسبوعية."
                 >
                   <Select
                     value={fields.authorPlacement}
@@ -1570,11 +1570,11 @@ export function ArticleEditorView() {
                 >
                   <p>
                     {authorDirectoryLoading
-                      ? 'جارٍ تحميل أعضاء فريق الاستوديو…'
+                      ? 'تحميل أعضاء الفريق…'
                       : authorDirectoryError ||
                         (currentAuthorCandidate
                           ? 'لا يوجد أعضاء آخرون متاحون. يمكنك الاحتفاظ بالكاتب المحفوظ أو اختيار كاتب آخر.'
-                          : 'لا يوجد أعضاء متاحون للاختيار. اختر كاتبًا آخر وأدخل اسمه.')}
+                          : 'لا يوجد أعضاء متاحون للاختيار. اختر كاتبا آخر وأدخل اسمه.')}
                   </p>
                   {!authorDirectoryLoading ? (
                     <Button
@@ -1617,7 +1617,7 @@ export function ArticleEditorView() {
                 }}
               />
               <p id={contentHelpId} className="field__hint">
-                أضف نصًا أو صورة أو فيديو واحدًا على الأقل.
+                أضف نصا أو صورة أو فيديو واحدا على الأقل.
               </p>
               {validationErrors.content ? (
                 <p id={contentErrorId} className="field__error">
@@ -1635,7 +1635,7 @@ export function ArticleEditorView() {
           <CollapsibleArticleSection
             id="article-media-title"
             title="صورة الغلاف"
-            description="ارفع صورة من جهازك، أو استخدم رابطًا بديلًا عند الحاجة."
+            description="ارفع صورة من جهازك، أو استخدم رابطا بديلا عند الحاجة."
             open={openSections.cover}
             onToggle={() => toggleSection('cover')}
           >
@@ -1665,9 +1665,9 @@ export function ArticleEditorView() {
                     />
                     <span>{selectedCoverImage?.file.name ?? 'لم تختر صورة بعد.'}</span>
                     <small>
-                      JPEG أو PNG. بعد الاختيار ستقصّ الغلاف بنسبة 16:9. يجب أن تكفي أبعاد الصورة
-                      لقصّ غلاف لا يقل عن 1200 × 675 بكسل، ونوصي بـ 1600 × 900. الحد الأقصى 10 م.ب
-                      و24 مليون بكسل إجمالًا.
+                      JPEG أو PNG. بعد الاختيار ستقص الغلاف بنسبة 16:9. يجب أن تكفي أبعاد الصورة لقص
+                      غلاف لا يقل عن 1200 × 675 بكسل، ونوصي بـ 1600 × 900. الحد الأقصى 10 م.ب و24
+                      مليون بكسل إجمالا.
                     </small>
                   </div>
                 ) : null}
@@ -1696,7 +1696,7 @@ export function ArticleEditorView() {
 
                 <Field
                   label="الوصف البديل (مطلوب)"
-                  hint="يصف الغلاف لقارئ الشاشة ويظهر إذا تعذّر تحميله."
+                  hint="يصف الغلاف لقارئ الشاشة ويظهر إذا تعذر تحميله."
                 >
                   <Input
                     value={fields.coverAlt}
@@ -1752,7 +1752,7 @@ export function ArticleEditorView() {
                 <div>
                   <Field
                     label="رابط صورة الغلاف"
-                    hint="لصورة مستضافة خارج مكتبة مختلف. راجع المعاينة، فالأبعاد لا تُفحص تلقائيًا."
+                    hint="لصورة مستضافة خارج مكتبة مختلف. راجع المعاينة، فالأبعاد لا تفحص تلقائيا."
                   >
                     <Input
                       dir="ltr"
@@ -1884,7 +1884,7 @@ export function ArticleEditorView() {
               <div className="article-publisher__preview-footer">
                 <p>
                   {mailchimp?.mode === 'simulation'
-                    ? 'هذه معاينة محلية تمثيلية. لا تُرسل الرسالة خارج الجهاز.'
+                    ? 'هذه معاينة محلية تمثيلية. لا ترسل الرسالة خارج الجهاز.'
                     : 'المعاينة المحلية تتبع المحتوى الحالي. قالب الخادم يتاح بعد الحفظ.'}
                 </p>
                 <div className="article-publisher__preview-actions">
@@ -1988,14 +1988,14 @@ export function ArticleEditorView() {
             <div className="article-search-preview" aria-label="معاينة نتيجة البحث">
               <span dir="ltr">mukhtalif.com/articles/{fields.slug.trim() || 'article'}</span>
               <h3>{fields.seoTitle.trim() || displayTitle}</h3>
-              <p>{fields.seoDescription.trim() || derivedSummary || 'أضف وصفًا واضحًا للمقال.'}</p>
+              <p>{fields.seoDescription.trim() || derivedSummary || 'أضف وصفا واضحا للمقال.'}</p>
             </div>
           </CollapsibleArticleSection>
 
           <CollapsibleArticleSection
             id="newsletter-settings-title"
             title="النشرة الأسبوعية"
-            description="يُستخدم محتوى المقال نفسه في رسالة Mailchimp."
+            description="يستخدم محتوى المقال نفسه في رسالة Mailchimp."
             open={openSections.newsletter}
             onToggle={() => toggleSection('newsletter')}
           >
@@ -2041,11 +2041,11 @@ export function ArticleEditorView() {
             >
               <b>Mailchimp</b>
               {mailchimp?.mode === 'simulation' ? (
-                <p>محاكاة محلية للعرض. لا تُرسل الرسائل خارج هذا الجهاز.</p>
+                <p>محاكاة محلية للعرض. لا ترسل الرسائل خارج هذا الجهاز.</p>
               ) : mailchimpError ? (
                 <p>{mailchimpError}</p>
               ) : mailchimpLoading || !mailchimp ? (
-                <p>جارٍ التحقق من الإعداد…</p>
+                <p>التحقق من الإعداد…</p>
               ) : mailchimp.configured ? (
                 <p>
                   إعداد Mailchimp محفوظ
@@ -2065,13 +2065,13 @@ export function ArticleEditorView() {
                 <p>الحالة: {newsletterStatusLabel(currentArticle, dirty)}</p>
               ) : null}
               {articleVersionStale ? (
-                <p>تغيّر المقال في جلسة أخرى. حدّث الصفحة قبل مزامنة النشرة أو إرسالها.</p>
+                <p>تغير المقال في جلسة أخرى. حدث الصفحة قبل مزامنة النشرة أو إرسالها.</p>
               ) : null}
               {newsletterSyncUnknown ? (
                 <p>راجع الحملة في Mailchimp قبل أي محاولة أخرى، ثم اطلب من المشرف معالجة الحالة.</p>
               ) : null}
               {newsletterSyncing ? (
-                <p>يجري تحديث المسودة الآن. انتظر قليلًا ثم حدّث الصفحة قبل المتابعة.</p>
+                <p>يجري تحديث المسودة الآن. انتظر قليلا ثم حدث الصفحة قبل المتابعة.</p>
               ) : null}
               {mailchimp?.audienceName && mailchimp.audienceCount !== undefined ? (
                 <p>
@@ -2079,14 +2079,14 @@ export function ArticleEditorView() {
                   {formatArabicInteger(mailchimp.audienceCount)}.
                 </p>
               ) : mailchimp?.mode === 'live' && mailchimp.configured ? (
-                <p>تعذّر التحقق من الحساب والجمهور. الإرسال معطّل حتى يتاح الاتصال.</p>
+                <p>تعذر التحقق من الحساب والجمهور. الإرسال معطل حتى يتاح الاتصال.</p>
               ) : null}
               {mailchimp?.mode === 'live' &&
               mailchimp.configured &&
               mailchimp.audienceName &&
               mailchimp.recipientTag &&
               !mailchimp.audienceConfirmationToken ? (
-                <p>تعذّر تثبيت بيانات الجمهور. الإرسال معطّل حتى يعيد الخادم التحقق منها.</p>
+                <p>تعذر تثبيت بيانات الجمهور. الإرسال معطل حتى يعيد الخادم التحقق منها.</p>
               ) : null}
               {mailchimp?.recipientTag && mailchimp.recipientCount !== undefined ? (
                 <p>
@@ -2097,25 +2097,26 @@ export function ArticleEditorView() {
                 mailchimp.configured &&
                 mailchimp.audienceName &&
                 mailchimp.audienceCount !== undefined ? (
-                <p>تعذّر التحقق من شريحة الإرسال. الإرسال معطّل حتى تتوفر بياناتها.</p>
+                <p>تعذر التحقق من شريحة الإرسال. الإرسال معطل حتى تتوفر بياناتها.</p>
               ) : null}
               {mailchimp?.recipientCount === 0 ? (
-                <p>لا تضم شريحة الإرسال مستلمين مؤهلين حاليًا.</p>
+                <p>لا تضم شريحة الإرسال مستلمين مؤهلين حاليا.</p>
               ) : null}
               {newsletterSent && currentArticle?.newsletter.sentAt ? (
-                <p>
-                  أُرسلت في {DATE_FORMATTER.format(new Date(currentArticle.newsletter.sentAt))}.
-                </p>
+                <p>أرسلت في {DATE_FORMATTER.format(new Date(currentArticle.newsletter.sentAt))}.</p>
               ) : null}
               <div className="article-mailchimp-state__refresh">
                 <Button
                   type="button"
                   disabled={busy || mailchimpLoading}
                   onClick={() => void refreshMailchimp()}
+                  aria-busy={mailchimpLoading}
                 >
-                  {mailchimpLoading ? 'جارٍ التحقق…' : 'إعادة التحقق'}
+                  {'إعادة التحقق'}
                 </Button>
-                <small>يقرأ حالة الحساب والجمهور وشريحة الإرسال فقط، ولا ينشئ حملة أو يرسل رسالة.</small>
+                <small>
+                  يقرأ حالة الحساب والجمهور وشريحة الإرسال فقط، ولا ينشئ حملة أو يرسل رسالة.
+                </small>
               </div>
             </div>
 
@@ -2132,12 +2133,9 @@ export function ArticleEditorView() {
                     articleVersionStale
                   }
                   onClick={() => void syncCampaign()}
+                  aria-busy={operation === 'campaign'}
                 >
-                  {operation === 'campaign'
-                    ? 'جارٍ التحديث…'
-                    : campaignExists
-                      ? 'تحديث مسودة Mailchimp'
-                      : 'إنشاء مسودة Mailchimp'}
+                  {campaignExists ? 'تحديث مسودة Mailchimp' : 'إنشاء مسودة Mailchimp'}
                 </Button>
                 {currentArticle?.newsletter.status === 'sending' ? (
                   <Button
@@ -2145,19 +2143,21 @@ export function ArticleEditorView() {
                     variant="primary"
                     disabled={busy}
                     onClick={() => void reconcileNewsletter()}
+                    aria-busy={operation === 'reconcile'}
                   >
-                    {operation === 'reconcile' ? 'جارٍ التحقق…' : 'التحقق من حالة الإرسال'}
+                    {'التحقق من حالة الإرسال'}
                   </Button>
                 ) : (
-                  <button
+                  <Button
                     ref={sendTriggerRef}
                     type="button"
                     className="button button--primary"
                     disabled={busy || !canSend}
+                    aria-busy={operation === 'send'}
                     onClick={openSendConfirmation}
                   >
                     إرسال النشرة
-                  </button>
+                  </Button>
                 )}
               </div>
             ) : null}
@@ -2182,15 +2182,21 @@ export function ArticleEditorView() {
               )}
             </div>
             <div className="article-publisher__footer-actions">
-              <Button type="submit" variant="primary" disabled={busy}>
-                {operation === 'save' ? 'جارٍ الحفظ…' : 'حفظ المسودة'}
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={busy}
+                aria-busy={operation === 'save'}
+              >
+                {'حفظ المسودة'}
               </Button>
-              <Button type="button" disabled={busy} onClick={() => void publishWeb()}>
-                {operation === 'publish'
-                  ? 'جارٍ التحديث…'
-                  : currentArticle?.status === 'published'
-                    ? 'إلغاء نشر المقال'
-                    : 'نشر المقال'}
+              <Button
+                type="button"
+                disabled={busy}
+                onClick={() => void publishWeb()}
+                aria-busy={operation === 'publish'}
+              >
+                {currentArticle?.status === 'published' ? 'إلغاء نشر المقال' : 'نشر المقال'}
               </Button>
             </div>
           </footer>
@@ -2225,7 +2231,7 @@ export function ArticleEditorView() {
         <div className="article-send-confirm__panel">
           <h2 id="send-newsletter-title">إرسال النشرة؟</h2>
           <p>
-            ستُرسل «{sendConfirmation?.subject}» إلى شريحة {'«'}
+            سترسل «{sendConfirmation?.subject}» إلى شريحة {'«'}
             <bdi dir="ltr">{sendConfirmation?.recipientTag}</bdi>
             {'»'} ضمن جمهور {'«'}
             <bdi dir="auto">{sendConfirmation?.audienceName}</bdi>

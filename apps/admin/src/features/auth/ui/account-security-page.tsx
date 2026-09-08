@@ -9,24 +9,24 @@ const MAX_VERIFICATION_CODE_LENGTH = 10;
 function passwordErrorMessage(error: unknown, action: 'send' | 'save'): string {
   if (error instanceof AdminAuthError) {
     if (error.code === 'INVALID_VERIFICATION_CODE') {
-      return 'الرمز غير صحيح أو انتهت صلاحيته. أرسل رمزًا جديدًا وحاول مرة أخرى.';
+      return 'الرمز غير صحيح أو انتهت صلاحيته. أرسل رمزا جديدا وحاول مرة أخرى.';
     }
     if (error.code === 'WEAK_PASSWORD') {
-      return 'اختر كلمة مرور أقوى تحتوي على 12 محرفًا على الأقل.';
+      return 'اختر كلمة مرور أقوى تحتوي على 12 محرفا على الأقل.';
     }
     if (error.code === 'RATE_LIMITED') {
-      return 'تكررت المحاولات بسرعة. انتظر قليلًا ثم حاول مرة أخرى.';
+      return 'تكررت المحاولات بسرعة. انتظر قليلا ثم حاول مرة أخرى.';
     }
     if (error.code === 'NETWORK') {
-      return 'تعذّر الاتصال بخدمة الدخول. تحقق من الشبكة وحاول مرة أخرى.';
+      return 'تعذر الاتصال بخدمة الدخول. تحقق من الشبكة وحاول مرة أخرى.';
     }
     if (error.code === 'INVALID_CREDENTIALS') {
-      return 'انتهت الجلسة. سجّل الدخول ثم حاول مرة أخرى.';
+      return 'انتهت الجلسة. سجل الدخول ثم حاول مرة أخرى.';
     }
   }
   return action === 'send'
-    ? 'تعذّر إرسال الرمز. حاول مرة أخرى.'
-    : 'تعذّر حفظ كلمة المرور. حاول مرة أخرى.';
+    ? 'تعذر إرسال الرمز. حاول مرة أخرى.'
+    : 'تعذر حفظ كلمة المرور. حاول مرة أخرى.';
 }
 
 function normalizeVerificationCode(value: string): string {
@@ -72,11 +72,11 @@ export function AccountSecurityView() {
     event.preventDefault();
     clearFeedback();
     if (!isCompleteVerificationCode(verificationCode)) {
-      setError('أدخل رمز التحقق كاملًا كما ورد في البريد.');
+      setError('أدخل رمز التحقق كاملا كما ورد في البريد.');
       return;
     }
     if (password.length < MIN_ADMIN_PASSWORD_LENGTH) {
-      setError(`استخدم ${MIN_ADMIN_PASSWORD_LENGTH} محرفًا على الأقل.`);
+      setError(`استخدم ${MIN_ADMIN_PASSWORD_LENGTH} محرفا على الأقل.`);
       return;
     }
     if (password !== confirmation) {
@@ -105,7 +105,7 @@ export function AccountSecurityView() {
       <section className="card account-security" aria-labelledby="password-settings-title">
         <header className="account-security__header">
           <h2 id="password-settings-title">تغيير كلمة المرور</h2>
-          <p>سنرسل رمز تحقق إلى بريدك قبل تغيير كلمة المرور.</p>
+          <p>تغيير كلمة المرور يتطلب رمز تحقق عبر البريد.</p>
           {auth.viewer ? (
             <bdi className="account-security__email" dir="ltr">
               {auth.viewer.email}
@@ -128,13 +128,13 @@ export function AccountSecurityView() {
               aria-busy={auth.isSubmitting}
               onClick={() => void requestVerificationCode()}
             >
-              {auth.isSubmitting ? 'جارٍ الإرسال…' : 'إرسال رمز التحقق'}
+              {'إرسال رمز التحقق'}
             </Button>
           </div>
         ) : saved ? (
           <div className="account-security__form">
             <p className="notice notice--success" role="status">
-              حُفظت كلمة المرور. استخدمها عند تسجيل الدخول القادم.
+              حفظت كلمة المرور. استخدمها عند تسجيل الدخول القادم.
             </p>
           </div>
         ) : (
@@ -144,10 +144,10 @@ export function AccountSecurityView() {
             onSubmit={(event) => void submit(event)}
           >
             <p className="notice notice--success" role="status">
-              أرسلنا رمز تحقق إلى بريدك.
+              تم إرسال رمز التحقق.
             </p>
 
-            <Field label="رمز التحقق" hint="أدخل الرمز كما ورد في البريد.">
+            <Field label="رمز التحقق">
               <Input
                 className="account-security__code"
                 type="text"
@@ -167,7 +167,7 @@ export function AccountSecurityView() {
             </Field>
             <Field
               label="كلمة المرور الجديدة"
-              hint={`${MIN_ADMIN_PASSWORD_LENGTH} محرفًا على الأقل.`}
+              hint={`${MIN_ADMIN_PASSWORD_LENGTH} محرفا على الأقل.`}
             >
               <Input
                 type="password"
@@ -222,7 +222,7 @@ export function AccountSecurityView() {
                 }
                 aria-busy={auth.isSubmitting}
               >
-                {auth.isSubmitting ? 'جارٍ الحفظ…' : 'حفظ كلمة المرور'}
+                {'حفظ كلمة المرور'}
               </Button>
               <button
                 className="account-security__resend"

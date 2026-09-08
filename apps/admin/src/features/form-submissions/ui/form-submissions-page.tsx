@@ -7,11 +7,7 @@ import {
 } from '@mukhtalif/types';
 import { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import {
-  adminPaths,
-  useAdminAuth,
-  useFormSubmissionRepository,
-} from '@/application';
+import { adminPaths, useAdminAuth, useFormSubmissionRepository } from '@/application';
 import { formatArabicDateTime, formatArabicInteger } from '@/lib';
 import { PageHeader, Select } from '@/shared/ui/primitives';
 import {
@@ -41,10 +37,7 @@ export function FormSubmissionsView() {
   const { viewer } = useAdminAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = pageNumber(searchParams.get('page'));
-  const type = supportedValue<FormSubmissionType>(
-    searchParams.get('type'),
-    FORM_SUBMISSION_TYPES,
-  );
+  const type = supportedValue<FormSubmissionType>(searchParams.get('type'), FORM_SUBMISSION_TYPES);
   const status = supportedValue<FormSubmissionStatus>(
     searchParams.get('status'),
     FORM_SUBMISSION_STATUSES,
@@ -72,12 +65,7 @@ export function FormSubmissionsView() {
     if (lastPage === 1) next.delete('page');
     else next.set('page', String(lastPage));
     setSearchParams(next, { replace: true });
-  }, [
-    page,
-    searchParams,
-    setSearchParams,
-    submissionsQuery.data?.pageInfo,
-  ]);
+  }, [page, searchParams, setSearchParams, submissionsQuery.data?.pageInfo]);
 
   function setFilter(key: 'type' | 'status' | 'assignee', value: string) {
     const next = new URLSearchParams(searchParams);
@@ -100,7 +88,7 @@ export function FormSubmissionsView() {
     <div className="form-submissions-page">
       <PageHeader
         title="طلبات الموقع"
-        detail={data ? formatFormSubmissionCount(data.pageInfo.total) : 'صندوق موحّد'}
+        detail={data ? formatFormSubmissionCount(data.pageInfo.total) : 'صندوق موحد'}
       />
 
       <section className="card submission-filters" aria-label="تصفية الطلبات">
@@ -144,18 +132,18 @@ export function FormSubmissionsView() {
             onChange={(event) => setFilter('assignee', event.currentTarget.value)}
           >
             <option value="">كل المسؤولين</option>
-            <option value="me">المسندة إليّ</option>
+            <option value="me">المسندة إلي</option>
           </Select>
         </label>
       </section>
 
       {submissionsQuery.isPending ? (
         <section className="card embedded-state" aria-busy="true" aria-live="polite">
-          <p>جارٍ تحميل الطلبات…</p>
+          <p>تحميل الطلبات…</p>
         </section>
       ) : submissionsQuery.error ? (
         <section className="card embedded-state" role="alert">
-          <h2>تعذّر تحميل الطلبات</h2>
+          <h2>تعذر تحميل الطلبات</h2>
           <p>تحقق من الاتصال ثم حاول مرة أخرى.</p>
           <button
             className="button button--primary"
@@ -169,8 +157,8 @@ export function FormSubmissionsView() {
         <section className="card" role="status">
           <p className="empty-state">
             {type || status || assignedToMe
-              ? 'لا طلبات تطابق عوامل التصفية.'
-              : 'لا طلبات بعد. ستظهر الطلبات الجديدة هنا.'}
+              ? 'لا توجد طلبات مطابقة. حاول تغيير التصفية.'
+              : 'لم تصل طلبات بعد.'}
           </p>
         </section>
       ) : data ? (

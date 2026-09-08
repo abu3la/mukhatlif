@@ -106,13 +106,13 @@ export function EpisodeMediaPreview({
                 referrerPolicy="strict-origin-when-cross-origin"
               />
             ) : (
-              <p>أضف رابط YouTube صالحًا لمعاينة الفيديو.</p>
+              <p>أضف رابط YouTube صالحا لمعاينة الفيديو.</p>
             )
           ) : audioUrl ? (
             <>
               {mode === 'file' && (
                 <p>
-                  ملف من جهازك، لم يُرفع بعد: <bdi>{file?.name}</bdi>
+                  ملف من جهازك، لم يرفع بعد: <bdi>{file?.name}</bdi>
                 </p>
               )}
               <audio
@@ -125,7 +125,7 @@ export function EpisodeMediaPreview({
                 onLoadedData={() => setAudioError(false)}
               />
               {audioError && (
-                <p role="alert">تعذّر تشغيل الصوت. تحقق من الاتصال وأعد فتح المعاينة.</p>
+                <p role="alert">تعذر تشغيل الصوت. تحقق من الاتصال وأعد فتح المعاينة.</p>
               )}
             </>
           ) : (

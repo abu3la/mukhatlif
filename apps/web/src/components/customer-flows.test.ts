@@ -598,7 +598,7 @@ describe('customer Auth link states', () => {
         `/auth/callback${separator}message=${encodeURIComponent(message)}`,
       );
       await mount(createElement(CustomerAuth, { mode: 'callback', next: '/account' }));
-      expect(container.textContent).toContain('أكّد البريد الآخر');
+      expect(container.textContent).toContain('تأكيد عنوان البريد الآخر');
       expect(container.textContent).toContain('رسالة التأكيد الأخرى');
       expect(container.querySelector('a[href="/account"]')).not.toBeNull();
       expect(fake.replace).not.toHaveBeenCalled();

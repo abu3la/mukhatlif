@@ -100,7 +100,7 @@ describe('Studio newsletter directory', () => {
 
     expect(await screen.findByRole('heading', { name: 'النشرة البريدية' })).toBeInTheDocument();
     expect(
-      screen.getByText(/آخر حالة مسجلة محليًا، وليست الحالة الحية داخل Mailchimp/),
+      screen.getByText(/آخر حالة مسجلة محليا، وليست الحالة الحية داخل Mailchimp/),
     ).toBeInTheDocument();
     const email = await screen.findByText('noura@example.com');
     const row = email.closest<HTMLElement>('[role="row"]');
@@ -141,7 +141,7 @@ describe('Studio newsletter directory', () => {
     await screen.findByText('noura@example.com');
 
     const tableScroller = screen.getByRole('region', {
-      name: 'مشتركو النشرة البريدية، جدول قابل للتمرير أفقيًا',
+      name: 'مشتركو النشرة البريدية، جدول قابل للتمرير أفقيا',
     });
     tableScroller.focus();
     expect(tableScroller).toHaveFocus();
@@ -175,7 +175,7 @@ describe('Studio newsletter directory', () => {
       vi.spyOn(repository, 'listNewsletterSubscribers').mockImplementation(failure);
     });
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('تعذّر تحميل المشتركين');
+    expect(await screen.findByRole('alert')).toHaveTextContent('تعذر تحميل المشتركين');
     expect(screen.getByRole('button', { name: 'إعادة المحاولة' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /مزامنة|إرسال/ })).not.toBeInTheDocument();
   });

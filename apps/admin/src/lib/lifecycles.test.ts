@@ -334,8 +334,8 @@ describe('subscription lifecycle contract', () => {
   it('exposes only the two staff-owned recovery actions', () => {
     expect(SUBSCRIPTION_TRANSITION_ACTIONS).toEqual({
       active: [],
-      past_due: [{ label: 'تسجيل السداد يدويًا', to: 'active' }],
-      canceled: [{ label: 'إعادة التفعيل يدويًا', to: 'active' }],
+      past_due: [{ label: 'تسجيل السداد يدويا', to: 'active' }],
+      canceled: [{ label: 'إعادة التفعيل يدويا', to: 'active' }],
     });
     for (const from of SUBSCRIPTION_STATUSES) {
       expect(getSubscriptionTransitionActions(from)).toBe(SUBSCRIPTION_TRANSITION_ACTIONS[from]);

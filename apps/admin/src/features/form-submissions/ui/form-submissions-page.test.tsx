@@ -248,25 +248,25 @@ describe('Studio form-submission inbox', () => {
 
     expect(await screen.findByRole('heading', { name: 'شركة مثال' })).toHaveFocus();
     expect(screen.getByText('رعاية موسم كامل.')).toBeInTheDocument();
-    expect(screen.getByText('رفض مزوّد البريد الرسالة.')).toBeInTheDocument();
+    expect(screen.getByText('رفض مزود البريد الرسالة.')).toBeInTheDocument();
 
     await user.selectOptions(screen.getByRole('combobox', { name: 'حالة الطلب' }), 'in_review');
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'مسؤول الطلب' }),
       demoData.viewer.id,
     );
-    await user.type(screen.getByRole('textbox', { name: 'ملاحظات داخلية' }), 'تواصل غدًا.');
+    await user.type(screen.getByRole('textbox', { name: 'ملاحظات داخلية' }), 'تواصل غدا.');
     await user.click(screen.getByRole('button', { name: 'حفظ التغييرات' }));
 
-    expect(await screen.findByText('حُفظت التغييرات.')).toHaveAttribute('role', 'status');
+    expect(await screen.findByText('حفظت التغييرات.')).toHaveAttribute('role', 'status');
     expect(update).toHaveBeenCalledWith('frm-1', {
       status: 'in_review',
       assigneeId: demoData.viewer.id,
-      internalNotes: 'تواصل غدًا.',
+      internalNotes: 'تواصل غدا.',
     });
 
     await user.click(screen.getByRole('button', { name: 'إعادة إرسال البريد' }));
-    expect(await screen.findByText('أُرسل')).toBeInTheDocument();
+    expect(await screen.findByText('أرسل')).toBeInTheDocument();
     expect(retry).toHaveBeenCalledWith('frm-1');
     expect(screen.queryByRole('button', { name: 'إعادة إرسال البريد' })).not.toBeInTheDocument();
   });
@@ -296,8 +296,8 @@ describe('Studio form-submission inbox', () => {
     await user.click(screen.getByRole('button', { name: 'إعادة إرسال البريد' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'لم يُرسل البريد لأن إعداداته غير مكتملة.',
+      'لم يرسل البريد لأن إعداداته غير مكتملة.',
     );
-    expect(screen.queryByText('أُرسل البريد.')).not.toBeInTheDocument();
+    expect(screen.queryByText('أرسل البريد.')).not.toBeInTheDocument();
   });
 });

@@ -10,7 +10,7 @@ export const NEWSLETTER_LOCAL_STATUS_LABELS = {
 
 export const NEWSLETTER_MAILCHIMP_STATUS_LABELS = {
   pending: 'بانتظار المزامنة',
-  synced: 'قُبلت للمزامنة',
+  synced: 'قبلت للمزامنة',
   failed: 'تعذرت المزامنة',
   unconfigured: 'الربط غير مهيأ',
   legacy_unverified: 'سجل قديم غير متحقق',

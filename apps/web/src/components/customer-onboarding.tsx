@@ -66,11 +66,11 @@ function OnboardingContent({ step, next }: { step: number; next: string }) {
     }
   }
   return (
-    <CustomerAuthFrame title="اسمع ما يهمك." intro="اختر بداية قريبة منك. يمكنك تغييرها في أي وقت.">
+    <CustomerAuthFrame title="اختيار الاهتمامات" intro="يمكن تغيير الموضوعات والبرامج لاحقًا.">
       <div className="customer-interest-form">
         <p className="customer-step-label">الخطوة {step === 2 ? '2' : '1'} من 2</p>
         <h2 className="customer-onboarding-title">
-          {step === 2 ? 'اختر أصواتًا تود متابعتها.' : 'ما الموضوعات التي تشغلك؟'}
+          {step === 2 ? 'ما البرامج التي تريد متابعتها؟' : 'ما الموضوعات التي تهمك؟'}
         </h2>
         {step !== 2 ? (
           <CustomerInterestsForm
@@ -99,7 +99,7 @@ function OnboardingContent({ step, next }: { step: number; next: string }) {
               </div>
             )}
             <button className="customer-primary" disabled={busy || loadingShows}>
-              {busy ? 'جارٍ الحفظ…' : 'ابدأ الاستماع'}
+              {busy ? 'جارٍ الحفظ…' : 'بدء الاستماع'}
             </button>
             <button
               type="button"
@@ -107,7 +107,7 @@ function OnboardingContent({ step, next }: { step: number; next: string }) {
               disabled={busy}
               onClick={() => router.push(`/onboarding?next=${encodeURIComponent(next)}`)}
             >
-              عدّل الموضوعات
+              تعديل الموضوعات
             </button>
           </form>
         )}
@@ -117,7 +117,7 @@ function OnboardingContent({ step, next }: { step: number; next: string }) {
           </p>
         )}
         <button className="customer-text-button" disabled={busy} onClick={() => void finish()}>
-          تخطّ الآن
+          تخطي الإعداد
         </button>
       </div>
     </CustomerAuthFrame>

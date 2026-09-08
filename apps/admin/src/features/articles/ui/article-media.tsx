@@ -123,7 +123,7 @@ function ImageBlockNodeView({ node, editor, selected, deleteNode, getPos }: Reac
         <img src={asset.publicUrl} alt={attrs.alt} draggable={false} />
       ) : (
         <div className="article-media-node__missing" role="status">
-          تعذّر تحميل الصورة من المكتبة.
+          تعذر تحميل الصورة من المكتبة.
         </div>
       )}
       {attrs.caption ? <figcaption>{attrs.caption}</figcaption> : null}
@@ -180,7 +180,7 @@ function ImageGalleryNodeView({ node, editor, selected, deleteNode, getPos }: Re
               className="article-media-node__missing"
               role="status"
             >
-              تعذّر تحميل الصورة {index + 1} من المكتبة.
+              تعذر تحميل الصورة {index + 1} من المكتبة.
             </div>
           );
         })}
@@ -225,7 +225,7 @@ function VideoEmbedNodeView({ node, editor, selected, deleteNode, getPos }: Reac
         </div>
       ) : (
         <div className="article-media-node__missing" role="status">
-          تعذّر تحميل ملصق الفيديو.
+          تعذر تحميل ملصق الفيديو.
         </div>
       )}
       {attrs.caption ? <figcaption>{attrs.caption}</figcaption> : null}

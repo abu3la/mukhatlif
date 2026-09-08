@@ -32,7 +32,7 @@ import { formatPlaybackTime } from './player-utils';
 
 const tabs = [
   ['saved', 'المحفوظات'],
-  ['followed', 'أتابعها'],
+  ['followed', 'البرامج المتابعة'],
   ['history', 'سجل الاستماع'],
   ['playlists', 'قوائم التشغيل'],
   ['interests', 'اهتماماتي'],
@@ -45,7 +45,7 @@ export function CustomerLibraryPage({ tab = 'saved' }: { tab?: string }) {
     <CustomerGate>
       <div className="page customer-page">
         <header className="customer-page-head">
-          <h1>مكتبتك</h1>
+          <h1>المكتبة</h1>
           <p>ما حفظته وتابعته، في مكان واحد.</p>
         </header>
         <nav className="customer-library-tabs" aria-label="أقسام المكتبة">
@@ -83,8 +83,8 @@ function LibraryContent({ tab }: { tab: CustomerLibraryTab }) {
     <>
       {tab === 'saved' &&
         (savedEmpty ? (
-          <CustomerEmpty title="مساحة لما تريد العودة إليه" href="/episodes">
-            احفظ حلقة أو قراءة، وستجدها هنا.
+          <CustomerEmpty title="لا توجد محفوظات بعد" href="/episodes">
+            حفظ حلقة أو قراءة يضيفها إلى المكتبة.
           </CustomerEmpty>
         ) : (
           <>
@@ -135,15 +135,15 @@ function LibraryContent({ tab }: { tab: CustomerLibraryTab }) {
             </div>
           </>
         ) : (
-          <CustomerEmpty title="لم تبدأ الاستماع بعد" href="/episodes">
-            يظهر تقدمك هنا بعد تشغيل حلقة.
+          <CustomerEmpty title="سجل الاستماع فارغ" href="/episodes">
+            تشغيل حلقة يضيفها إلى سجل الاستماع.
           </CustomerEmpty>
         ))}
       {tab === 'playlists' && (
         <>
           <div className="customer-playlist-head">
             <button className="customer-primary" onClick={() => setDialog('playlist')}>
-              + قائمة جديدة
+              + إنشاء قائمة
             </button>
           </div>
           {customer.library.playlists.length ? (
@@ -161,8 +161,8 @@ function LibraryContent({ tab }: { tab: CustomerLibraryTab }) {
               ))}
             </div>
           ) : (
-            <CustomerEmpty title="قائمتك الأولى تنتظر فكرتك">
-              اجمع حلقات الرحلة، أو وقت المشي، أو موضوعًا تود استكشافه.
+            <CustomerEmpty title="لا توجد قوائم تشغيل بعد">
+              إنشاء قائمة يتيح جمع حلقات للاستماع إليها بالترتيب.
             </CustomerEmpty>
           )}
         </>
@@ -172,14 +172,14 @@ function LibraryContent({ tab }: { tab: CustomerLibraryTab }) {
       {dialog === 'history' && (
         <LibraryConfirm
           title="مسح سجل الاستماع؟"
-          action="امسح السجل"
+          action="مسح سجل الاستماع"
           onClose={() => setDialog(null)}
           onConfirm={async () => {
             await customer.mutateLibrary('/progress', 'DELETE');
-            customer.notify('مسحنا سجل الاستماع.');
+            customer.notify('تم مسح سجل الاستماع.');
           }}
         >
-          سنمسح تقدم الاستماع من حسابك على كل أجهزتك. ستبقى محفوظاتك وقوائمك.
+          سيُحذف تقدم الاستماع من جميع الأجهزة. تبقى المحفوظات وقوائم التشغيل.
         </LibraryConfirm>
       )}
     </>
@@ -206,7 +206,7 @@ function FollowedShows() {
   }, [customer.publicRead]);
   if (!customer.library.followedShowIds.length)
     return (
-      <CustomerEmpty title="صوت تود متابعته؟" href="/shows" action="استكشف البرامج">
+      <CustomerEmpty title="لا توجد برامج متابعة" href="/shows" action="تصفح البرامج">
         تابع برنامجًا لتصل إلى حلقاته بسهولة.
       </CustomerEmpty>
     );
@@ -355,7 +355,7 @@ function BookmarkList() {
           onClose={() => setRemove(null)}
           onConfirm={async () => {
             await customer.mutateLibrary(`/bookmarks/${encodeURIComponent(remove.id)}`, 'DELETE');
-            customer.notify('أزلنا اللحظة من مكتبتك.');
+            customer.notify('تمت إزالة اللحظة المحفوظة.');
           }}
         >
           ستُزال هذه اللحظة وملاحظتها من حسابك.
@@ -380,7 +380,7 @@ function BookmarkEdit({ bookmark, onClose }: { bookmark: CustomerBookmark; onClo
             await customer.mutateLibrary(`/bookmarks/${encodeURIComponent(bookmark.id)}`, 'PATCH', {
               label,
             });
-            customer.notify('حفظنا الملاحظة.');
+            customer.notify('تم حفظ الملاحظة.');
             onClose();
           } catch (failure) {
             setError(customerError(failure));
@@ -402,7 +402,7 @@ function BookmarkEdit({ bookmark, onClose }: { bookmark: CustomerBookmark; onClo
           </p>
         )}
         <button className="customer-primary" disabled={busy}>
-          {busy ? 'جارٍ الحفظ…' : 'احفظ الملاحظة'}
+          {busy ? 'جارٍ الحفظ…' : 'حفظ الملاحظة'}
         </button>
       </form>
     </CustomerDialog>
@@ -432,7 +432,7 @@ export function CustomerInterestsForm({
         try {
           await customer.updateProfile({ interests: topics });
           if (onComplete) await onComplete(topics);
-          else customer.notify('حفظنا اهتماماتك.');
+          else customer.notify('تم حفظ الاهتمامات.');
         } catch (failure) {
           setError(customerError(failure));
         } finally {
@@ -460,7 +460,7 @@ export function CustomerInterestsForm({
         </p>
       )}
       <button className="customer-primary" disabled={busy}>
-        {busy ? 'جارٍ الحفظ…' : onComplete ? 'التالي: اختر برامجك' : 'احفظ اهتماماتي'}
+        {busy ? 'جارٍ الحفظ…' : onComplete ? 'اختيار البرامج' : 'حفظ الاهتمامات'}
       </button>
     </form>
   );
@@ -512,7 +512,7 @@ export function PlaylistNameDialog({
         playlist ? 'PATCH' : 'POST',
         { name },
       );
-      customer.notify(playlist ? 'حفظنا اسم القائمة.' : 'أنشأنا قائمتك.');
+      customer.notify(playlist ? 'تم حفظ اسم القائمة.' : 'تم إنشاء القائمة.');
       onClose();
       if (!playlist) {
         const created = library.playlists.find((item) => !previousIds.has(item.id));
@@ -541,7 +541,7 @@ export function PlaylistNameDialog({
           </p>
         )}
         <button className="customer-primary" disabled={busy}>
-          {busy ? 'جارٍ الحفظ…' : playlist ? 'احفظ الاسم' : 'أنشئ القائمة'}
+          {busy ? 'جارٍ الحفظ…' : playlist ? 'حفظ الاسم' : 'إنشاء القائمة'}
         </button>
       </form>
     </CustomerDialog>
@@ -569,7 +569,7 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
     return (
       <div className="page customer-page">
         <CustomerEmpty
-          title="لم نجد هذه القائمة"
+          title="قائمة التشغيل غير متاحة"
           href="/library?tab=playlists"
           action="قوائم التشغيل"
         >
@@ -590,7 +590,7 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
       await customer.mutateLibrary(`/playlists/${encodeURIComponent(playlistId)}`, 'PATCH', {
         episodeIds: ids,
       });
-      customer.notify('حفظنا ترتيب الحلقات.');
+      customer.notify('تم حفظ ترتيب الحلقات.');
     } catch (failure) {
       customer.notify(customerError(failure));
     } finally {
@@ -605,7 +605,7 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
       await customer.mutateLibrary(`/playlists/${encodeURIComponent(playlistId)}`, 'PATCH', {
         episodeIds: playlist.episodeIds.filter((item) => item !== id),
       });
-      customer.notify('أزلنا الحلقة من القائمة.');
+      customer.notify('تمت إزالة الحلقة من القائمة.');
     } catch (failure) {
       customer.notify(customerError(failure));
     } finally {
@@ -645,14 +645,14 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
                 }}
               >
                 <CustomerIcon name="play" />
-                شغّل القائمة
+                تشغيل القائمة
               </button>
             )}
             <button className="customer-text-button" onClick={() => setDialog('rename')}>
               تعديل الاسم
             </button>
             <button className="customer-text-button" onClick={() => setDialog('add')}>
-              أضف حلقة
+              إضافة حلقة
             </button>
           </div>
         </div>
@@ -707,7 +707,7 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
           );
         })
       ) : (
-        <CustomerEmpty title="القائمة تنتظر أول حلقة">اختر «أضف حلقة» لتبدأ قائمتك.</CustomerEmpty>
+        <CustomerEmpty title="لا توجد حلقات في القائمة">اختيار «إضافة حلقة» يفتح البحث في الحلقات.</CustomerEmpty>
       )}
       <div className="customer-history-foot">
         <button className="customer-text-button" onClick={() => setDialog('delete')}>
@@ -721,15 +721,15 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
       {dialog === 'delete' && (
         <LibraryConfirm
           title="حذف قائمة التشغيل؟"
-          action="احذف القائمة"
+          action="حذف القائمة"
           onClose={() => setDialog(null)}
           onConfirm={async () => {
             await customer.mutateLibrary(`/playlists/${encodeURIComponent(playlist.id)}`, 'DELETE');
-            customer.notify('حذفنا القائمة.');
+            customer.notify('تم حذف القائمة.');
             router.replace('/library?tab=playlists');
           }}
         >
-          سنحذف قائمة «{playlist.name}». ستبقى الحلقات نفسها متاحة للاستماع.
+          سيتم حذف قائمة «{playlist.name}». تبقى حلقاتها متاحة للاستماع.
         </LibraryConfirm>
       )}
     </div>
@@ -778,11 +778,11 @@ function PlaylistPicker({
   }, [page, search, customer.publicRead]);
   const current = customer.library.playlists.find((item) => item.id === playlist.id) || playlist;
   return (
-    <CustomerDialog title="أضف حلقة إلى القائمة" onClose={onClose}>
+    <CustomerDialog title="إضافة حلقة إلى القائمة" onClose={onClose}>
       <div className="customer-interest-form">
         <CustomerField
           name="search"
-          label="ابحث عن حلقة"
+          label="البحث عن حلقة"
           type="search"
           value={search}
           onChange={(event) => {
@@ -815,7 +815,7 @@ function PlaylistPicker({
                           'PATCH',
                           { episodeIds: [...current.episodeIds, episode.id] },
                         );
-                        customer.notify('أضفنا الحلقة إلى القائمة.');
+                        customer.notify('تمت إضافة الحلقة إلى القائمة.');
                       } catch (failure) {
                         setError(customerError(failure));
                       } finally {
@@ -823,12 +823,12 @@ function PlaylistPicker({
                       }
                     }}
                   >
-                    {added ? 'مضافة' : 'أضف'}
+                    {added ? 'مضافة' : 'إضافة'}
                   </button>
                 </div>
               );
             })}
-            {!result?.items.length && <p>لم نجد حلقات. جرّب كلمة أخرى.</p>}
+            {!result?.items.length && <p>لا توجد حلقات مطابقة. حاول البحث بكلمة أخرى.</p>}
           </div>
         )}
         <div className="customer-action-row">

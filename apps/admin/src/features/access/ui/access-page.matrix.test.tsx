@@ -241,7 +241,7 @@ describe('dynamic role pages', () => {
     await waitFor(() =>
       expect(onUpdate).toHaveBeenCalledWith('reviewer', ['episodes.view', 'articles.view']),
     );
-    expect(await screen.findByText('حُفظت صلاحيات مراجع المحتوى.')).toHaveAttribute(
+    expect(await screen.findByText('حفظت صلاحيات مراجع المحتوى.')).toHaveAttribute(
       'role',
       'status',
     );

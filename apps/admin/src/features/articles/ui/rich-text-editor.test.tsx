@@ -106,7 +106,7 @@ describe('RichTextEditor', () => {
                 },
                 {
                   mediaId: '',
-                  alt: 'معرّف فارغ',
+                  alt: 'معرف فارغ',
                 },
                 {
                   mediaId: 'med-00000000000000000000000000000001',
@@ -399,12 +399,12 @@ describe('RichTextEditor', () => {
 
     await user.click(screen.getByRole('button', { name: 'مساحة إعلانية' }));
     const addGroup = screen.getByRole('group', { name: 'إضافة مساحة إعلانية' });
-    await user.type(within(addGroup).getByRole('textbox', { name: 'معرّف المساحة' }), 'Article');
+    await user.type(within(addGroup).getByRole('textbox', { name: 'معرف المساحة' }), 'Article');
     await user.click(within(addGroup).getByRole('button', { name: 'إضافة المساحة' }));
     expect(within(addGroup).getByRole('alert')).toHaveTextContent(
-      'استخدم أحرفًا إنجليزية صغيرة وأرقامًا وشرطات',
+      'استخدم أحرفا إنجليزية صغيرة وأرقاما وشرطات',
     );
-    const placement = within(addGroup).getByRole('textbox', { name: 'معرّف المساحة' });
+    const placement = within(addGroup).getByRole('textbox', { name: 'معرف المساحة' });
     await user.clear(placement);
     await user.type(placement, 'article-middle-1');
     await user.type(
@@ -609,7 +609,7 @@ describe('RichTextEditor', () => {
     expect(screen.getByRole('button', { name: 'اتجاه النص' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'محاذاة النص' })).toHaveAttribute(
       'title',
-      'حدد نصًا لتغيير التنسيق',
+      'حدد نصا لتغيير التنسيق',
     );
   });
 
@@ -951,7 +951,7 @@ describe('RichTextEditor', () => {
 
       await user.click(screen.getByRole('button', { name: 'معرض صور' }));
       expect(screen.getByRole('alert')).toHaveTextContent(
-        'لا توجد مساحة لصورتين جديدتين. أزل صورًا من المقال أولًا.',
+        'لا توجد مساحة لصورتين جديدتين. أزل صورا من المقال أولا.',
       );
       expect(screen.getByRole('button', { name: 'إضافة المعرض' })).toBeDisabled();
       expect(screen.getByRole('option', { name: 'limit.png' })).toBeDisabled();

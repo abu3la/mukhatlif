@@ -25,15 +25,17 @@ function initialGalleryItems(
   attributes: ImageGalleryAttributes | undefined,
 ): ImageGalleryItemAttributes[] {
   const seen = new Set<string>();
-  return (attributes?.items ?? []).filter((item) => {
-    if (seen.has(item.mediaId)) return false;
-    seen.add(item.mediaId);
-    return true;
-  }).slice(0, 3);
+  return (attributes?.items ?? [])
+    .filter((item) => {
+      if (seen.has(item.mediaId)) return false;
+      seen.add(item.mediaId);
+      return true;
+    })
+    .slice(0, 3);
 }
 
 function selectionStatus(count: number): string {
-  if (count === 0) return 'لم تختر صورًا بعد.';
+  if (count === 0) return 'لم تختر صورا بعد.';
   if (count === 1) return 'اخترت صورة واحدة. أضف صورة أخرى.';
   if (count === 2) return 'اخترت صورتين. يمكنك إضافة صورة ثالثة.';
   if (count === 3) return 'اخترت 3 صور. اكتمل المعرض.';
@@ -142,7 +144,7 @@ export function ArticleImageGalleryDialog({
     const normalizedAlt = uploadAlt.trim();
     if (!selectedImage || !normalizedAlt || uploadProgress !== null || !canAddMore) {
       if (!normalizedAlt) {
-        setError('أضف وصفًا بديلًا للصورة قبل رفعها.');
+        setError('أضف وصفا بديلا للصورة قبل رفعها.');
         document.getElementById(uploadAltId)?.focus();
       }
       return;
@@ -161,16 +163,18 @@ export function ArticleImageGalleryDialog({
         alt: normalizedAlt,
         onProgress: setUploadProgress,
       });
-      setLocalAssets((current) => [...current.filter((asset) => asset.id !== uploaded.id), uploaded]);
+      setLocalAssets((current) => [
+        ...current.filter((asset) => asset.id !== uploaded.id),
+        uploaded,
+      ]);
       setSelectedItems((current) =>
-        current.some((item) => item.mediaId === uploaded.id) ||
-        current.length >= allowedMaximum
+        current.some((item) => item.mediaId === uploaded.id) || current.length >= allowedMaximum
           ? current
           : [...current, { mediaId: uploaded.id, alt: normalizedAlt }],
       );
       setSelectedImage(null);
       setUploadAlt('');
-      setFeedback('رُفعت الصورة وأُضيفت إلى المعرض.');
+      setFeedback('رفعت الصورة وأضيفت إلى المعرض.');
     } catch (cause) {
       setError(articleImageErrorMessage(cause));
     } finally {
@@ -236,7 +240,7 @@ export function ArticleImageGalleryDialog({
         <header className="article-media-dialog__header">
           <div>
             <h2 id={titleId}>{isEditing ? 'تعديل معرض الصور' : 'إضافة معرض صور'}</h2>
-            <p id={descriptionId}>اختر صورتين أو 3 صور، ثم أضف وصفًا بديلًا لكل صورة.</p>
+            <p id={descriptionId}>اختر صورتين أو 3 صور، ثم أضف وصفا بديلا لكل صورة.</p>
           </div>
           <button
             ref={closeButtonRef}
@@ -251,7 +255,7 @@ export function ArticleImageGalleryDialog({
         <div className="article-media-dialog__body">
           {allowedMaximum < 2 ? (
             <p className="notice notice--error" role="alert">
-              لا توجد مساحة لصورتين جديدتين. أزل صورًا من المقال أولًا.
+              لا توجد مساحة لصورتين جديدتين. أزل صورا من المقال أولا.
             </p>
           ) : null}
 
@@ -261,7 +265,7 @@ export function ArticleImageGalleryDialog({
                 <h3 id={`${titleId}-library`}>مكتبة الصور</h3>
                 <p>
                   {loading
-                    ? 'جارٍ تحميل الصور…'
+                    ? 'تحميل الصور…'
                     : `${formatArabicInteger(availableAssets.length)} صورة متاحة`}
                 </p>
               </div>
@@ -312,7 +316,7 @@ export function ArticleImageGalleryDialog({
               </div>
             ) : (
               <p className="article-media-dialog__empty">
-                {query ? 'لا توجد صورة تطابق البحث.' : 'المكتبة فارغة. ارفع صورة من جهازك.'}
+                {query ? 'لا توجد صورة تطابق البحث.' : 'إضافة صورة من الجهاز لبدء مكتبة الصور.'}
               </p>
             )}
           </section>
@@ -323,7 +327,7 @@ export function ArticleImageGalleryDialog({
           >
             <div>
               <h3 id={`${titleId}-upload`}>رفع صورة</h3>
-              <p>تُضاف الصورة إلى المجموعة بعد اكتمال الرفع.</p>
+              <p>تضاف الصورة إلى المجموعة بعد اكتمال الرفع.</p>
             </div>
             <div className="article-media-dialog__upload">
               <label className="button button--quiet" htmlFor={`${titleId}-gallery-file`}>
@@ -359,6 +363,7 @@ export function ArticleImageGalleryDialog({
                 variant="primary"
                 className="article-media-dialog__upload-action"
                 disabled={disabled || uploadProgress !== null || !uploadAlt.trim() || !canAddMore}
+                aria-busy={uploadProgress !== null}
                 onClick={() => void uploadSelectedImage()}
               >
                 رفع الصورة
@@ -414,10 +419,7 @@ export function ArticleImageGalleryDialog({
             ) : (
               <p className="article-media-dialog__empty">اختر صورتين من المكتبة أو ارفعهما.</p>
             )}
-            <Field
-              label="وصف المجموعة (اختياري)"
-              hint="يظهر مرة واحدة أسفل مجموعة الصور."
-            >
+            <Field label="وصف المجموعة (اختياري)" hint="يظهر مرة واحدة أسفل مجموعة الصور.">
               <Textarea
                 value={caption}
                 maxLength={1000}

@@ -2,12 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { adminPaths, canManagePage, useAdminAuth, useStudioData } from '@/application';
 import { isAdminRepositoryError } from '@/data';
-import {
-  Button,
-  Input,
-  PageHeader,
-  StatusBadge,
-} from '@/shared/ui/primitives';
+import { Button, Input, PageHeader, StatusBadge } from '@/shared/ui/primitives';
 import {
   formatArabicInteger,
   formatArticleTimeline,
@@ -42,33 +37,33 @@ function parseArticleFilter(value: string | null): ArticleFilter {
 
 function articleOperationErrorMessage(error: unknown): string {
   if (!isAdminRepositoryError(error)) {
-    return 'تعذّر تحديث حالة المقال. حاول مرة أخرى.';
+    return 'تعذر تحديث حالة المقال. حاول مرة أخرى.';
   }
 
   switch (error.code) {
     case 'CONFLICT':
       return error.context?.remoteCode === 'ARTICLE_VERSION_CONFLICT'
-        ? 'تغيّرت حالة المقال في جلسة أخرى. حدّث الصفحة ثم حاول مرة أخرى.'
-        : 'تعذّر تحديث الحالة بسبب تعارض في نسخة المقال.';
+        ? 'تغيرت حالة المقال في جلسة أخرى. حدث الصفحة ثم حاول مرة أخرى.'
+        : 'تعذر تحديث الحالة بسبب تعارض في نسخة المقال.';
     case 'UNAUTHENTICATED':
-      return 'انتهت جلسة الدخول. سجّل الدخول ثم حاول مرة أخرى.';
+      return 'انتهت جلسة الدخول. سجل الدخول ثم حاول مرة أخرى.';
     case 'FORBIDDEN':
       return 'ليس لديك صلاحية لتحديث حالة المقال.';
     case 'NETWORK':
     case 'REMOTE_UNAVAILABLE':
-      return 'تعذّر الاتصال بالخادم. تحقق من اتصالك ثم حاول مرة أخرى.';
+      return 'تعذر الاتصال بالخادم. تحقق من اتصالك ثم حاول مرة أخرى.';
     default:
-      return 'تعذّر تحديث حالة المقال. حاول مرة أخرى.';
+      return 'تعذر تحديث حالة المقال. حاول مرة أخرى.';
   }
 }
 
 function newsletterDirectoryStatus(article: Article): string {
-  if (!article.newsletter.enabled) return 'غير مفعّلة';
-  if (article.newsletter.status === 'sent') return 'أُرسلت';
-  if (article.newsletter.status === 'sending') return 'جارٍ الإرسال';
-  if (article.newsletter.status === 'syncing') return 'جارٍ تحديث المسودة';
+  if (!article.newsletter.enabled) return 'غير مفعلة';
+  if (article.newsletter.status === 'sent') return 'أرسلت';
+  if (article.newsletter.status === 'sending') return 'الإرسال';
+  if (article.newsletter.status === 'syncing') return 'تحديث المسودة';
   if (article.newsletter.status === 'sync_unknown') return 'نتيجة المزامنة غير مؤكدة';
-  if (article.newsletter.needsSync) return 'تحتاج تحديثًا';
+  if (article.newsletter.needsSync) return 'تحتاج تحديثا';
   if (article.newsletter.status === 'campaign_created') return 'جاهزة في Mailchimp';
   return 'مسودة';
 }
@@ -194,7 +189,7 @@ export function ArticlesView() {
           {filteredArticles.length === 0 ? (
             <p className="empty-state">
               {query
-                ? 'لا توجد مقالات تطابق بحثك. جرّب كلمة أخرى.'
+                ? 'لا توجد مقالات مطابقة. حاول البحث بكلمة أخرى.'
                 : 'لا توجد مقالات في هذه الحالة.'}
             </p>
           ) : (
@@ -231,11 +226,12 @@ export function ArticlesView() {
                           onClick={() => {
                             void updateArticleStatus(article.id, action.to);
                           }}
+                          aria-busy={
+                            pendingTransition?.articleId === article.id &&
+                            pendingTransition.targetStatus === action.to
+                          }
                         >
-                          {pendingTransition?.articleId === article.id &&
-                          pendingTransition.targetStatus === action.to
-                            ? 'جارٍ التحديث…'
-                            : action.label}
+                          {action.label}
                         </Button>
                       ))}
                     </div>

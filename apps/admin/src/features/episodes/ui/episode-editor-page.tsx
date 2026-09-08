@@ -107,12 +107,12 @@ export function EpisodeEditorView() {
 
   function validateDraft() {
     if (!title.trim()) {
-      setError('أدخل عنوان الحلقة أولًا.');
+      setError('أدخل عنوان الحلقة أولا.');
       setInvalidField('title');
       return;
     }
     if (!data.shows.some((show) => show.id === showId)) {
-      setError('اختر برنامجًا من القائمة.');
+      setError('اختر برنامجا من القائمة.');
       setInvalidField('showId');
       return;
     }
@@ -126,7 +126,7 @@ export function EpisodeEditorView() {
 
     const youtubeVideoId = youtubeUrl.trim() ? parseYouTubeVideoId(youtubeUrl) : null;
     if (youtubeUrl.trim() && !youtubeVideoId) {
-      setError('أدخل رابط حلقة صالحًا من YouTube.');
+      setError('أدخل رابط حلقة صالحا من YouTube.');
       setInvalidField('youtubeUrl');
       return;
     }
@@ -155,7 +155,7 @@ export function EpisodeEditorView() {
       return;
     }
     if (audioFile && status !== 'draft' && status !== episode?.status) {
-      setError('ارفع الملف المختار أو ألغِ اختياره قبل نشر الحلقة أو جدولتها.');
+      setError('ارفع الملف المختار أو ألغ اختياره قبل نشر الحلقة أو جدولتها.');
       setInvalidField('audioFile');
       return;
     }
@@ -164,7 +164,7 @@ export function EpisodeEditorView() {
     try {
       const id = await saveEpisode(draft, status);
       setCreatedId(id);
-      if (audioFile) setSaveNotice('حُفظت بيانات الحلقة. الملف المختار لم يُرفع بعد.');
+      if (audioFile) setSaveNotice('حفظت بيانات الحلقة. الملف المختار لم يرفع بعد.');
       else
         navigate(`${adminPaths.episodes}?status=${encodeURIComponent(status)}`, { replace: true });
     } catch (cause) {
@@ -201,11 +201,11 @@ export function EpisodeEditorView() {
       setSaveNotice(
         episode
           ? 'الصوت مرتبط بالحلقة. احفظ تعديلات البيانات عند الانتهاء.'
-          : 'الصوت مرتبط بمسودة الحلقة. لم تُنشر الحلقة.',
+          : 'الصوت مرتبط بمسودة الحلقة. لم تنشر الحلقة.',
       );
     } catch (cause) {
       if (cause instanceof AudioTransferCancelled)
-        setSaveNotice('أُلغي رفع الصوت. بيانات الحلقة المحفوظة لم تتغير.');
+        setSaveNotice('ألغي رفع الصوت. بيانات الحلقة المحفوظة لم تتغير.');
       else {
         setError(getEpisodeOperationErrorMessage(cause, 'upload'));
         if (transfer.current?.snapshot.phase === 'preparing') setUploadState(undefined);
@@ -264,8 +264,9 @@ export function EpisodeEditorView() {
                   variant="quiet"
                   disabled={isSaving}
                   onClick={() => void save('draft')}
+                  aria-busy={pendingStatus === 'draft'}
                 >
-                  {pendingStatus === 'draft' ? 'جارٍ الحفظ' : 'حفظ كمسودة'}
+                  {'حفظ كمسودة'}
                 </Button>
               ) : null}
               <Button
@@ -273,8 +274,9 @@ export function EpisodeEditorView() {
                 variant="primary"
                 disabled={isSaving}
                 onClick={() => void save(primaryStatus)}
+                aria-busy={pendingStatus === primaryStatus}
               >
-                {pendingStatus === primaryStatus ? 'جارٍ الحفظ' : primaryLabel}
+                {primaryLabel}
               </Button>
             </>
           ) : null
@@ -455,7 +457,7 @@ export function EpisodeEditorView() {
             <StatusBadge status={episode?.status ?? 'draft'} />
           </div>
           <div className="publish-block">
-            <Field label="جدولة النشر" hint="اتركه فارغًا للنشر الفوري.">
+            <Field label="جدولة النشر" hint="اتركه فارغا للنشر الفوري.">
               <Input
                 type="datetime-local"
                 dir="ltr"

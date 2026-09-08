@@ -185,7 +185,7 @@ describe('guest creation flow', () => {
     await user.click(screen.getByRole('button', { name: 'إضافة الضيف' }));
 
     expect(screen.getByText('أدخل اسم الضيف بحرفين على الأقل.')).toBeInTheDocument();
-    expect(screen.getByText('أدخل بريدًا إلكترونيًا صحيحًا.')).toBeInTheDocument();
+    expect(screen.getByText('أدخل بريدا إلكترونيا صحيحا.')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('راجع الحقول الموضحة.');
     expect(createGuest).not.toHaveBeenCalled();
 
@@ -222,7 +222,7 @@ describe('guest creation flow', () => {
       email: 'nada@example.com',
       bio: 'متخصصة في الأسواق.',
     });
-    expect(screen.getByRole('button', { name: 'جارٍ الإضافة…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'إضافة الضيف' })).toBeDisabled();
 
     resolveCreate?.('guest_created');
     await waitFor(() => {
@@ -240,9 +240,7 @@ describe('guest creation flow', () => {
     await user.type(screen.getByRole('textbox', { name: 'اسم الضيف' }), 'ندى السالم');
     await user.click(screen.getByRole('button', { name: 'إضافة الضيف' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'تعذّرت إضافة الضيف. حاول مرة أخرى.',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('تعذرت إضافة الضيف. حاول مرة أخرى.');
     expect(screen.getByRole('form', { name: 'بيانات الضيف الجديد' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'إضافة الضيف' })).toBeEnabled();
   });

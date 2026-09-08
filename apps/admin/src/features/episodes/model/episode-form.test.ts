@@ -59,7 +59,7 @@ describe('episode form validation', () => {
       retryable: true,
     });
     expect(getEpisodeOperationErrorMessage(cause, 'transition')).toBe(
-      'تعذّر الاتصال بالخادم. انتظر قليلًا ثم حاول مرة أخرى.',
+      'تعذر الاتصال بالخادم. انتظر قليلا ثم حاول مرة أخرى.',
     );
   });
 
@@ -67,8 +67,6 @@ describe('episode form validation', () => {
     const file = new File([], 'large.mp3', { type: 'audio/mpeg' });
     Object.defineProperty(file, 'size', { value: 500 * 1024 * 1024 + 1 });
 
-    expect(validateEpisodeAudioFile(file)).toBe(
-      'حجم الملف أكبر من 500 م.ب. اختر ملفًا أصغر.',
-    );
+    expect(validateEpisodeAudioFile(file)).toBe('حجم الملف أكبر من 500 م.ب. اختر ملفا أصغر.');
   });
 });

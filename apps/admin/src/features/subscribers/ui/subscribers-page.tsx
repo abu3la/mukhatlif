@@ -85,14 +85,12 @@ export function SubscribersView() {
                           onClick={() =>
                             void runAction(
                               `subscription:${subscription.id}:${action.to}`,
-                              'تعذّر تحديث الاشتراك. حاول مرة أخرى.',
+                              'تعذر تحديث الاشتراك. حاول مرة أخرى.',
                               () => transitionSubscriptionStatus(subscription.id, action.to),
                             )
                           }
                         >
-                          {pendingAction === `subscription:${subscription.id}:${action.to}`
-                            ? 'جارٍ التحديث…'
-                            : action.label}
+                          {action.label}
                         </Button>
                       ))}
                     </div>
@@ -139,14 +137,12 @@ export function SubscribersView() {
                         onClick={() =>
                           void runAction(
                             `activate:${user.id}`,
-                            'تعذّر تفعيل مختلف بلس. حاول مرة أخرى.',
+                            'تعذر تفعيل مختلف بلس. حاول مرة أخرى.',
                             () => activatePlus(user.id),
                           )
                         }
                       >
-                        {pendingAction === `activate:${user.id}`
-                          ? 'جارٍ التفعيل…'
-                          : 'تفعيل بلس يدويًا'}
+                        {'تفعيل بلس يدويا'}
                       </Button>
                     ) : null}
                   </div>

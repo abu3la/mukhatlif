@@ -82,7 +82,7 @@ describe('ArticleImageGalleryDialog', () => {
     expect(secondAlt).toHaveAttribute('aria-invalid', 'true');
     expect(commit).toBeDisabled();
 
-    await user.type(secondAlt, 'مشهد ثانٍ من الاستوديو');
+    await user.type(secondAlt, 'مشهد ثان من الاستوديو');
     await user.type(
       screen.getByRole('textbox', { name: /^وصف المجموعة \(اختياري\)/ }),
       'لقطات من جلسة الأسبوع',
@@ -93,7 +93,7 @@ describe('ArticleImageGalleryDialog', () => {
     expect(onCommit).toHaveBeenCalledWith({
       items: [
         { mediaId: assets[0]!.id, alt: 'وصف الصورة 1' },
-        { mediaId: assets[1]!.id, alt: 'مشهد ثانٍ من الاستوديو' },
+        { mediaId: assets[1]!.id, alt: 'مشهد ثان من الاستوديو' },
       ],
       caption: 'لقطات من جلسة الأسبوع',
     });

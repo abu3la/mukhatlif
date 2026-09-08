@@ -81,7 +81,10 @@ export function articleCoverCropGeometry(
 
   const selectedX = crop.x * scaleX;
   const selectedY = crop.y * scaleY;
-  const sourceX = Math.max(0, Math.min(naturalWidth - width, selectedX + (selectedWidth - width) / 2));
+  const sourceX = Math.max(
+    0,
+    Math.min(naturalWidth - width, selectedX + (selectedWidth - width) / 2),
+  );
   const sourceY = Math.max(
     0,
     Math.min(naturalHeight - height, selectedY + (selectedHeight - height) / 2),
@@ -96,15 +99,12 @@ function outputFileName(file: File): string {
   return `${baseName}-cover.${extension}`;
 }
 
-async function canvasBlob(
-  canvas: HTMLCanvasElement,
-  mimeType: string,
-): Promise<Blob> {
+async function canvasBlob(canvas: HTMLCanvasElement, mimeType: string): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
         if (blob) resolve(blob);
-        else reject(new ArticleImageFileError('تعذّر إنشاء ملف الغلاف. حاول مرة أخرى.'));
+        else reject(new ArticleImageFileError('تعذر إنشاء ملف الغلاف. حاول مرة أخرى.'));
       },
       mimeType,
       mimeType === 'image/jpeg' ? 0.92 : undefined,
@@ -129,9 +129,7 @@ export async function cropArticleCoverFile(
     geometry.width < MIN_ARTICLE_COVER_WIDTH ||
     geometry.height < MIN_ARTICLE_COVER_HEIGHT
   ) {
-    throw new ArticleImageFileError(
-      'وسّع مساحة القص لتكون النتيجة 1200 × 675 بكسل على الأقل.',
-    );
+    throw new ArticleImageFileError('وسع مساحة القص لتكون النتيجة 1200 × 675 بكسل على الأقل.');
   }
 
   const canvas = document.createElement('canvas');
@@ -139,7 +137,7 @@ export async function cropArticleCoverFile(
   canvas.height = geometry.height;
   const context = canvas.getContext('2d');
   if (!context) {
-    throw new ArticleImageFileError('تعذّر تجهيز قص الغلاف. حاول مرة أخرى.');
+    throw new ArticleImageFileError('تعذر تجهيز قص الغلاف. حاول مرة أخرى.');
   }
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = 'high';
@@ -252,7 +250,7 @@ export function ArticleCoverCropDialog({
       setError(
         cause instanceof ArticleImageFileError
           ? cause.message
-          : 'تعذّر تجهيز قص الغلاف. حاول مرة أخرى.',
+          : 'تعذر تجهيز قص الغلاف. حاول مرة أخرى.',
       );
     } finally {
       setApplying(false);
@@ -261,8 +259,8 @@ export function ArticleCoverCropDialog({
 
   const validCrop = Boolean(
     geometry &&
-      geometry.width >= MIN_ARTICLE_COVER_WIDTH &&
-      geometry.height >= MIN_ARTICLE_COVER_HEIGHT,
+    geometry.width >= MIN_ARTICLE_COVER_WIDTH &&
+    geometry.height >= MIN_ARTICLE_COVER_HEIGHT,
   );
 
   return (
@@ -286,7 +284,7 @@ export function ArticleCoverCropDialog({
         <header>
           <h2 id={titleId}>قص صورة الغلاف</h2>
           <p id={helpId}>
-            حرّك الإطار أو غيّر حجمه. تبقى النسبة 16:9، ولن نكبّر الصورة عن أبعادها الأصلية.
+            حرك الإطار أو غير حجمه. تبقى النسبة 16:9، ولن نكبر الصورة عن أبعادها الأصلية.
           </p>
         </header>
 
@@ -325,8 +323,8 @@ export function ArticleCoverCropDialog({
             {geometry
               ? validCrop
                 ? `أبعاد الغلاف الناتج: ${geometry.width} × ${geometry.height} بكسل.`
-                : 'وسّع مساحة القص لتكون النتيجة 1200 × 675 بكسل على الأقل.'
-              : 'جارٍ تجهيز أداة القص.'}
+                : 'وسع مساحة القص لتكون النتيجة 1200 × 675 بكسل على الأقل.'
+              : 'تجهيز أداة القص.'}
           </p>
           {error ? (
             <p className="notice notice--error" role="alert">
@@ -346,7 +344,7 @@ export function ArticleCoverCropDialog({
             aria-busy={applying}
             onClick={() => void applyCrop()}
           >
-            {applying ? 'جارٍ تجهيز الغلاف' : 'اعتماد القص'}
+            {'اعتماد القص'}
           </Button>
         </footer>
       </div>
