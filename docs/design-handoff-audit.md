@@ -268,3 +268,23 @@ pending the explicit approvals for the isolated Auth sending key and two synthet
 QA identities described above. The four Arabic email templates passed static
 browser previews at 1280×900 and 390×844 with unchanged source hashes, readable
 RTL/LTR text and no overflow. This is not email-client or delivery evidence.
+
+### Responsive player follow-up
+
+At the owner's actual 628px viewport, the old player reserved only 90px for the
+episode title and rendered the native rate select as a 77px-wide pill. The player
+now gives its information a full row at intermediate widths, wraps the complete
+title without an ellipsis or line clamp, and uses a transparent 52×44px native
+speed control with a compact 12px LTR label. A ResizeObserver measures the dock
+for the page spacer and customer notification clearance, including title/font
+and viewport changes, and removes that value when the player closes.
+
+Actual local pointer checks used the owner's same episode title. At 628×1354
+it had 434.9px of title width; at 390×844 it wrapped into two complete lines; at
+320px it used three complete lines with 185px of reserved clearance; desktop
+2320px kept the full title and 95px dock clearance. The real speed control
+changed audio playback to 1.25× and 1.5×, with the complete numeric labels visible.
+Closing paused playback and removed the measured property. The viewport was
+restored and the owned QA tab closed; the owner's playing tab was untouched.
+All 179 Web tests, full typecheck/lint and formatting passed. This follow-up is
+part of PR #9 and still needs exact-commit CI and published pointer verification.

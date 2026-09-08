@@ -6,6 +6,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -632,6 +633,7 @@ function RateControl({ disabled = false }: { disabled?: boolean }) {
       <span>السرعة</span>
       <select
         className={styles.rateSelect}
+        dir="ltr"
         value={player.playbackRate}
         disabled={disabled}
         aria-label="سرعة التشغيل"
@@ -654,12 +656,37 @@ function RateControl({ disabled = false }: { disabled?: boolean }) {
 
 export function PlayerBar({ className }: { className?: string }) {
   const player = usePlayer();
+  const bar = useRef<HTMLElement>(null);
+  const active = Boolean(player.episode);
+
+  useLayoutEffect(() => {
+    const element = bar.current;
+    if (!active || !element) return;
+    const property = '--player-bar-height';
+    const previous = document.body.style.getPropertyValue(property);
+    const measure = () => {
+      const height = Math.ceil(element.getBoundingClientRect().height);
+      if (height > 0) document.body.style.setProperty(property, `${height}px`);
+    };
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(element);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+      if (previous) document.body.style.setProperty(property, previous);
+      else document.body.style.removeProperty(property);
+    };
+  }, [active]);
+
   if (!player.episode) return null;
   const { episode } = player;
   const message = statusLabel(player.status, player.error);
 
   return (
     <section
+      ref={bar}
       className={classes(styles.bar, 'mukhtalif-player-bar', className)}
       aria-label="مشغل مختلف"
       onKeyDown={(event) => {

@@ -128,6 +128,53 @@ afterEach(async () => {
 });
 
 describe('persistent player lifecycle', () => {
+  it('keeps page clearance in sync with wrapped titles and clears it when the player closes', async () => {
+    let height = 210;
+    let resized = () => {};
+    const disconnected = vi.fn();
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          resized = callback;
+        }
+        observe() {}
+        disconnect = disconnected;
+      },
+    );
+    const original = HTMLElement.prototype.getBoundingClientRect;
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return this.getAttribute('aria-label') === 'مشغل مختلف'
+        ? ({ height } as DOMRect)
+        : original.call(this);
+    });
+    const title = 'جراحة الحوادث: قرارات بين الحياة والموت في أجزاء من الثانية';
+    await update(() => player.toggle({ ...a, title }));
+    expect(container.querySelector('[aria-label="مشغل مختلف"] a')?.textContent).toBe(title);
+    expect(document.body.style.getPropertyValue('--player-bar-height')).toBe('210px');
+    height = 248;
+    await update(() => resized());
+    expect(document.body.style.getPropertyValue('--player-bar-height')).toBe('248px');
+    await update(() => player.close());
+    expect(disconnected).toHaveBeenCalledOnce();
+    expect(document.body.style.getPropertyValue('--player-bar-height')).toBe('');
+  });
+
+  it('changes speed through the native control with complete numeric option labels', async () => {
+    await update(() => player.toggle(a));
+    const control = container.querySelector<HTMLSelectElement>('[aria-label="سرعة التشغيل"]')!;
+    expect(control.dir).toBe('ltr');
+    expect([...control.options].map((option) => option.textContent)).toContain('1.25×');
+    await update(() => {
+      control.value = '1.25';
+      control.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    expect(rate).toBe(1.25);
+    expect(player.playbackRate).toBe(1.25);
+  });
+
   it('keeps the active episode controls available when a different episode page opens', async () => {
     await update(() => player.toggle(a));
     await loaded();
