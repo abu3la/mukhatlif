@@ -265,7 +265,7 @@ describe('ArticleMediaDialog', () => {
     await user.click(screen.getByRole('option', { name: /sponsor\.png/ }));
     const link = screen.getByRole('textbox', { name: /^رابط الصورة \(اختياري\)/ });
     await user.type(link, 'javascript:alert(1)');
-    expect(screen.getByRole('alert')).toHaveTextContent('استخدم رابطًا يبدأ بـ https:// أو /');
+    expect(screen.getByRole('alert')).toHaveTextContent('استخدم رابطا يبدأ بـ https:// أو /');
     expect(screen.getByRole('button', { name: 'إدراج الصورة' })).toBeDisabled();
 
     await user.clear(link);

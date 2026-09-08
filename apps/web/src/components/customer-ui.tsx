@@ -230,11 +230,6 @@ export function CustomerAuthFrame({
           <Wordmark className="customer-auth-mark" />
           <h1>{title}</h1>
           <p>{intro}</p>
-          <ul className="customer-auth-perks">
-            <li>احفظ الحلقات وأكمل من حيث توقفت</li>
-            <li>تابع برامجك المفضلة من مكتبتك</li>
-            <li>قوائم تشغيل تنتقل معك بين أجهزتك</li>
-          </ul>
         </section>
         <section className="customer-form-panel">{children}</section>
       </div>
@@ -265,8 +260,8 @@ export function CustomerGate({ children }: { children: ReactNode }) {
     return (
       <div className="page customer-page">
         <div className="customer-empty">
-          <h1>مكتبتك تبدأ بحسابك</h1>
-          <p>سجّل الدخول لحفظ ما تحب، ومتابعة الاستماع من أي جهاز.</p>
+          <h1>تسجيل الدخول إلى المكتبة</h1>
+          <p>تسجيل الدخول يتيح حفظ الحلقات ومتابعة الاستماع من أي جهاز.</p>
           <Link
             className="customer-primary"
             href={`/login?next=${encodeURIComponent(destination)}`}
@@ -280,10 +275,10 @@ export function CustomerGate({ children }: { children: ReactNode }) {
     return (
       <div className="page customer-page">
         <div className="customer-empty">
-          <h1>تعذّر تحميل حسابك</h1>
-          <p role="alert">{customer.error || 'حاول مجددًا بعد قليل.'}</p>
+          <h1>تعذر تحميل الحساب</h1>
+          <p role="alert">{customer.error || 'إعادة المحاولة بعد قليل.'}</p>
           <button className="customer-primary" onClick={() => void customer.refresh()}>
-            حاول مجددًا
+            إعادة المحاولة
           </button>
         </div>
       </div>
@@ -308,7 +303,7 @@ export function CustomerEmpty({
       {children && <p>{children}</p>}
       {href && (
         <Link className="customer-primary" href={href}>
-          {action || 'استكشف الحلقات'}
+          {action || 'تصفح الحلقات'}
         </Link>
       )}
     </section>

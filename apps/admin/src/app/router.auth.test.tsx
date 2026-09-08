@@ -84,7 +84,7 @@ describe('admin auth routing', () => {
     const readContent = vi.spyOn(repository, 'readContentWorkspace');
 
     expect(
-      await screen.findByRole('heading', { name: 'الدخول إلى استوديو الإدارة' }),
+      await screen.findByRole('heading', { name: 'الدخول إلى لوحة التحكم' }),
     ).toBeInTheDocument();
     expect(readContent).not.toHaveBeenCalled();
   });
@@ -94,7 +94,7 @@ describe('admin auth routing', () => {
     const readContent = vi.spyOn(repository, 'readContentWorkspace');
 
     expect(
-      await screen.findByRole('heading', { name: 'لا تملك صلاحية دخول الاستوديو' }),
+      await screen.findByRole('heading', { name: 'الحساب غير مخول لدخول لوحة التحكم' }),
     ).toBeInTheDocument();
     expect(readContent).not.toHaveBeenCalled();
   });
@@ -148,7 +148,7 @@ describe('admin auth routing', () => {
     expect(screen.queryByLabelText(/كلمة المرور الجديدة/)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'إرسال رمز التحقق' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('أرسلنا رمز تحقق إلى بريدك.');
+    expect(await screen.findByRole('status')).toHaveTextContent('تم إرسال رمز التحقق.');
     await user.type(screen.getByLabelText(/رمز التحقق/), '٢٤٦٨١٠١٢');
     expect(screen.getByLabelText(/رمز التحقق/)).toHaveValue(FIXTURE_PASSWORD_VERIFICATION_CODE);
 
@@ -162,7 +162,7 @@ describe('admin auth routing', () => {
     await user.type(screen.getByLabelText('تأكيد كلمة المرور'), nextPassword);
     await user.click(screen.getByRole('button', { name: 'حفظ كلمة المرور' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'حُفظت كلمة المرور. استخدمها عند تسجيل الدخول القادم.',
+      'حفظت كلمة المرور. استخدمها عند تسجيل الدخول القادم.',
     );
     expect(screen.queryByLabelText(/رمز التحقق/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/كلمة المرور الجديدة/)).not.toBeInTheDocument();
@@ -295,10 +295,7 @@ describe('admin auth routing', () => {
     if (!row) throw new Error('Expected the Studio account row for Layan.');
     await user.click(within(row).getByRole('button', { name: 'حفظ الدور' }));
 
-    expect(await within(row).findByText('حُفظ دور ليان السبيعي.')).toHaveAttribute(
-      'role',
-      'status',
-    );
+    expect(await within(row).findByText('حفظ دور ليان السبيعي.')).toHaveAttribute('role', 'status');
     await waitFor(() => expect(select).toHaveValue('admin'));
     expect(within(row).getByRole('button', { name: 'حفظ الدور' })).toBeDisabled();
   });
@@ -335,7 +332,7 @@ describe('admin auth routing', () => {
     await user.selectOptions(screen.getByRole('combobox', { name: 'الدور الإداري' }), 'editor');
     await user.click(screen.getByRole('button', { name: 'إضافة الحساب' }));
 
-    expect(await screen.findByText('أُضيف حساب مها السالم.')).toBeInTheDocument();
+    expect(await screen.findByText('أضيف حساب مها السالم.')).toBeInTheDocument();
     expect(screen.getByText(FIXTURE_CREATED_ACCOUNT_PASSWORD)).toBeInTheDocument();
     expect(gateway.demoAccounts).toEqual(
       expect.arrayContaining([
@@ -364,7 +361,7 @@ describe('admin auth routing', () => {
     expect(await screen.findByRole('heading', { name: 'إضافة حساب إداري' })).toHaveFocus();
 
     await user.click(screen.getByRole('button', { name: 'تسجيل الخروج' }));
-    await screen.findByRole('heading', { name: 'الدخول إلى استوديو الإدارة' });
+    await screen.findByRole('heading', { name: 'الدخول إلى لوحة التحكم' });
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'حساب العرض' }),
       gateway.demoAccounts.find((account) => account.email === 'maha.salem@example.com')?.id ?? '',
@@ -427,10 +424,10 @@ describe('admin auth routing', () => {
     const roleOption = screen.getByRole('option', { name: 'مراجع المقالات' });
     await user.selectOptions(screen.getByRole('combobox', { name: 'الدور الإداري' }), roleOption);
     await user.click(screen.getByRole('button', { name: 'إضافة الحساب' }));
-    expect(await screen.findByText('أُضيف حساب أروى المراجعة.')).toBeInTheDocument();
+    expect(await screen.findByText('أضيف حساب أروى المراجعة.')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'تسجيل الخروج' }));
-    await screen.findByRole('heading', { name: 'الدخول إلى استوديو الإدارة' });
+    await screen.findByRole('heading', { name: 'الدخول إلى لوحة التحكم' });
     const account = gateway.demoAccounts.find(
       (candidate) => candidate.email === 'arwa.reviewer@example.com',
     );
@@ -541,7 +538,7 @@ describe('admin auth routing', () => {
     await user.click(screen.getByRole('button', { name: 'تسجيل الخروج' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'الدخول إلى استوديو الإدارة' }),
+      await screen.findByRole('heading', { name: 'الدخول إلى لوحة التحكم' }),
     ).toBeInTheDocument();
     expect(queryClient.getQueryData(['private-test-record'])).toBeUndefined();
   });

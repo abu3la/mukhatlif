@@ -16,7 +16,7 @@ export function ArticleAiSkillGuide() {
           <h3 id="article-ai-skill-guide-title">سكيل المقالات في محادثتك</h3>
           <p>
             يعمل مع <bdi dir="ltr">ChatGPT Desktop</bdi>&nbsp;و&nbsp;
-            <bdi dir="ltr">Claude</bdi>، ويسألك سؤالًا واحدًا في كل مرة قبل تجهيز مسودة قابلة
+            <bdi dir="ltr">Claude</bdi>، ويسألك سؤالا واحدا في كل مرة قبل تجهيز مسودة قابلة
             للاستيراد.
           </p>
         </div>
@@ -31,7 +31,7 @@ export function ArticleAiSkillGuide() {
       </div>
 
       <p className="article-ai-skill-guide__note">
-        لتثبيت السكيل، لا ترفق ملف <bdi dir="ltr">ZIP</bdi> في رسالة عادية. ثبّته مرة واحدة بالطريقة
+        لتثبيت السكيل، لا ترفق ملف <bdi dir="ltr">ZIP</bdi> في رسالة عادية. ثبته مرة واحدة بالطريقة
         المناسبة لمنصتك.
       </p>
 
@@ -53,7 +53,7 @@ export function ArticleAiSkillGuide() {
               <bdi dir="ltr">ChatGPT Desktop</bdi>
             </h4>
             <ol>
-              <li>نزّل ملف السكيل وفك ضغطه.</li>
+              <li>نزل ملف السكيل وفك ضغطه.</li>
               <li>
                 ضع مجلد السكيل في هذا المسار. إن لم يظهر السكيل، أعد تشغيل التطبيق.
                 <code className="article-ai-skill-guide__path" dir="ltr">
@@ -82,14 +82,14 @@ export function ArticleAiSkillGuide() {
             </h4>
             <ol>
               <li>
-                للحساب الفردي، فعّل <bdi dir="ltr">Code execution and file creation</bdi> من:
+                للحساب الفردي، فعل <bdi dir="ltr">Code execution and file creation</bdi> من:
                 <code className="article-ai-skill-guide__path" dir="ltr">
                   Settings &gt; Capabilities
                 </code>
               </li>
               <li>
                 في <bdi dir="ltr">Team</bdi>&nbsp;و&nbsp;<bdi dir="ltr">Enterprise</bdi>، يجب أن
-                يفعّل مسؤول المؤسسة السكيلات من:
+                يفعل مسؤول المؤسسة السكيلات من:
                 <code className="article-ai-skill-guide__path" dir="ltr">
                   Organization settings &gt; Skills
                 </code>
@@ -100,10 +100,10 @@ export function ArticleAiSkillGuide() {
                   Customize &gt; Skills &gt; + &gt; Create skill &gt; Upload a skill
                 </code>
               </li>
-              <li>ارفع ملف السكيل بصيغة ZIP كما هو، ثم فعّله من قائمة Skills.</li>
+              <li>ارفع ملف السكيل بصيغة ZIP كما هو، ثم فعله من قائمة Skills.</li>
               <li>
                 عند تشغيله، يعرض <bdi dir="ltr">Claude</bdi> كل سؤال عبر واجهة{' '}
-                <bdi dir="ltr">Asking a question</bdi> الأصلية، سؤالًا واحدًا في كل مرة.
+                <bdi dir="ltr">Asking a question</bdi> الأصلية، سؤالا واحدا في كل مرة.
               </li>
             </ol>
             <a

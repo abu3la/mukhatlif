@@ -112,7 +112,7 @@ export function NewsletterView() {
       />
 
       <p className="newsletter-provider-note">
-        حالة الربط المعروضة هي آخر حالة مسجلة محليًا، وليست الحالة الحية داخل Mailchimp أثناء توقف
+        حالة الربط المعروضة هي آخر حالة مسجلة محليا، وليست الحالة الحية داخل Mailchimp أثناء توقف
         الاشتراك.
       </p>
 
@@ -136,9 +136,9 @@ export function NewsletterView() {
         </form>
 
         <label className="field">
-          <span className="field__label">حالة الاشتراك محليًا</span>
+          <span className="field__label">حالة الاشتراك محليا</span>
           <Select
-            aria-label="حالة الاشتراك محليًا"
+            aria-label="حالة الاشتراك محليا"
             value={localStatus ?? ''}
             onChange={(event) =>
               updateParams({ localStatus: event.currentTarget.value || undefined })
@@ -174,11 +174,11 @@ export function NewsletterView() {
 
       {subscribersQuery.isPending ? (
         <section className="card embedded-state" aria-busy="true" aria-live="polite">
-          <p>جارٍ تحميل المشتركين…</p>
+          <p>تحميل المشتركين…</p>
         </section>
       ) : subscribersQuery.error ? (
         <section className="card embedded-state" role="alert">
-          <h2>تعذّر تحميل المشتركين</h2>
+          <h2>تعذر تحميل المشتركين</h2>
           <p>تحقق من الاتصال ثم حاول مرة أخرى.</p>
           <Button variant="primary" type="button" onClick={() => void subscribersQuery.refetch()}>
             إعادة المحاولة
@@ -196,7 +196,7 @@ export function NewsletterView() {
         <>
           <section
             className="card newsletter-table-card"
-            aria-label="مشتركو النشرة البريدية، جدول قابل للتمرير أفقيًا"
+            aria-label="مشتركو النشرة البريدية، جدول قابل للتمرير أفقيا"
             tabIndex={0}
           >
             <div
@@ -212,7 +212,7 @@ export function NewsletterView() {
               >
                 <span role="columnheader">البريد الإلكتروني</span>
                 <span role="columnheader">الاسم الأول</span>
-                <span role="columnheader">حالة الاشتراك محليًا</span>
+                <span role="columnheader">حالة الاشتراك محليا</span>
                 <span role="columnheader">حالة الربط مع Mailchimp</span>
                 <span role="columnheader">آخر طلب</span>
                 <span role="columnheader">آخر تحديث</span>

@@ -321,7 +321,7 @@ describe('episode YouTube editor controls', () => {
     await user.paste('https://youtube.com.example.test/watch?v=Ioch353mcfc');
     await user.click(screen.getByRole('button', { name: 'حفظ التغييرات' }));
     expect(studio.saveEpisode).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert')).toHaveTextContent('أدخل رابط حلقة صالحًا من YouTube.');
+    expect(screen.getByRole('alert')).toHaveTextContent('أدخل رابط حلقة صالحا من YouTube.');
     expect(input).toHaveAttribute('aria-invalid', 'true');
     expect(screen.queryByRole('img', { name: 'معاينة صورة فيديو الحلقة' })).not.toBeInTheDocument();
 
@@ -390,9 +390,7 @@ describe('page mutation controls', () => {
     expect(studio.saveEpisode).toHaveBeenCalledOnce();
     expect(studio.uploadEpisodeAudio).not.toHaveBeenCalled();
     expect(vi.mocked(studio.saveEpisode).mock.calls[0]?.[0]).not.toHaveProperty('audioFile');
-    expect(
-      screen.getByText('حُفظت بيانات الحلقة. الملف المختار لم يُرفع بعد.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('حفظت بيانات الحلقة. الملف المختار لم يرفع بعد.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'رفع الملف' }));
     expect(studio.uploadEpisodeAudio).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({ id: current.id, audioFile: file }),
@@ -446,8 +444,8 @@ describe('page mutation controls', () => {
         'حسابات التطبيق واشتراكات مختلف بلس. مشتركو البريد في صفحة «النشرة البريدية».',
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'تفعيل بلس يدويًا' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'إعادة التفعيل يدويًا' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'تفعيل بلس يدويا' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'إعادة التفعيل يدويا' })).not.toBeInTheDocument();
   });
 
   it('shows page-specific mutation controls only with manage permission', () => {
@@ -479,8 +477,8 @@ describe('page mutation controls', () => {
     articleRender.unmount();
 
     renderPage(<SubscribersView />, MANAGE_PERMISSIONS);
-    expect(screen.getAllByRole('button', { name: 'تفعيل بلس يدويًا' }).length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: 'إعادة التفعيل يدويًا' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'تفعيل بلس يدويا' }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'إعادة التفعيل يدويا' })).toBeInTheDocument();
   });
 
   it('يحفظ إعدادات قسم حلقات آخر أسبوع برقم النسخة', async () => {
@@ -507,7 +505,7 @@ describe('page mutation controls', () => {
       title: 'حصاد مختلف',
       expectedVersion: 1,
     });
-    expect(await screen.findByText('حُفظت إعدادات القسم.')).toHaveAttribute('role', 'status');
+    expect(await screen.findByText('حفظت إعدادات القسم.')).toHaveAttribute('role', 'status');
   });
 
   it('يوضح تعارض النسخة ويطلب المراجعة', async () => {
@@ -528,7 +526,7 @@ describe('page mutation controls', () => {
     await user.click(screen.getByRole('button', { name: 'حفظ إعدادات القسم' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'تغيّرت إعدادات القسم في جلسة أخرى. راجعها وحاول مجددًا.',
+      'تغيرت إعدادات القسم في جلسة أخرى. راجعها وحاول مجددا.',
     );
   });
 
@@ -547,7 +545,7 @@ describe('page mutation controls', () => {
 
     await user.click(screen.getByRole('textbox', { name: 'اسم البرنامج' }));
     await user.paste(' خارج الإطار ');
-    await user.click(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }));
+    await user.click(screen.getByRole('textbox', { name: /^المعرف في الرابط/ }));
     await user.paste('outside-the-frame');
     await user.click(screen.getByRole('textbox', { name: 'المضيف' }));
     await user.paste(' نور الهدى ');
@@ -584,7 +582,7 @@ describe('page mutation controls', () => {
 
     await user.click(screen.getByRole('textbox', { name: 'عنوان المقال' }));
     await user.paste(' مستقبل العمل ');
-    await user.click(screen.getByRole('textbox', { name: /^المعرّف في الرابط/ }));
+    await user.click(screen.getByRole('textbox', { name: /^المعرف في الرابط/ }));
     await user.paste('future-of-work');
     await user.click(screen.getByRole('textbox', { name: 'محتوى المقال' }));
     await user.paste('نص المقال التجريبي.');
@@ -615,14 +613,14 @@ describe('page mutation controls', () => {
 
   it('links from overview only to permitted destinations', () => {
     const overviewOnly = renderPage(<OverviewView />, ['overview.view']);
-    expect(screen.queryByRole('link', { name: 'كل الحلقات' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'عرض الحلقات المنشورة' })).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'اجتماعات بلا نهاية: من يقتل الإنتاجية؟' }),
     ).not.toBeInTheDocument();
     overviewOnly.unmount();
 
     const episodeViewer = renderPage(<OverviewView />, ['overview.view', 'episodes.view']);
-    expect(screen.getByRole('link', { name: 'كل الحلقات' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'عرض الحلقات المنشورة' })).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'اجتماعات بلا نهاية: من يقتل الإنتاجية؟' }),
     ).toHaveAttribute('href', '/episodes/episode_1');

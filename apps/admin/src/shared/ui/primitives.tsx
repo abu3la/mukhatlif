@@ -14,10 +14,27 @@ type ButtonVariant = 'primary' | 'quiet' | 'danger';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
+  ref?: Ref<HTMLButtonElement>;
 }
 
-export function Button({ variant = 'quiet', className = '', ...props }: ButtonProps) {
-  return <button className={`button button--${variant} ${className}`.trim()} {...props} />;
+export function Button({
+  variant = 'quiet',
+  className = '',
+  children,
+  disabled,
+  ...props
+}: ButtonProps) {
+  const busy = props['aria-busy'] === true || props['aria-busy'] === 'true';
+  return (
+    <button
+      className={`button button--${variant} ${className}`.trim()}
+      {...props}
+      disabled={disabled || busy}
+    >
+      <span className="button__content">{children}</span>
+      {busy && <span className="button__spinner" aria-hidden="true" />}
+    </button>
+  );
 }
 
 interface PageHeaderProps {
@@ -54,11 +71,7 @@ interface PageBreadcrumbProps {
   current: string;
 }
 
-export function PageBreadcrumb({
-  parentLabel,
-  parentTo,
-  current,
-}: PageBreadcrumbProps) {
+export function PageBreadcrumb({ parentLabel, parentTo, current }: PageBreadcrumbProps) {
   return (
     <nav className="page-breadcrumb" aria-label="مسار الصفحة">
       <ol>
@@ -125,7 +138,10 @@ export function Select({ className = '', ...props }: SelectHTMLAttributes<HTMLSe
   return <select className={`control ${className}`.trim()} {...props} />;
 }
 
-export function Textarea({ className = '', ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function Textarea({
+  className = '',
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea className={`control textarea ${className}`.trim()} {...props} />;
 }
 

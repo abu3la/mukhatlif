@@ -39,7 +39,7 @@ export function GuestContactCard({
     try {
       await onGuestUpdate({ [field]: draft[field] });
     } catch {
-      setOperationError('تعذّر حفظ بيانات التواصل. بقيت التعديلات في الحقول، حاول مرة أخرى.');
+      setOperationError('تعذر حفظ بيانات التواصل. بقيت التعديلات في الحقول، حاول مرة أخرى.');
     } finally {
       setPendingField(null);
     }

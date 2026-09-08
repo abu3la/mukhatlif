@@ -50,7 +50,7 @@ describe('audio upload controls', () => {
         <AudioUploadPanel {...p} state={state('paused')} />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('status')).toHaveTextContent('الرفع متوقف مؤقتًا');
+    expect(screen.getByRole('status')).toHaveTextContent('الرفع متوقف مؤقتا');
     await userEvent.click(screen.getByRole('button', { name: 'استئناف الرفع' }));
     expect(resume).toHaveBeenCalledOnce();
   });
@@ -62,15 +62,15 @@ describe('audio upload controls', () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole('progressbar')).toHaveAttribute('value', '100');
-    expect(screen.getByRole('status')).toHaveTextContent('جارٍ التحقق من الملف');
+    expect(screen.getByRole('status')).toHaveTextContent('التحقق من الملف');
     expect(screen.queryByRole('button', { name: 'إلغاء الرفع' })).not.toBeInTheDocument();
-    expect(screen.queryByText('اكتمل رفع الصوت')).not.toBeInTheDocument();
+    expect(screen.queryByText('اكتمل رفع الملف الصوتي')).not.toBeInTheDocument();
     rerender(
       <MemoryRouter>
         <AudioUploadPanel {...p} disabled={false} state={{ ...state('completed'), loaded: 6 }} />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('status')).toHaveTextContent('اكتمل رفع الصوت');
+    expect(screen.getByRole('status')).toHaveTextContent('اكتمل رفع الملف الصوتي');
   });
   it('accepts a selected file and drag/drop only when editable', async () => {
     const p = props();

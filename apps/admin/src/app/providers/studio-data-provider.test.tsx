@@ -35,11 +35,7 @@ function GuestCreationProbe() {
 }
 
 function PublishingFailureProbe({ operation }: { operation: 'campaign' | 'send' }) {
-  const {
-    data,
-    syncArticleNewsletterCampaign,
-    sendArticleNewsletter,
-  } = useStudioData();
+  const { data, syncArticleNewsletterCampaign, sendArticleNewsletter } = useStudioData();
   const [failed, setFailed] = useState(false);
   const article = data.articles[0]!;
 
@@ -66,7 +62,7 @@ function PublishingFailureProbe({ operation }: { operation: 'campaign' | 'send' 
         تشغيل عملية النشرة
       </button>
       <output data-testid="publishing-status">{article.newsletter.status}</output>
-      {failed ? <output data-testid="publishing-failed">تعذّرت العملية</output> : null}
+      {failed ? <output data-testid="publishing-failed">تعذرت العملية</output> : null}
     </>
   );
 }
@@ -99,12 +95,9 @@ describe('StudioDataProvider guest creation', () => {
       expect(createGuest).toHaveBeenCalledWith(GUEST_COMMAND);
     });
     await waitFor(() => {
-      expect(queryClient.getQueryData([
-        'admin-studio',
-        repository.kind,
-        ADMIN_VIEWER.id,
-        'guests',
-      ])).toMatchObject({
+      expect(
+        queryClient.getQueryData(['admin-studio', repository.kind, ADMIN_VIEWER.id, 'guests']),
+      ).toMatchObject({
         guests: expect.arrayContaining([expect.objectContaining(GUEST_COMMAND)]),
       });
     });
@@ -147,7 +140,8 @@ describe('StudioDataProvider publishing recovery reads', () => {
         .mockImplementation(async () => structuredClone(workspace));
       const ambiguousError = new AdminRepositoryError({
         code: 'REMOTE_UNAVAILABLE',
-        operation: operation === 'campaign' ? 'syncArticleNewsletterCampaign' : 'sendArticleNewsletter',
+        operation:
+          operation === 'campaign' ? 'syncArticleNewsletterCampaign' : 'sendArticleNewsletter',
         message: 'Ambiguous provider response.',
         retryable: false,
         context: {

@@ -7,10 +7,7 @@ import {
   useAdminAuth,
   useStudioMemberDirectory,
 } from '@/application';
-import {
-  isAdminRepositoryError,
-  type AdminRepositoryCapabilities,
-} from '@/data';
+import { isAdminRepositoryError, type AdminRepositoryCapabilities } from '@/data';
 import {
   formatPageCount,
   formatRoleCount,
@@ -20,14 +17,7 @@ import {
   type StudioPageId,
   type StudioRole,
 } from '@/lib';
-import {
-  Button,
-  Field,
-  Input,
-  PageBreadcrumb,
-  PageHeader,
-  Textarea,
-} from '@/shared/ui/primitives';
+import { Button, Field, Input, PageBreadcrumb, PageHeader, Textarea } from '@/shared/ui/primitives';
 
 export type PermissionLevel = 'none' | 'view' | 'manage';
 
@@ -124,8 +114,7 @@ export function updatePagePermissionLevel(
 ): PermissionId[] {
   const next = new Set(
     canonicalPermissions(permissions).filter(
-      (permission) =>
-        permission !== page.viewPermission && permission !== page.managePermission,
+      (permission) => permission !== page.viewPermission && permission !== page.managePermission,
     ),
   );
   if (level === 'view' || level === 'manage') next.add(page.viewPermission);
@@ -143,10 +132,10 @@ export function accessPermissionUpdateErrorMessage(error: unknown): string {
       return 'راجع الصلاحيات المحددة ثم حاول مرة أخرى.';
     }
     if (error.code === 'CONFLICT') {
-      return 'تغيّر الدور في جلسة أخرى. حدّث الصفحة ثم حاول مرة أخرى.';
+      return 'تغير الدور في جلسة أخرى. حدث الصفحة ثم حاول مرة أخرى.';
     }
   }
-  return 'تعذّر حفظ الصلاحيات. حاول مرة أخرى.';
+  return 'تعذر حفظ الصلاحيات. حاول مرة أخرى.';
 }
 
 export function roleCreateErrorMessage(error: unknown): string {
@@ -154,10 +143,10 @@ export function roleCreateErrorMessage(error: unknown): string {
     if (error.code === 'FORBIDDEN' || error.code === 'UNAUTHENTICATED') {
       return 'لا يمكنك إنشاء أدوار.';
     }
-    if (error.code === 'CONFLICT') return 'اسم الدور مستخدم. اختر اسمًا آخر.';
+    if (error.code === 'CONFLICT') return 'اسم الدور مستخدم. اختر اسما آخر.';
     if (error.code === 'VALIDATION') return 'راجع اسم الدور ووصفه وصلاحياته.';
   }
-  return 'تعذّر إنشاء الدور. حاول مرة أخرى.';
+  return 'تعذر إنشاء الدور. حاول مرة أخرى.';
 }
 
 function rolePageCount(role: StudioRole): number {
@@ -213,9 +202,7 @@ function PermissionEditor({
                       name={`permission-${roleId}-${page.id}`}
                       value={level}
                       checked={permissionLevelForPage(permissions, page) === level}
-                      onChange={() =>
-                        onChange(updatePagePermissionLevel(permissions, page, level))
-                      }
+                      onChange={() => onChange(updatePagePermissionLevel(permissions, page, level))}
                     />
                     <span>{PERMISSION_LEVEL_LABELS[level]}</span>
                   </label>
@@ -250,7 +237,6 @@ export function RolesView() {
       <section className="card roles-directory" aria-labelledby="roles-directory-title">
         <header className="roles-directory__header">
           <h2 id="roles-directory-title">دليل الأدوار</h2>
-          <p>افتح أي دور لتصفح صلاحياته أو تعديلها.</p>
         </header>
         <ul className="roles-directory__list">
           {roles.map((role) => (
@@ -264,7 +250,11 @@ export function RolesView() {
               <div className="roles-directory__facts" aria-label={`ملخص دور ${role.name}`}>
                 <span>عدد حسابات الاستوديو: {formatArabicInteger(role.memberCount)}</span>
                 <span>{formatPageCount(rolePageCount(role))}</span>
-                {role.isProtected ? <span>دور ثابت</span> : role.isSystem ? <span>دور نظامي</span> : null}
+                {role.isProtected ? (
+                  <span>دور ثابت</span>
+                ) : role.isSystem ? (
+                  <span>دور نظامي</span>
+                ) : null}
               </div>
             </li>
           ))}
@@ -292,7 +282,7 @@ export function RoleNewView() {
     const normalizedName = name.trim();
     const normalizedDescription = description.trim();
     if (normalizedName.length < 2) {
-      setError('اكتب اسمًا من حرفين على الأقل.');
+      setError('اكتب اسما من حرفين على الأقل.');
       return;
     }
     setPending(true);
@@ -320,11 +310,17 @@ export function RoleNewView() {
       />
       <header className="page-header">
         <div className="page-header__title-row">
-          <h1 ref={headingRef} tabIndex={-1}>دور جديد</h1>
-          <div className="page-header__detail">حدّد بيانات الدور وصلاحيات صفحاته.</div>
+          <h1 ref={headingRef} tabIndex={-1}>
+            دور جديد
+          </h1>
+          <div className="page-header__detail">حدد بيانات الدور وصلاحيات صفحاته.</div>
         </div>
       </header>
-      <form className="card role-editor" aria-label="بيانات الدور الجديد" onSubmit={(event) => void submit(event)}>
+      <form
+        className="card role-editor"
+        aria-label="بيانات الدور الجديد"
+        onSubmit={(event) => void submit(event)}
+      >
         <div className="role-editor__fields">
           <Field label="اسم الدور">
             <Input
@@ -337,7 +333,7 @@ export function RoleNewView() {
               onChange={(event) => setName(event.target.value)}
             />
           </Field>
-          <Field label="الوصف (اختياري)" hint="وصف موجز يوضح مسؤوليات هذا الدور.">
+          <Field label="الوصف (اختياري)">
             <Textarea
               name="description"
               value={description}
@@ -360,10 +356,14 @@ export function RoleNewView() {
         />
         <div className="role-editor__footer">
           <Button type="submit" variant="primary" disabled={pending} aria-busy={pending}>
-            {pending ? 'جارٍ الإنشاء…' : 'إنشاء الدور'}
+            {'إنشاء الدور'}
           </Button>
           <div className="role-editor__feedback" aria-live="polite">
-            {error ? <p className="notice notice--error" role="alert">{error}</p> : null}
+            {error ? (
+              <p className="notice notice--error" role="alert">
+                {error}
+              </p>
+            ) : null}
           </div>
         </div>
       </form>
@@ -375,10 +375,7 @@ export function RoleDetailsView() {
   const { roleId = '' } = useParams();
   const { roles, capabilities, updateRolePermissions } = useStudioMemberDirectory();
   const { viewer } = useAdminAuth();
-  const role = useMemo(
-    () => roles.find((candidate) => candidate.id === roleId),
-    [roleId, roles],
-  );
+  const role = useMemo(() => roles.find((candidate) => candidate.id === roleId), [roleId, roles]);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [permissions, setPermissions] = useState<PermissionId[]>([]);
   const [pending, setPending] = useState(false);
@@ -399,17 +396,19 @@ export function RoleDetailsView() {
           current="دور غير موجود"
         />
         <section className="card embedded-state" role="status">
-          <h1 ref={headingRef} tabIndex={-1}>الدور غير موجود</h1>
-          <p>قد يكون الدور محذوفًا أو أن الرابط غير صحيح.</p>
-          <Link className="button button--primary" to={adminPaths.roles}>العودة إلى الأدوار</Link>
+          <h1 ref={headingRef} tabIndex={-1}>
+            الدور غير موجود
+          </h1>
+          <p>قد يكون الدور محذوفا أو أن الرابط غير صحيح.</p>
+          <Link className="button button--primary" to={adminPaths.roles}>
+            العودة إلى الأدوار
+          </Link>
         </section>
       </div>
     );
   }
 
-  const canEdit = Boolean(
-    viewer && canManagePage(viewer, 'access') && !role.isProtected,
-  );
+  const canEdit = Boolean(viewer && canManagePage(viewer, 'access') && !role.isProtected);
   const dirty = !samePermissions(permissions, role.permissions);
 
   async function save() {
@@ -419,7 +418,7 @@ export function RoleDetailsView() {
     setSuccess('');
     try {
       await updateRolePermissions(role.id, permissions);
-      setSuccess(`حُفظت صلاحيات ${role.name}.`);
+      setSuccess(`حفظت صلاحيات ${role.name}.`);
     } catch (cause) {
       setError(accessPermissionUpdateErrorMessage(cause));
     } finally {
@@ -436,7 +435,9 @@ export function RoleDetailsView() {
       />
       <header className="page-header role-details-header">
         <div className="page-header__title-row">
-          <h1 ref={headingRef} tabIndex={-1}>{role.name}</h1>
+          <h1 ref={headingRef} tabIndex={-1}>
+            {role.name}
+          </h1>
           <div className="page-header__detail">{role.description || 'لا يوجد وصف لهذا الدور.'}</div>
         </div>
         <div className="role-details-header__facts">
@@ -470,11 +471,19 @@ export function RoleDetailsView() {
               aria-busy={pending}
               onClick={() => void save()}
             >
-              {pending ? 'جارٍ الحفظ…' : 'حفظ الصلاحيات'}
+              {'حفظ الصلاحيات'}
             </Button>
             <div className="role-editor__feedback" aria-live="polite">
-              {error ? <p className="notice notice--error" role="alert">{error}</p> : null}
-              {success ? <p className="notice notice--success" role="status">{success}</p> : null}
+              {error ? (
+                <p className="notice notice--error" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              {success ? (
+                <p className="notice notice--success" role="status">
+                  {success}
+                </p>
+              ) : null}
             </div>
           </div>
         ) : null}

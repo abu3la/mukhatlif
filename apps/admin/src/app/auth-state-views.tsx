@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  adminPagePaths,
-  STUDIO_PAGE_LABELS,
-  useAdminAuth,
-} from '@/application';
+import { adminPagePaths, STUDIO_PAGE_LABELS, useAdminAuth } from '@/application';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { Button } from '@/shared/ui/primitives';
 import type { AdminViewer, StudioPageId } from '@/lib';
@@ -13,7 +9,7 @@ export function AuthLoadingView() {
   return (
     <main className="auth-state-page" aria-busy="true" aria-live="polite">
       <BrandMark height={28} />
-      <p>جارٍ التحقق من جلسة الاستوديو…</p>
+      <p>التحقق من الحساب…</p>
     </main>
   );
 }
@@ -34,11 +30,11 @@ export function AccessDeniedView({
       <section className="auth-state-panel" aria-labelledby="access-denied-title">
         <BrandMark height={28} />
         <div>
-          <h1 id="access-denied-title">لا تملك صلاحية دخول الاستوديو</h1>
+          <h1 id="access-denied-title">الحساب غير مخول لدخول لوحة التحكم</h1>
           <p>
             {viewer
-              ? 'لم تُمنح لهذا الحساب صلاحية عرض أي صفحة في استوديو الإدارة.'
-              : 'هذا الحساب غير مرتبط بعضوية فعالة في فريق الاستوديو.'}
+              ? 'الحساب بلا صلاحيات عرض. تواصل مع المشرف العام لتحديد الصلاحيات.'
+              : 'الحساب غير مفعل ضمن فريق الإدارة. تواصل مع المشرف العام.'}
           </p>
           {viewer ? <p>الدور الحالي: {viewer.roleName}</p> : null}
           {accountEmail ? (
@@ -60,11 +56,11 @@ export function AccessDeniedView({
           onClick={() => {
             setSignOutError('');
             void signOut().catch(() => {
-              setSignOutError('تعذّر تسجيل الخروج. حاول مرة أخرى.');
+              setSignOutError('تعذر تسجيل الخروج. حاول مرة أخرى.');
             });
           }}
         >
-          {isSubmitting ? 'جارٍ تسجيل الخروج…' : 'تسجيل الخروج'}
+          {'تسجيل الخروج'}
         </Button>
       </section>
     </main>
@@ -80,7 +76,7 @@ export function AuthErrorView() {
       <section className="auth-state-panel" aria-labelledby="auth-error-title">
         <BrandMark height={28} />
         <div>
-          <h1 id="auth-error-title">تعذّر التحقق من الحساب</h1>
+          <h1 id="auth-error-title">تعذر التحقق من الحساب</h1>
           <p>تحقق من الاتصال ثم أعد المحاولة.</p>
         </div>
         {actionError ? (
@@ -102,7 +98,7 @@ export function AuthErrorView() {
             disabled={isSubmitting}
             onClick={() => {
               setActionError('');
-              void signOut().catch(() => setActionError('تعذّر تسجيل الخروج. حاول مرة أخرى.'));
+              void signOut().catch(() => setActionError('تعذر تسجيل الخروج. حاول مرة أخرى.'));
             }}
           >
             تسجيل الخروج
@@ -125,8 +121,7 @@ export function AdminRouteDeniedView({
   return (
     <section className="card permission-state" aria-labelledby="admin-route-denied-title">
       <h1 id="admin-route-denied-title">
-        لا تملك صلاحية {action === 'manage' ? 'إدارة' : 'عرض'} صفحة{' '}
-        {STUDIO_PAGE_LABELS[page]}
+        لا تملك صلاحية {action === 'manage' ? 'إدارة' : 'عرض'} صفحة {STUDIO_PAGE_LABELS[page]}
       </h1>
       <p>تواصل مع المشرف العام إذا كنت تحتاج إلى هذه الصفحة.</p>
       <Link className="back-link" to={adminPagePaths[fallbackPage]}>

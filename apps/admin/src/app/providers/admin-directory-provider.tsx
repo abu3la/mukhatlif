@@ -6,25 +6,20 @@ import {
   canViewPage,
   type StudioMemberDirectoryContextValue,
 } from '@/application';
-import {
-  FIXTURE_CREATED_ACCOUNT_PASSWORD,
-  type AdminRepository,
-} from '@/data';
+import { FIXTURE_CREATED_ACCOUNT_PASSWORD, type AdminRepository } from '@/data';
 import { AdminRepositoryError } from '@/data/repository-error';
 import type { AdminStudioMemberDirectory, AdminViewer, StudioRole } from '@/lib';
 
 export function resolveLocalDemoCredential(
   repositoryKind: AdminRepository['kind'],
 ): { readonly password: string } | null {
-  return repositoryKind === 'fixture'
-    ? { password: FIXTURE_CREATED_ACCOUNT_PASSWORD }
-    : null;
+  return repositoryKind === 'fixture' ? { password: FIXTURE_CREATED_ACCOUNT_PASSWORD } : null;
 }
 
 function DirectoryLoadingState() {
   return (
     <section className="embedded-state" aria-busy="true" aria-live="polite">
-      <p>جارٍ تحميل بيانات الإدارة…</p>
+      <p>تحميل الحسابات والصلاحيات…</p>
     </section>
   );
 }
@@ -32,8 +27,7 @@ function DirectoryLoadingState() {
 function DirectoryErrorState({ onRetry }: { onRetry(): void }) {
   return (
     <section className="embedded-state" role="alert">
-      <h1>تعذر تحميل بيانات الإدارة</h1>
-      <p>تعذّر تحميل بيانات الإدارة. حاول مرة أخرى.</p>
+      <h1>تعذر تحميل الحسابات والصلاحيات</h1>
       <button className="button button--primary" type="button" onClick={onRetry}>
         إعادة المحاولة
       </button>
@@ -116,12 +110,8 @@ export function StudioMemberDirectoryProvider({
             throw accessForbidden('createStudioMember');
           }
           const created = await repository.createStudioMember(command);
-          queryClient.setQueryData<AdminStudioMemberDirectory>(
-            directoryQueryKey,
-            (current) =>
-              current
-                ? { studioMembers: [...current.studioMembers, created] }
-                : current,
+          queryClient.setQueryData<AdminStudioMemberDirectory>(directoryQueryKey, (current) =>
+            current ? { studioMembers: [...current.studioMembers, created] } : current,
           );
           await queryClient.invalidateQueries({ queryKey: roleQueryKey, exact: true });
           return {
@@ -164,9 +154,7 @@ export function StudioMemberDirectoryProvider({
           const updated = await repository.updateRolePermissions(role, permissions);
           queryClient.setQueryData<StudioRole[]>(roleQueryKey, (current) =>
             current
-              ? current.map((candidate) =>
-                  candidate.id === updated.id ? updated : candidate,
-                )
+              ? current.map((candidate) => (candidate.id === updated.id ? updated : candidate))
               : current,
           );
           if (updated.id === viewer.role) await onViewerRoleUpdated?.();

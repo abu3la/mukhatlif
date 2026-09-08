@@ -31,7 +31,7 @@ export function GuestIdentitySection({
     try {
       await onUpdate({ [field]: draft[field] });
     } catch {
-      setOperationError('تعذّر حفظ بيانات الضيف. بقيت التعديلات في الحقول، حاول مرة أخرى.');
+      setOperationError('تعذر حفظ بيانات الضيف. بقيت التعديلات في الحقول، حاول مرة أخرى.');
     } finally {
       setPendingField(null);
     }

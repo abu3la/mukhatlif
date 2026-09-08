@@ -15,7 +15,7 @@ export interface ArabicPluralForms {
   two: string;
   /** Plural noun used after counts from 3 through 10, for example: ضيوف. */
   few: string;
-  /** Accusative singular used after 11 or more, for example: ضيفًا. */
+  /** Accusative singular used after 11 or more, for example: ضيفا. */
   many: string;
 }
 
@@ -168,7 +168,7 @@ export function formatGuestCount(count: number): string {
     one: 'ضيف واحد',
     two: 'ضيفان',
     few: 'ضيوف',
-    many: 'ضيفًا',
+    many: 'ضيفا',
   });
 }
 
@@ -186,7 +186,7 @@ export function formatUserCount(count: number): string {
     one: 'مستخدم واحد',
     two: 'مستخدمان',
     few: 'مستخدمين',
-    many: 'مستخدمًا',
+    many: 'مستخدما',
   });
 }
 
@@ -195,7 +195,7 @@ export function formatRoleCount(count: number): string {
     one: 'دور واحد',
     two: 'دوران',
     few: 'أدوار',
-    many: 'دورًا',
+    many: 'دورا',
   });
 }
 
@@ -242,11 +242,11 @@ export function formatEpisodeTimeline(episode: Episode): string {
     case 'draft':
       return `آخر تعديل ${formatArabicDate(episode.updatedAt)}`;
     case 'scheduled':
-      return episode.scheduledAt ? `تُنشر ${formatArabicDateTime(episode.scheduledAt)}` : 'مجدولة';
+      return episode.scheduledAt ? `تنشر ${formatArabicDateTime(episode.scheduledAt)}` : 'مجدولة';
     case 'published':
       return formatArabicDate(episode.publishedAt ?? episode.updatedAt);
     case 'archived':
-      return `أُرشفت ${formatArabicDate(episode.archivedAt ?? episode.updatedAt)}`;
+      return `أرشفت ${formatArabicDate(episode.archivedAt ?? episode.updatedAt)}`;
   }
 }
 
@@ -261,11 +261,11 @@ export function formatSubscriptionDetail(subscription: Subscription): string {
       return subscription.renewAt ? `يتجدد في ${formatArabicDate(subscription.renewAt)}` : 'نشط';
     case 'past_due':
       return subscription.paymentFailedAt
-        ? `تعذّر السداد في ${formatArabicDate(subscription.paymentFailedAt)}`
+        ? `تعذر السداد في ${formatArabicDate(subscription.paymentFailedAt)}`
         : 'متأخر السداد';
     case 'canceled':
       return subscription.canceledAt
-        ? `أُلغي في ${formatArabicDate(subscription.canceledAt)}`
+        ? `ألغي في ${formatArabicDate(subscription.canceledAt)}`
         : 'ملغى';
   }
 }

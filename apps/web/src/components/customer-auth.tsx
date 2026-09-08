@@ -14,12 +14,12 @@ import {
 
 type AuthMode = 'login' | 'signup' | 'confirm' | 'forgot' | 'reset' | 'callback';
 const copy: Record<AuthMode, [string, string]> = {
-  login: ['أهلًا بعودتك.', 'عد إلى ما تحب الاستماع إليه، وتابع من حيث توقفت.'],
-  signup: ['حكايتك مع مختلف تبدأ هنا.', 'احفظ ما يعجبك، واجمع حلقاتك في قوائمك.'],
-  confirm: ['أكّد بريدك عبر الرابط.', 'افتح رابط التأكيد في بريدك لإكمال التسجيل.'],
-  forgot: ['نسيت كلمة المرور؟', 'الاستعادة تبدأ بعنوان البريد المرتبط بحسابك.'],
-  reset: ['بداية جديدة.', 'اختر كلمة مرور جديدة.'],
-  callback: ['نجهّز حسابك.', 'لحظات وتعود إلى الاستماع.'],
+  login: ['تسجيل الدخول', 'متابعة الاستماع والوصول إلى المكتبة.'],
+  signup: ['إنشاء حساب', 'حفظ الحلقات والقراءات وإنشاء قوائم تشغيل.'],
+  confirm: ['تأكيد البريد الإلكتروني', 'افتح رابط التأكيد في بريدك لإكمال التسجيل.'],
+  forgot: ['نسيت كلمة المرور؟', 'أدخل البريد الإلكتروني المرتبط بالحساب.'],
+  reset: ['تغيير كلمة المرور', 'اختر كلمة مرور جديدة.'],
+  callback: ['تأكيد الحساب', 'جارٍ التحقق من رابط التأكيد…'],
 };
 
 export function CustomerAuth({
@@ -73,7 +73,7 @@ export function CustomerAuth({
       ({ error: initializationError }) => {
         if (!active) return;
         if (initializationError) {
-          setLinkError('تعذّر تأكيد الرابط. افتح آخر رابط أرسلناه في المتصفح الذي بدأت منه.');
+          setLinkError('تعذّر تأكيد الرابط. افتح أحدث رابط تأكيد في المتصفح الذي بدأت منه.');
         } else if (new URLSearchParams(window.location.search).has('code')) {
           setLinkError(
             'افتح الرابط في المتصفح الذي بدأت منه، أو اطلب رابطًا جديدًا من هذا المتصفح.',
@@ -169,7 +169,7 @@ export function CustomerAuth({
         if (result.error) {
           if (result.error.code === 'email_not_confirmed') {
             setEmail(enteredEmail);
-            setMessage('أكّد بريدك قبل المتابعة.');
+            setMessage('تأكيد البريد الإلكتروني مطلوب للمتابعة.');
           }
           throw result.error;
         }
@@ -188,7 +188,7 @@ export function CustomerAuth({
         }
         const result = await client.auth.updateUser({ password });
         if (result.error) throw result.error;
-        setMessage('حفظنا كلمة المرور الجديدة.');
+        setMessage('تم حفظ كلمة المرور الجديدة.');
         await client.auth.signOut();
         router.replace(`/login?next=${encodeURIComponent(next)}`);
       }
@@ -215,7 +215,7 @@ export function CustomerAuth({
         options: { emailRedirectTo: redirectTo() },
       });
       if (result.error) throw result.error;
-      setMessage('أرسلنا رسالة تأكيد جديدة. راجع بريدك والبريد غير المرغوب فيه.');
+      setMessage('تم إرسال رابط التأكيد. راجع البريد الوارد وغير المرغوب فيه.');
       setResendAfter(60);
     } catch (failure) {
       setError(customerError(failure));
@@ -249,14 +249,14 @@ export function CustomerAuth({
   if (mode === 'callback')
     return (
       <CustomerAuthFrame
-        title={emailChangePending ? 'أكّد البريد الآخر.' : copy.callback[0]}
-        intro={emailChangePending ? 'بقيت خطوة لإتمام تغيير بريدك.' : copy.callback[1]}
+        title={emailChangePending ? 'تأكيد عنوان البريد الآخر' : copy.callback[0]}
+        intro={emailChangePending ? 'تغيير البريد يتطلب تأكيد العنوانين الحالي والجديد.' : copy.callback[1]}
       >
         {linkError || error || customer.error ? (
           <>
             <p role="alert">{linkError || error || customer.error}</p>
             <Link className="customer-primary" href={`/confirm?next=${encodeURIComponent(next)}`}>
-              أرسل رسالة جديدة
+              إرسال رسالة تأكيد جديدة
             </Link>
             <Link href={`/login?next=${encodeURIComponent(next)}`}>تسجيل الدخول</Link>
           </>
@@ -277,7 +277,7 @@ export function CustomerAuth({
             <p role="status">
               {!callbackChecked || customer.loading || customer.user
                 ? 'جارٍ تأكيد الحساب…'
-                : 'لم نجد جلسة دخول. افتح آخر رابط أرسلناه إلى بريدك.'}
+                : 'لم نجد جلسة دخول. افتح أحدث رابط تأكيد في البريد الإلكتروني.'}
             </p>
             {!customer.loading && !customer.user && (
               <Link className="customer-primary" href={`/login?next=${encodeURIComponent(next)}`}>
@@ -296,17 +296,17 @@ export function CustomerAuth({
           {linkError}
         </p>
         <Link className="customer-primary" href={`/forgot?next=${encodeURIComponent(next)}`}>
-          أرسل رابطًا جديدًا
+          إرسال رابط جديد
         </Link>
       </CustomerAuthFrame>
     );
 
   const submitLabel = {
     login: 'تسجيل الدخول',
-    signup: 'أنشئ حسابًا',
-    confirm: resendAfter ? `إعادة الإرسال بعد ${resendAfter} ث` : 'أعد إرسال رابط التأكيد',
-    forgot: 'أرسل رابط الاستعادة',
-    reset: 'احفظ كلمة المرور',
+    signup: 'إنشاء حساب',
+    confirm: resendAfter ? `إعادة الإرسال بعد ${resendAfter} ث` : 'إعادة إرسال رابط التأكيد',
+    forgot: 'إرسال رابط الاستعادة',
+    reset: 'حفظ كلمة المرور',
   }[mode];
   return (
     <CustomerAuthFrame title={copy[mode][0]} intro={copy[mode][1]}>
@@ -378,7 +378,7 @@ export function CustomerAuth({
         {mode === 'reset' && (
           <CustomerPassword
             name="passwordConfirm"
-            label="أعد كلمة المرور"
+            label="تأكيد كلمة المرور"
             error={errors.passwordConfirm}
           />
         )}
@@ -431,7 +431,7 @@ export function CustomerAuth({
             disabled={busy}
             onClick={() => void customer.refresh()}
           >
-            أعد تحميل الحساب
+            إعادة تحميل الحساب
           </button>
         )}
         {message && (
@@ -443,7 +443,7 @@ export function CustomerAuth({
           <>
             <p className="customer-error">افتح رابط الاستعادة من بريدك لتغيير كلمة المرور.</p>
             <Link className="customer-primary" href={`/forgot?next=${encodeURIComponent(next)}`}>
-              أرسل رابطًا جديدًا
+              إرسال رابط جديد
             </Link>
           </>
         ) : (
@@ -481,7 +481,7 @@ export function CustomerAuth({
             <Link
               href={`/${mode === 'login' ? 'signup' : 'login'}?next=${encodeURIComponent(next)}`}
             >
-              {mode === 'login' ? 'أنشئ حسابًا' : 'سجّل الدخول'}
+              {mode === 'login' ? 'إنشاء حساب' : 'تسجيل الدخول'}
             </Link>
           </p>
         )}

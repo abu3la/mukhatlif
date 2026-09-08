@@ -85,7 +85,7 @@ export function GuestAppearancesSection({
     try {
       await onAppearanceRemove(episodeId);
     } catch {
-      setOperationError('تعذّرت إزالة الظهور. حاول مرة أخرى.');
+      setOperationError('تعذرت إزالة الظهور. حاول مرة أخرى.');
     } finally {
       setPendingRemovalId(null);
     }
@@ -166,8 +166,8 @@ export function GuestAppearancesSection({
             value={sort}
             onChange={(event) => onSortChange(event.target.value as GuestAppearanceSortMode)}
           >
-            <option value="newest">الأحدث أولًا</option>
-            <option value="oldest">الأقدم أولًا</option>
+            <option value="newest">الأحدث أولا</option>
+            <option value="oldest">الأقدم أولا</option>
             <option value="show">حسب البرنامج</option>
           </Select>
         </div>
@@ -175,7 +175,9 @@ export function GuestAppearancesSection({
 
       {visibleAppearances.length === 0 ? (
         <p className="empty-state">
-          {appearances.length === 0 ? 'لم يظهر في أي حلقة بعد.' : 'لا يوجد ظهور يطابق هذه التصفية.'}
+          {appearances.length === 0
+            ? 'لم يظهر في أي حلقة بعد.'
+            : 'لا توجد مشاركات مطابقة. حاول تغيير التصفية.'}
         </p>
       ) : (
         <div>
@@ -210,7 +212,7 @@ export function GuestAppearancesSection({
                     aria-busy={pendingRemovalId === episode.id}
                     onClick={() => void removeAppearance(episode.id)}
                   >
-                    {pendingRemovalId === episode.id ? 'جارٍ الإزالة…' : 'إزالة الظهور'}
+                    {'إزالة الظهور'}
                   </Button>
                 )}
                 <StatusBadge status={episode.status} />
@@ -219,7 +221,7 @@ export function GuestAppearancesSection({
           })}
           {filteredAppearanceCount > 4 ? (
             <Button type="button" className="full-width-button" onClick={onExpandedToggle}>
-              {expanded ? 'طيّ القائمة' : `عرض ${formatAdditionalEpisodeCount(remainingCount)}`}
+              {expanded ? 'طي القائمة' : `عرض ${formatAdditionalEpisodeCount(remainingCount)}`}
             </Button>
           ) : null}
         </div>

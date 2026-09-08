@@ -210,7 +210,7 @@ describe('Studio account pages', () => {
         locale: 'ar',
       }),
     );
-    expect(await screen.findByText('أُضيف حساب سارة الحربي.')).toBeInTheDocument();
+    expect(await screen.findByText('أضيف حساب سارة الحربي.')).toBeInTheDocument();
     expect(screen.getByText('MukhtalifDemo2026!')).toBeInTheDocument();
   });
 
@@ -229,7 +229,7 @@ describe('Studio account pages', () => {
     });
     await user.selectOptions(roleSelect, 'reviewer');
     await user.click(within(editorRow!).getByRole('button', { name: 'حفظ الدور' }));
-    expect(await within(editorRow!).findByText('حُفظ دور ليان السبيعي.')).toBeInTheDocument();
+    expect(await within(editorRow!).findByText('حفظ دور ليان السبيعي.')).toBeInTheDocument();
     expect(screen.queryByText(/ربط حساب/)).not.toBeInTheDocument();
   });
 

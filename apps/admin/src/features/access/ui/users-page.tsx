@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  adminPaths,
-  canManagePage,
-  useAdminAuth,
-  useStudioMemberDirectory,
-} from '@/application';
+import { adminPaths, canManagePage, useAdminAuth, useStudioMemberDirectory } from '@/application';
 import { isAdminRepositoryError } from '@/data';
 import {
   formatArabicDate,
@@ -14,14 +9,7 @@ import {
   type StudioMember,
   type StudioRole,
 } from '@/lib';
-import {
-  Button,
-  Field,
-  Input,
-  PageBreadcrumb,
-  PageHeader,
-  Select,
-} from '@/shared/ui/primitives';
+import { Button, Field, Input, PageBreadcrumb, PageHeader, Select } from '@/shared/ui/primitives';
 
 export function studioMemberRoleUpdateErrorMessage(error: unknown): string {
   if (isAdminRepositoryError(error)) {
@@ -30,16 +18,13 @@ export function studioMemberRoleUpdateErrorMessage(error: unknown): string {
       return 'لا يمكن تغيير دور المشرف العام الوحيد.';
     }
   }
-  return 'تعذّر تحديث الدور. حاول مرة أخرى.';
+  return 'تعذر تحديث الدور. حاول مرة أخرى.';
 }
 
 export function studioMemberCreateErrorMessage(error: unknown): string {
   if (isAdminRepositoryError(error)) {
-    if (
-      error.context?.remoteCode ===
-        'STUDIO_MEMBER_PROVISIONING_PARTIAL_FAILURE'
-    ) {
-      return 'تعذّر التأكد من حالة الحساب. راجع مسؤول النظام قبل أي محاولة أخرى.';
+    if (error.context?.remoteCode === 'STUDIO_MEMBER_PROVISIONING_PARTIAL_FAILURE') {
+      return 'تعذر التأكد من حالة الحساب. راجع مسؤول النظام قبل أي محاولة أخرى.';
     }
     if (error.code === 'FORBIDDEN' || error.code === 'UNAUTHENTICATED') {
       return 'لا يمكنك إضافة حسابات إلى الاستوديو.';
@@ -48,13 +33,13 @@ export function studioMemberCreateErrorMessage(error: unknown): string {
       return 'هذا البريد مرتبط بحساب دخول موجود. راجع مسؤول النظام لإضافته إلى الاستوديو.';
     }
     if (error.code === 'CONFLICT') {
-      return 'هذا البريد مستخدم في الاستوديو. أدخل بريدًا آخر.';
+      return 'هذا البريد مستخدم في الاستوديو. أدخل بريدا آخر.';
     }
     if (error.code === 'VALIDATION') {
       return 'راجع بيانات الحساب ثم حاول مرة أخرى.';
     }
   }
-  return 'تعذّرت إضافة الحساب. حاول مرة أخرى.';
+  return 'تعذرت إضافة الحساب. حاول مرة أخرى.';
 }
 
 function CreateStudioMemberForm() {
@@ -64,8 +49,7 @@ function CreateStudioMemberForm() {
     () =>
       roles.filter(
         (candidate) =>
-          candidate.id !== 'listener' &&
-          (candidate.id !== 'admin' || viewer?.role === 'admin'),
+          candidate.id !== 'listener' && (candidate.id !== 'admin' || viewer?.role === 'admin'),
       ),
     [roles, viewer?.role],
   );
@@ -118,7 +102,7 @@ function CreateStudioMemberForm() {
       setName('');
       setEmail('');
       setRole(defaultRole);
-      setSuccess(`أُضيف حساب ${created.name}.`);
+      setSuccess(`أضيف حساب ${created.name}.`);
       setLocalLogin(
         result.localDemoCredential
           ? {
@@ -188,7 +172,7 @@ function CreateStudioMemberForm() {
           disabled={pending || assignableRoles.length === 0}
           aria-busy={pending}
         >
-          {pending ? 'جارٍ الإضافة…' : 'إضافة الحساب'}
+          {'إضافة الحساب'}
         </Button>
         <div className="users-create-form__feedback" aria-live="polite">
           {error ? (
@@ -201,9 +185,7 @@ function CreateStudioMemberForm() {
               <p>{success}</p>
               {localLogin ? (
                 <div className="users-create-form__local-login">
-                  <p className="users-create-form__local-login-title">
-                    بيانات الدخول المحلية
-                  </p>
+                  <p className="users-create-form__local-login-title">بيانات الدخول المحلية</p>
                   <dl>
                     <div>
                       <dt>البريد الإلكتروني</dt>
@@ -219,7 +201,7 @@ function CreateStudioMemberForm() {
                     </div>
                   </dl>
                   <p className="users-create-form__local-login-note">
-                    يبقى الحساب متاحًا في نسخة العرض المحلية حتى إعادة تحميل الصفحة.
+                    يبقى الحساب متاحا في نسخة العرض المحلية حتى إعادة تحميل الصفحة.
                   </p>
                 </div>
               ) : null}
@@ -250,9 +232,7 @@ export function CreateStudioMemberView() {
           <h1 ref={headingRef} tabIndex={-1}>
             إضافة حساب إداري
           </h1>
-          <div className="page-header__detail">
-            أضف حسابًا للاستوديو وحدد دوره.
-          </div>
+          <div className="page-header__detail">أضف حسابا للاستوديو وحدد دوره.</div>
         </div>
       </header>
       <CreateStudioMemberForm />
@@ -306,7 +286,7 @@ function StudioMemberAccessRow({
     setSuccess('');
     try {
       await updateStudioMemberRole(member.id, role);
-      setSuccess(`حُفظ دور ${member.name}.`);
+      setSuccess(`حفظ دور ${member.name}.`);
     } catch (cause) {
       setError(studioMemberRoleUpdateErrorMessage(cause));
     } finally {
@@ -352,7 +332,7 @@ function StudioMemberAccessRow({
             aria-describedby={noteId}
             onClick={() => void saveRole()}
           >
-            {pending ? 'جارٍ الحفظ…' : 'حفظ الدور'}
+            {'حفظ الدور'}
           </Button>
         </div>
       ) : (
@@ -384,12 +364,14 @@ export function StudioMembersView() {
   const { viewer } = useAdminAuth();
   const studioMembers = useMemo(() => {
     const roleOrder = new Map(roles.map((role, index) => [role.id, index]));
-    return data.studioMembers.slice().sort(
-      (left, right) =>
-        (roleOrder.get(left.role) ?? Number.MAX_SAFE_INTEGER) -
-          (roleOrder.get(right.role) ?? Number.MAX_SAFE_INTEGER) ||
-        left.name.localeCompare(right.name, 'ar'),
-    );
+    return data.studioMembers
+      .slice()
+      .sort(
+        (left, right) =>
+          (roleOrder.get(left.role) ?? Number.MAX_SAFE_INTEGER) -
+            (roleOrder.get(right.role) ?? Number.MAX_SAFE_INTEGER) ||
+          left.name.localeCompare(right.name, 'ar'),
+      );
   }, [data.studioMembers, roles]);
 
   if (!viewer) return null;
@@ -416,9 +398,7 @@ export function StudioMembersView() {
         <div className="table-card__header access-directory-header">
           <div>
             <h2 id="studio-members-directory-title">الحسابات الإدارية</h2>
-            <p>
-              عدد حسابات الاستوديو: {formatArabicInteger(studioMembers.length)}
-            </p>
+            <p>عدد حسابات الاستوديو: {formatArabicInteger(studioMembers.length)}</p>
           </div>
         </div>
         <div
@@ -430,7 +410,7 @@ export function StudioMembersView() {
           <div className="access-table access-table--studio-members">
             <div className="access-table__header" aria-hidden="true">
               <span>الحساب</span>
-              <span>أُضيف في</span>
+              <span>أضيف في</span>
               <span>الدور</span>
             </div>
             {studioMembers.map((member) => (

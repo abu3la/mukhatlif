@@ -138,7 +138,7 @@ export function ArticleMediaDialog({
       if (!uploadAlt) {
         const missingCopy =
           value.kind === 'image'
-            ? 'أضف وصفًا بديلًا، ثم ارفع الصورة.'
+            ? 'أضف وصفا بديلا، ثم ارفع الصورة.'
             : 'أضف عنوان الفيديو، ثم ارفع صورة الملصق.';
         setError(missingCopy);
         document.getElementById(value.kind === 'image' ? altInputId : videoTitleInputId)?.focus();
@@ -252,7 +252,7 @@ export function ArticleMediaDialog({
           {value.kind === 'video' ? (
             <section className="article-media-dialog__section" aria-labelledby={`${titleId}-video`}>
               <h3 id={`${titleId}-video`}>بيانات الفيديو</h3>
-              <Field label="رابط الفيديو" hint="يُقبل رابط YouTube أو Vimeo فقط.">
+              <Field label="رابط الفيديو" hint="يقبل رابط YouTube أو Vimeo فقط.">
                 <Input
                   dir="ltr"
                   type="url"
@@ -265,7 +265,7 @@ export function ArticleMediaDialog({
               </Field>
               {videoUrl.trim() && !parsedVideo ? (
                 <p className="article-media-dialog__field-error" role="alert">
-                  استخدم رابط فيديو صالحًا من YouTube أو Vimeo.
+                  استخدم رابط فيديو صالحا من YouTube أو Vimeo.
                 </p>
               ) : null}
               <Field
@@ -319,7 +319,7 @@ export function ArticleMediaDialog({
             {value.kind === 'image' ? (
               <Field
                 label="الوصف البديل (مطلوب)"
-                hint="يصف الصورة لقارئ الشاشة ويظهر إذا تعذّر تحميلها."
+                hint="يصف الصورة لقارئ الشاشة ويظهر إذا تعذر تحميلها."
               >
                 <Input
                   id={altInputId}
@@ -340,6 +340,7 @@ export function ArticleMediaDialog({
                 variant="primary"
                 className="article-media-dialog__upload-action"
                 disabled={disabled || uploadProgress !== null || !uploadAlt}
+                aria-busy={uploadProgress !== null}
                 onClick={() => void uploadSelectedImage()}
               >
                 رفع الصورة
@@ -360,9 +361,7 @@ export function ArticleMediaDialog({
                   {value.kind === 'image' ? 'مكتبة الصور' : 'صورة ملصق الفيديو'}
                 </h3>
                 <p>
-                  {loading
-                    ? 'جارٍ تحميل الصور…'
-                    : `${formatArabicInteger(assets.length)} صورة متاحة`}
+                  {loading ? 'تحميل الصور…' : `${formatArabicInteger(assets.length)} صورة متاحة`}
                 </p>
               </div>
               <label>
@@ -399,9 +398,7 @@ export function ArticleMediaDialog({
               </div>
             ) : (
               <p className="article-media-dialog__empty">
-                {query
-                  ? 'لا توجد صورة تطابق البحث.'
-                  : 'المكتبة فارغة. ارفع الصورة الأولى من جهازك.'}
+                {query ? 'لا توجد صورة تطابق البحث.' : 'إضافة صورة من الجهاز لبدء مكتبة الصور.'}
               </p>
             )}
           </section>
@@ -422,7 +419,7 @@ export function ArticleMediaDialog({
               <>
                 <Field
                   label="رابط الصورة (اختياري)"
-                  hint="استخدم رابطًا آمنًا يبدأ بـ https:// أو رابطًا داخليًا يبدأ بـ /."
+                  hint="استخدم رابطا آمنا يبدأ بـ https:// أو رابطا داخليا يبدأ بـ /."
                 >
                   <Input
                     dir="ltr"
@@ -436,7 +433,7 @@ export function ArticleMediaDialog({
                 </Field>
                 {!imageLinkIsValid ? (
                   <p className="article-media-dialog__field-error" role="alert">
-                    استخدم رابطًا يبدأ بـ https:// أو /، من دون بيانات دخول.
+                    استخدم رابطا يبدأ بـ https:// أو /، من دون بيانات دخول.
                   </p>
                 ) : null}
               </>
@@ -450,7 +447,6 @@ export function ArticleMediaDialog({
             >
               <div>
                 <h3 id={`${titleId}-design`}>تصميم الصورة</h3>
-                <p>اختر شكل الصورة. لا تحتاج إلى كتابة CSS.</p>
               </div>
               <div className="article-media-dialog__design-grid">
                 <Field label="عرض الصورة">

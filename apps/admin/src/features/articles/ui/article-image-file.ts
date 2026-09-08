@@ -58,7 +58,7 @@ export async function prepareArticleImage(file: File): Promise<PreparedArticleIm
   try {
     dimensions = await readDimensions(file);
   } catch {
-    throw new ArticleImageFileError('تعذّر قراءة الصورة. اختر ملف JPEG أو PNG سليمًا.');
+    throw new ArticleImageFileError('تعذر قراءة الصورة. اختر ملف JPEG أو PNG سليما.');
   }
 
   if (
@@ -67,7 +67,7 @@ export async function prepareArticleImage(file: File): Promise<PreparedArticleIm
     dimensions.width * dimensions.height > MAX_ARTICLE_IMAGE_PIXELS
   ) {
     throw new ArticleImageFileError(
-      'أبعاد الصورة تتجاوز الحد المسموح: 8192 بكسل و24 مليون بكسل إجمالًا.',
+      'أبعاد الصورة تتجاوز الحد المسموح: 8192 بكسل و24 مليون بكسل إجمالا.',
     );
   }
 
@@ -76,10 +76,7 @@ export async function prepareArticleImage(file: File): Promise<PreparedArticleIm
 
 export async function prepareArticleCoverImage(file: File): Promise<PreparedArticleImage> {
   const prepared = await prepareArticleImage(file);
-  if (
-    prepared.width < MIN_ARTICLE_COVER_WIDTH ||
-    prepared.height < MIN_ARTICLE_COVER_HEIGHT
-  ) {
+  if (prepared.width < MIN_ARTICLE_COVER_WIDTH || prepared.height < MIN_ARTICLE_COVER_HEIGHT) {
     throw new ArticleImageFileError(
       `أبعاد الصورة ${prepared.width} × ${prepared.height} بكسل. الحد الأدنى للغلاف 1200 × 675 بكسل.`,
     );
@@ -97,12 +94,12 @@ export function articleImageErrorMessage(error: unknown): string {
         return 'تخزين الصور غير مهيأ في الخادم.';
       }
       if (remoteCode === 'MEDIA_PUBLIC_UNAVAILABLE') {
-        return 'رُفعت الصورة، لكن رابط العرض غير متاح. راجع إعداد تخزين الصور.';
+        return 'رفعت الصورة، لكن رابط العرض غير متاح. راجع إعداد تخزين الصور.';
       }
       if (remoteCode === 'MEDIA_FILE_EMPTY') return 'ملف الصورة فارغ.';
       if (remoteCode === 'MEDIA_FILE_TOO_LARGE') return 'حجم الصورة أكبر من 10 م.ب.';
       if (remoteCode === 'MEDIA_CONTENT_LENGTH_REQUIRED' || remoteCode === 'MEDIA_SIZE_MISMATCH') {
-        return 'لم يكتمل رفع الصورة بالحجم المتوقع. اختر الملف مجددًا وحاول مرة أخرى.';
+        return 'لم يكتمل رفع الصورة بالحجم المتوقع. اختر الملف مجددا وحاول مرة أخرى.';
       }
       if (
         remoteCode === 'MEDIA_MIME_MISMATCH' ||
@@ -117,22 +114,22 @@ export function articleImageErrorMessage(error: unknown): string {
         return 'أبعاد الصورة غير صالحة أو تتجاوز الحد المسموح.';
       }
       if (remoteCode === 'MEDIA_UPLOAD_IN_PROGRESS') {
-        return 'يجري رفع هذه الصورة حاليًا. انتظر قليلًا ثم حدّث المكتبة.';
+        return 'يجري رفع هذه الصورة حاليا. انتظر قليلا ثم حدث المكتبة.';
       }
       if (remoteCode === 'MEDIA_ALREADY_READY') {
-        return 'الصورة مرفوعة وجاهزة. حدّث المكتبة ثم اخترها.';
+        return 'الصورة مرفوعة وجاهزة. حدث المكتبة ثم اخترها.';
       }
       if (remoteCode === 'MEDIA_UPLOAD_NOT_FOUND' || remoteCode === 'MEDIA_UPLOAD_STATE_LOST') {
-        return 'انتهت جلسة الرفع. اختر الملف مجددًا ثم حاول مرة أخرى.';
+        return 'انتهت جلسة الرفع. اختر الملف مجددا ثم حاول مرة أخرى.';
       }
     }
     if (error.code === 'NETWORK' || error.code === 'REMOTE_UNAVAILABLE') {
-      return 'تعذّر الاتصال بخدمة الصور. تحقق من الاتصال وحاول مرة أخرى.';
+      return 'تعذر الاتصال بخدمة الصور. تحقق من الاتصال وحاول مرة أخرى.';
     }
   }
   if (error instanceof Error && error.message) {
     if (/413|too large|10 mib|size/i.test(error.message)) return 'حجم الصورة أكبر من 10 م.ب.';
     if (/mime|type|jpeg|png/i.test(error.message)) return 'صيغة الصورة غير مدعومة.';
   }
-  return 'تعذّر إكمال عملية الوسائط. تحقق من الاتصال وحاول مرة أخرى.';
+  return 'تعذر إكمال عملية الوسائط. تحقق من الاتصال وحاول مرة أخرى.';
 }
