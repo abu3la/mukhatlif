@@ -11,9 +11,20 @@ const server = serve({
   fetch: (request, httpBindings) => {
     const url = new URL(request.url);
     if (url.pathname === '/health/live' && request.method === 'GET') {
-      return new Response('{"status":"ok"}', {
-        headers: { 'cache-control': 'no-store', 'content-type': 'application/json; charset=UTF-8' },
-      });
+      return new Response(
+        JSON.stringify({
+          status: 'ok',
+          ...(/^[a-f0-9]{40}$/.test(process.env.MUKHTALIF_RELEASE_SHA ?? '')
+            ? { sourceCommit: process.env.MUKHTALIF_RELEASE_SHA }
+            : {}),
+        }),
+        {
+          headers: {
+            'cache-control': 'no-store',
+            'content-type': 'application/json; charset=UTF-8',
+          },
+        },
+      );
     }
     const clientAddress = resolveTrustedClientAddress(
       (httpBindings as HttpBindings).incoming,

@@ -1,43 +1,26 @@
-name: Deploy staging Web
+name: Deploy production API
 on:
   workflow_run:
-    workflows: ['Deploy production API']
+    workflows: ['Verify shared source (no deployment)']
     types: [completed]
     branches: [main]
 permissions:
   contents: read
   actions: read
 concurrency:
-  group: staging-web
+  group: production-api
   cancel-in-progress: false
 jobs:
-  changes:
+  deploy:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'workflow_run' && github.event.workflow_run.head_repository.full_name == github.repository
-    runs-on: ubuntu-latest
-    outputs:
-      changed: ${{ steps.classify.outputs.changed }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-          fetch-depth: 0
-          persist-credentials: false
-      - id: classify
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: node scripts/classify-deployment-changes.mjs web
-  deploy:
-    needs: changes
-    if: needs.changes.outputs.changed == 'true'
+      github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: staging-web
+    environment: production-api
     env:
       RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
-      RELEASE_DIR: /tmp/web-release-${{ github.run_id }}-${{ github.run_attempt }}
+      RELEASE_DIR: /tmp/api-release-${{ github.run_id }}-${{ github.run_attempt }}
       MUKHTALIF_API_URL: https://api.mukhtalif.net
       PUBLIC_WEB_URL: https://staging.mukhtalif.net
       NEXT_TELEMETRY_DISABLED: '1'
@@ -56,13 +39,12 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @mukhtalif/web build:hostinger
-      - run: node scripts/smoke-hostinger-web.mjs
-      - run: node scripts/deploy-hostinger-web.mjs prepare "$RELEASE_DIR"
+      - run: pnpm --filter @mukhtalif/api build:node
+      - run: node scripts/deploy-hostinger-api.mjs prepare "$RELEASE_DIR"
       - name: Preserve this source archive for future recovery
         uses: actions/upload-artifact@v4
         with:
-          name: web-source-${{ env.RELEASE_SHA }}
+          name: api-source-${{ env.RELEASE_SHA }}
           path: ${{ env.RELEASE_DIR }}/*.zip
           if-no-files-found: error
           retention-days: 90
@@ -78,33 +60,28 @@ jobs:
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/deploy-hostinger-web.mjs backup "$RELEASE_DIR"
+        run: node scripts/deploy-hostinger-api.mjs backup "$RELEASE_DIR"
       - uses: actions/upload-artifact@v4
         with:
-          name: web-rollback-${{ env.RELEASE_SHA }}-${{ github.run_attempt }}
+          name: api-rollback-${{ env.RELEASE_SHA }}-${{ github.run_attempt }}
           path: ${{ env.RELEASE_DIR }}/rollback.json
           if-no-files-found: error
           retention-days: 30
-      - name: Configure staging customer authentication
-        env:
-          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-          MUKHTALIF_SUPABASE_ANON_KEY: ${{ secrets.STUDIO_PRODUCTION_ANON_KEY }}
-        run: node scripts/configure-hostinger-web.mjs
       - name: Recheck main before deployment
         env:
           GH_TOKEN: ${{ github.token }}
         run: test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$RELEASE_SHA"
-      - name: Publish staging Web only
+      - name: Publish production API only
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-        run: node scripts/deploy-hostinger-web.mjs deploy "$RELEASE_DIR"
+        run: node scripts/deploy-hostinger-api.mjs deploy "$RELEASE_DIR"
       - name: Check provider completion and public website
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-        run: node scripts/deploy-hostinger-web.mjs verify "$RELEASE_DIR"
+        run: node scripts/deploy-hostinger-api.mjs verify "$RELEASE_DIR"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: web-release-${{ env.RELEASE_SHA }}-${{ github.run_attempt }}
+          name: api-release-${{ env.RELEASE_SHA }}-${{ github.run_attempt }}
           path: ${{ env.RELEASE_DIR }}/*.json
           retention-days: 30
