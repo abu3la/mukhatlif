@@ -11,8 +11,19 @@ import type {
 } from '@mukhtalif/types';
 import { useCustomer } from '../customer-provider';
 import { useCoursesApi, CourseApiError } from './api';
+import { BrandIcon } from '../brand-icon';
 import { CourseVideo } from './player';
 import './courses.css';
+
+const sectionIcons = {
+  lesson: 'play',
+  content: 'play',
+  materials: 'library',
+  files: 'library',
+  quiz: 'check',
+  assignment: 'document',
+  certificate: 'certificate',
+} as const;
 
 type Detail = Omit<CourseDefinition, 'lessons' | 'resources'> & {
   lessons: { id: string; title: string; durationSeconds: number }[];
@@ -199,7 +210,7 @@ function CourseContent({ courseId }: { courseId: string }) {
               <nav className="course-view-nav" aria-label="أقسام الدورة">
                 {[
                   ['lesson', 'التعلّم'],
-                  ['materials', 'ملفات الدورة'],
+                  ...(course!.resources.length ? [['materials', 'ملفات الدورة']] : []),
                   ...(course!.quiz ? [['quiz', 'اختبار الدورة']] : []),
                   ...(course!.assignment ? [['assignment', 'ورقة عمل الدورة']] : []),
                   ['certificate', 'الشهادة'],
@@ -209,6 +220,7 @@ function CourseContent({ courseId }: { courseId: string }) {
                     aria-current={view === id ? 'page' : undefined}
                     onClick={() => setView(id)}
                   >
+                    <BrandIcon name={sectionIcons[id as keyof typeof sectionIcons]} />
                     {label}
                   </button>
                 ))}
@@ -278,6 +290,7 @@ function CourseContent({ courseId }: { courseId: string }) {
                                 aria-current={lessonView === id ? 'page' : undefined}
                                 onClick={() => setLessonView(id)}
                               >
+                                <BrandIcon name={sectionIcons[id as keyof typeof sectionIcons]} />
                                 {label}
                               </button>
                             ))}
@@ -310,6 +323,7 @@ function CourseContent({ courseId }: { courseId: string }) {
                                   )
                                 }
                               >
+                                <BrandIcon name="check" />
                                 {workspace.enrollment.progress[lesson.id]?.complete
                                   ? 'الدرس مكتمل'
                                   : 'أكملت قراءة الدرس'}
@@ -341,9 +355,10 @@ function CourseContent({ courseId }: { courseId: string }) {
                             disabled={lessonIndex <= 0}
                             onClick={() => openLesson(course!.lessons[lessonIndex - 1].id)}
                           >
+                            <BrandIcon name="previous" />
                             الدرس السابق
                           </button>
-                          <span>
+                          <span dir="ltr">
                             {lessonIndex + 1} / {course!.lessons.length}
                           </span>
                           <button
@@ -351,6 +366,7 @@ function CourseContent({ courseId }: { courseId: string }) {
                             onClick={() => openLesson(course!.lessons[lessonIndex + 1].id)}
                           >
                             الدرس التالي
+                            <BrandIcon name="next" />
                           </button>
                         </nav>
                       </>
@@ -402,6 +418,7 @@ function CourseContent({ courseId }: { courseId: string }) {
                         <small>رقم الشهادة: {workspace.enrollment.certificate.id}</small>
                       </div>
                       <button className="course-button" onClick={() => window.print()}>
+                        <BrandIcon name="document" />
                         طباعة الشهادة أو حفظها PDF
                       </button>
                     </>
@@ -411,6 +428,7 @@ function CourseContent({ courseId }: { courseId: string }) {
                       disabled={busy || !certificateReady}
                       onClick={() => act('certificate', {}, 'صدرت شهادة الإكمال.')}
                     >
+                      <BrandIcon name="certificate" />
                       إصدار الشهادة
                     </button>
                   )}
@@ -565,6 +583,7 @@ function Quiz({
         className="course-button"
         disabled={busy || (state?.attempts ?? 0) >= quiz.maxAttempts}
       >
+        <BrandIcon name="check" />
         {busy ? 'جارٍ التصحيح…' : 'إرسال الإجابات'}
       </button>
     </form>
@@ -639,6 +658,7 @@ function Assignment({
       )}
       {error && <p role="alert">{error}</p>}
       <button className="course-button" disabled={busy || state?.status === 'Pass'}>
+        <BrandIcon name="document" />
         {busy ? 'جارٍ الإرسال…' : state ? 'إعادة إرسال الحل' : 'إرسال الحل للتقييم'}
       </button>
     </form>

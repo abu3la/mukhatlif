@@ -398,3 +398,69 @@
     padding-inline: 0.5rem;
   }
 }
+
+/* Solid, legible controls share the site's existing ink and surface palette. */
+.course-button,
+.course-view-nav button,
+.course-step-nav button,
+.course-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  font-weight: 600;
+}
+.course-view-nav button,
+.course-step-nav button,
+.course-video-status .course-control {
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid color-mix(in srgb, var(--fg) 26%, var(--surface));
+  border-radius: 8px;
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  text-decoration: none;
+}
+.course-view-nav button[aria-current] {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+.course-view-nav button:hover,
+.course-step-nav button:not(:disabled):hover,
+.course-video-status .course-control:hover {
+  background: color-mix(in srgb, var(--fg) 12%, var(--surface));
+}
+.course-view-nav button[aria-current]:hover {
+  background: var(--fg);
+}
+.course-view-nav svg,
+.course-step-nav svg,
+.course-button svg,
+.course-control svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.course-step-nav button:disabled {
+  opacity: 0.4;
+}
+.course-video video {
+  display: block;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+}
+.course-video-status {
+  align-items: center;
+  flex-wrap: wrap;
+}
+@media (max-width: 480px) {
+  .course-view-nav button {
+    padding: 0.65rem 0.8rem;
+    font-size: 0.9rem;
+  }
+  .course-step-nav button {
+    padding: 0.65rem 0.7rem;
+    font-size: 0.9rem;
+  }
+}

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import type { CourseEnrollment, CourseLesson } from '@mukhtalif/types';
+import { BrandIcon } from '../brand-icon';
 import { useCoursesApi } from './api';
 
 export function CourseVideo({
@@ -124,6 +125,7 @@ export function CourseVideo({
           ref={video}
           src={url}
           controls
+          aria-label={`فيديو الدرس: ${lesson.title}`}
           playsInline
           preload="metadata"
           onError={() => setError('تعذّر تشغيل الفيديو. أعد تحميله.')}
@@ -133,7 +135,10 @@ export function CourseVideo({
       )}
       <div className="course-video-status">
         <span role="status">{status}</span>
-        <button onClick={() => flush.current()}>احفظ موضعي</button>
+        <button className="course-control" onClick={() => flush.current()}>
+          <BrandIcon name="save" />
+          احفظ موضعي
+        </button>
       </div>
       {error && (
         <div role="alert">
