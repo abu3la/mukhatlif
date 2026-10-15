@@ -150,9 +150,24 @@ function CourseContent({ courseId }: { courseId: string }) {
           <header className="courses-heading">
             <h1>{detail.title}</h1>
             {!workspace && <p>{detail.description}</p>}
-            <span>
-              {detail.instructor} · {detail.lessonCount} درس · {detail.durationMinutes} دقيقة
-            </span>
+            <div className="course-facts">
+              {detail.instructor && (
+                <span>
+                  <BrandIcon name="user" />
+                  {detail.instructor}
+                </span>
+              )}
+              <span>
+                <BrandIcon name="queue" />
+                {detail.lessonCount} درس
+              </span>
+              {detail.durationMinutes > 0 && (
+                <span>
+                  <BrandIcon name="clock" />
+                  {detail.durationMinutes} دقيقة
+                </span>
+              )}
+            </div>
           </header>
           {error && (
             <p role="alert" className="course-error">
@@ -642,8 +657,8 @@ function Quiz({
     >
       <h3>{quiz.title}</h3>
       <p>
-        درجة الاجتياز: {quiz.passPercent}٪ · المحاولات المتبقية:{' '}
-        {quiz.maxAttempts - (state?.attempts ?? 0)}
+        درجة الاجتياز: {quiz.passPercent}٪ <br />
+        المحاولات المتبقية: {quiz.maxAttempts - (state?.attempts ?? 0)}
       </p>
       {quiz.questions.map((q) => (
         <fieldset key={q.id}>

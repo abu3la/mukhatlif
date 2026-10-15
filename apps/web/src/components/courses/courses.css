@@ -717,3 +717,185 @@
     flex-wrap: wrap;
   }
 }
+
+.courses-discovery {
+  padding: 1.25rem;
+  background: var(--surface);
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.courses-search-field {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: var(--bg);
+  border-radius: 8px;
+  padding-inline: 1rem;
+  border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent);
+}
+.courses-search-field > svg {
+  flex-shrink: 0;
+}
+.courses-search-field input[type='search'] {
+  border: 0;
+  background: transparent;
+  padding-inline: 0;
+  min-height: 48px;
+}
+.courses-search-field:focus-within {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+.courses-search-field input:focus {
+  outline: none;
+}
+.courses-filter-panel {
+  display: contents;
+}
+.courses-filter-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  list-style: none;
+  cursor: pointer;
+  padding: 0.8rem 1rem;
+  min-height: 50px;
+  background: var(--fg);
+  color: var(--bg);
+  border-radius: 8px;
+  font-weight: 600;
+}
+.courses-filter-panel summary::-webkit-details-marker {
+  display: none;
+}
+.courses-filter-panel summary:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 4px;
+}
+.courses-filter-panel[open] summary > svg:last-child {
+  transform: rotate(180deg);
+}
+.courses-discovery .courses-filters {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0.5rem 0 0;
+  gap: 1rem;
+}
+.courses-discovery .courses-filters label:first-child {
+  grid-column: auto;
+}
+.courses-discovery select {
+  background: var(--bg);
+  border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent);
+  border-radius: 8px;
+  min-height: 46px;
+}
+.courses-reset {
+  grid-column: 1 / -1;
+  justify-self: start;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  background: transparent;
+  color: inherit;
+  padding: 0.4rem;
+  border: 0;
+}
+.courses-results {
+  margin-block: 1.25rem;
+}
+.courses-catalog-page .course-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+.courses-catalog-page .course-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--fg) 16%, var(--surface));
+  min-width: 0;
+}
+.course-card-category,
+.course-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem 1.2rem;
+  font-size: 0.9rem;
+}
+.course-card-category > span,
+.course-facts > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.course-card-category svg,
+.course-facts svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.courses-catalog-page .course-summary h2 {
+  margin: 1rem 0 0.65rem;
+  font-size: 1.5rem;
+  line-height: 1.6;
+}
+.courses-catalog-page .course-summary h2 a {
+  text-decoration: none;
+}
+.courses-catalog-page .course-summary h2 a:hover {
+  text-decoration: underline;
+}
+.courses-catalog-page .course-summary p {
+  margin: 0 0 1rem;
+}
+.courses-catalog-page .course-summary-action {
+  margin-top: auto;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.courses-catalog-page .course-summary-action strong {
+  font-size: 1.3rem;
+}
+.courses-catalog-page .course-summary-action progress {
+  order: -1;
+  flex-basis: 100%;
+}
+@media (max-width: 760px) {
+  .courses-catalog-page .course-list {
+    grid-template-columns: 1fr;
+  }
+  .courses-discovery {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+  .courses-filter-panel summary {
+    justify-self: start;
+  }
+  .courses-discovery .courses-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .courses-catalog-page .course-summary {
+    padding: 1.2rem;
+  }
+}
+@media (max-width: 400px) {
+  .courses-discovery .courses-filters {
+    grid-template-columns: 1fr;
+  }
+}
+.courses-filter-panel[open]::details-content {
+  display: contents;
+}

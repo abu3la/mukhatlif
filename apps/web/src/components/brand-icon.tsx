@@ -1,6 +1,11 @@
 import type { SVGProps } from 'react';
 
 const marks = {
+  clock:
+    'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16m-1 2h2v5.5l4 2-1 1.8-5-2.8z',
+  level: 'M3 15h4v6H3zm7-6h4v12h-4zm7-6h4v18h-4z',
+  filter: 'M3 5h18v2H3zm3 6h12v2H6zm3 6h6v2H9z',
+
   previous: 'm13 4 8 8-8 8-1.5-1.5L17 13H3v-2h14l-5.5-5.5z',
   next: 'm11 4 1.5 1.5L7 11h14v2H7l5.5 5.5L11 20l-8-8z',
   document: 'M5 2h9l5 5v15H5zm2 2v16h10V9h-5V4zm7 1v2h2zM9 12h6v2H9zm0 4h6v2H9z',

@@ -5,6 +5,7 @@ import type { CourseSummary, CourseEnrollment } from '@mukhtalif/types';
 import { useCustomer } from '../customer-provider';
 import { CustomerGate } from '../customer-ui';
 import { useCoursesApi } from './api';
+import { BrandIcon } from '../brand-icon';
 import './courses.css';
 
 export function CourseCatalog({ mine = false }: { mine?: boolean }) {
@@ -75,7 +76,7 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
     return true;
   });
   const content = (
-    <div className="page courses-page">
+    <div className="page courses-page courses-catalog-page">
       <header className="courses-heading">
         <h1>{mine ? 'دوراتي' : 'تعلّم مع مختلف'}</h1>
         <p>
@@ -87,60 +88,92 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
           {mine ? 'استكشف الدورات' : 'دوراتي'}
         </Link>
       </header>
-      <div className="courses-filters">
-        <label>
+      <section className="courses-discovery" aria-label="البحث وتصفية الدورات">
+        <label className="courses-search">
           ابحث عن دورة
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="اسم الدورة أو المدرّب"
-          />
+          <span className="courses-search-field">
+            <BrandIcon name="search" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="اسم الدورة أو المدرّب"
+            />
+          </span>
         </label>
-        {(
-          [
-            ['category', 'المجال'],
-            ['skill', 'المهارة'],
-            ['level', 'المستوى'],
-            ['instructor', 'المدرّب'],
-          ] as const
-        ).map(([key, label]) => (
-          <label key={key}>
-            {label}
-            <select
-              value={filters[key] ?? ''}
-              onChange={(e) => setFilters({ ...filters, [key]: e.target.value })}
-            >
-              <option value="">الكل</option>
-              {[...new Set(courses?.map((c) => c[key]).filter(Boolean))].map((value) => (
-                <option key={value}>{value}</option>
-              ))}
-            </select>
-          </label>
-        ))}
-        <label>
-          السعر
-          <select
-            value={filters.price ?? ''}
-            onChange={(e) => setFilters({ ...filters, price: e.target.value })}
+        <details className="courses-filter-panel">
+          <summary>
+            <BrandIcon name="filter" />
+            تصفية النتائج
+            {Object.values(filters).filter(Boolean).length > 0 && (
+              <span>({Object.values(filters).filter(Boolean).length})</span>
+            )}
+            <BrandIcon name="down" />
+          </summary>
+          <div className="courses-filters">
+            {(
+              [
+                ['category', 'المجال'],
+                ['skill', 'المهارة'],
+                ['level', 'المستوى'],
+                ['instructor', 'المدرّب'],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key}>
+                {label}
+                <select
+                  value={filters[key] ?? ''}
+                  onChange={(e) => setFilters({ ...filters, [key]: e.target.value })}
+                >
+                  <option value="">الكل</option>
+                  {[...new Set(courses?.map((c) => c[key]).filter(Boolean))].map((value) => (
+                    <option key={value}>{value}</option>
+                  ))}
+                </select>
+              </label>
+            ))}
+            <label>
+              السعر
+              <select
+                value={filters.price ?? ''}
+                onChange={(e) => setFilters({ ...filters, price: e.target.value })}
+              >
+                <option value="">الكل</option>
+                <option value="free">مجانية</option>
+                <option value="paid">مدفوعة</option>
+              </select>
+            </label>
+            <label>
+              المدة
+              <select
+                value={filters.duration ?? ''}
+                onChange={(e) => setFilters({ ...filters, duration: e.target.value })}
+              >
+                <option value="">الكل</option>
+                <option value="short">ساعة أو أقل</option>
+                <option value="long">أكثر من ساعة</option>
+              </select>
+            </label>
+          </div>
+        </details>
+        {(search || Object.values(filters).some(Boolean)) && (
+          <button
+            className="courses-reset"
+            onClick={() => {
+              setSearch('');
+              setFilters({});
+            }}
           >
-            <option value="">الكل</option>
-            <option value="free">مجانية</option>
-            <option value="paid">مدفوعة</option>
-          </select>
-        </label>
-        <label>
-          المدة
-          <select
-            value={filters.duration ?? ''}
-            onChange={(e) => setFilters({ ...filters, duration: e.target.value })}
-          >
-            <option value="">الكل</option>
-            <option value="short">ساعة أو أقل</option>
-            <option value="long">أكثر من ساعة</option>
-          </select>
-        </label>
-      </div>
+            <BrandIcon name="close" />
+            مسح البحث والفلاتر
+          </button>
+        )}
+      </section>
+      {courses && (
+        <p className="courses-results" role="status">
+          عدد النتائج: {filtered?.length ?? 0}
+        </p>
+      )}
       {error ? (
         <div role="alert">
           <p>{error}</p>
@@ -166,17 +199,42 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
             return (
               <article key={course.id} className="course-summary">
                 <div>
-                  <span>
-                    {course.category}
-                    {course.level ? ` · ${course.level}` : ''}
-                  </span>
+                  <div className="course-card-category">
+                    {course.category && (
+                      <span>
+                        <BrandIcon name="library" />
+                        {course.category}
+                      </span>
+                    )}
+                    {course.level && (
+                      <span>
+                        <BrandIcon name="level" />
+                        {course.level}
+                      </span>
+                    )}
+                  </div>
                   <h2>
                     <Link href={`/courses/${course.id}`}>{course.title}</Link>
                   </h2>
                   <p>{course.description}</p>
-                  <small>
-                    {course.instructor} · {course.lessonCount} درس · {course.durationMinutes} دقيقة
-                  </small>
+                  <div className="course-facts">
+                    {course.instructor && (
+                      <span>
+                        <BrandIcon name="user" />
+                        {course.instructor}
+                      </span>
+                    )}
+                    <span>
+                      <BrandIcon name="queue" />
+                      {course.lessonCount} درس
+                    </span>
+                    {course.durationMinutes > 0 && (
+                      <span>
+                        <BrandIcon name="clock" />
+                        {course.durationMinutes} دقيقة
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="course-summary-action">
                   {state ? (
@@ -187,6 +245,7 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
                       <progress max={course.lessonCount || 1} value={complete} />
                       <Link className="course-button" href={`/courses/${course.id}`}>
                         أكمل التعلّم
+                        <BrandIcon name="play" />
                       </Link>
                     </>
                   ) : (
@@ -194,6 +253,7 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
                       <strong>{course.price ? `${course.price} ر.س` : 'مجانية'}</strong>
                       <Link className="course-button" href={`/courses/${course.id}`}>
                         تفاصيل الدورة
+                        <BrandIcon name="next" />
                       </Link>
                     </>
                   )}
