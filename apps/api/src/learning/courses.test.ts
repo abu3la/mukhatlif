@@ -1,20 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import app from '../index';
 import type { Env } from '../env';
-import { learningRequest } from './frappe';
+import { learningRequest } from './service';
+import type * as Service from './service';
+vi.mock('./service', async (original) => ({
+  ...(await original<typeof Service>()),
+  learningRequest: vi.fn(),
+}));
 const env: Env = {
   APP_ENV: 'development',
   ALLOW_DEV_AUTH: 'true',
-  LEARNING_URL: 'http://localhost:8000',
-  LEARNING_API_KEY: 'test-key',
-  LEARNING_API_SECRET: 'test-secret',
   LEARNING_SIMULATION_ENABLED: 'true',
 };
-const upstream = vi.fn();
+const upstream = vi.mocked(learningRequest);
 beforeEach(() => {
   upstream.mockReset();
-  upstream.mockResolvedValue(Response.json({ message: { data: { ok: true } } }));
-  vi.stubGlobal('fetch', upstream);
+  upstream.mockResolvedValue({ ok: true });
 });
 afterEach(() => vi.unstubAllGlobals());
 function request(
@@ -36,7 +37,7 @@ function request(
   );
 }
 describe('learning trust boundary', () => {
-  it('denies anonymous access and learner access to Studio before contacting Frappe', async () => {
+  it('denies anonymous access and learner access to Studio before accessing learning data', async () => {
     expect((await request('/app/courses/course-1')).status).toBe(401);
     expect(
       (await request('/studio/courses', { user: 'usr-listener-1', surface: 'studio' })).status,
@@ -45,11 +46,7 @@ describe('learning trust boundary', () => {
   });
   it('keeps public catalogue responses in the public action', async () => {
     expect((await request('/courses')).status).toBe(200);
-    expect(JSON.parse(upstream.mock.calls[0][1].body)).toEqual({
-      action: 'catalog',
-      payload: {},
-      actor: null,
-    });
+    expect(upstream.mock.calls[0].slice(1, 4)).toEqual(['catalog', {}, undefined]);
   });
   it('takes the actor from verified auth and rejects forged checkout fields', async () => {
     const invalid = await request('/app/courses/course-1/checkout', {
@@ -63,7 +60,10 @@ describe('learning trust boundary', () => {
       body: { mode: 'simulation', outcome: 'success' },
     });
     expect(valid.status).toBe(200);
-    const envelope = JSON.parse(upstream.mock.calls[0][1].body);
+    const envelope = {
+      actor: upstream.mock.calls[0][3]!,
+      payload: upstream.mock.calls[0][2] as { courseId: string },
+    };
     expect(envelope.actor.id).toBe('dev:usr-listener-1');
     expect(envelope.actor.admin).toBe(false);
     expect(envelope.payload.courseId).toBe('course-1');
@@ -99,14 +99,10 @@ describe('learning trust boundary', () => {
     ).toBe(422);
     expect(upstream).not.toHaveBeenCalled();
   });
-  it('returns an honest unavailable state when no Frappe service is configured', async () => {
-    const response = await request('/courses', { environment: { APP_ENV: 'development' } });
-    expect(response.status).toBe(503);
-    expect(upstream).not.toHaveBeenCalled();
-  });
-  it('does not expose upstream traces, redirect credentials or raw errors', async () => {
-    upstream.mockResolvedValue(new Response('sensitive upstream traceback', { status: 500 }));
-    await expect(learningRequest(env, 'catalog', {})).rejects.toThrow('تعذّر إكمال الطلب');
-    expect(upstream.mock.calls[0][1].redirect).toBe('error');
+  it('does not expose database errors', async () => {
+    upstream.mockRejectedValue(new Error('sensitive database error'));
+    const response = await request('/courses');
+    expect(response.status).toBe(500);
+    expect(await response.text()).not.toContain('sensitive');
   });
 });

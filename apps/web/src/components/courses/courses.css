@@ -956,3 +956,47 @@
     top: 100px;
   }
 }
+
+.course-rich-prose {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.course-rich-prose h2 {
+  font-size: 1.5rem;
+  line-height: 1.6;
+  margin-block: 1.4em 0.6em;
+}
+.course-rich-prose h3 {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  margin-block: 1.2em 0.5em;
+}
+.course-rich-prose p {
+  margin-block: 0.7em;
+}
+.course-rich-prose ul,
+.course-rich-prose ol {
+  padding-inline-start: 1.6em;
+  margin-block: 0.8em;
+}
+.course-rich-prose li {
+  margin-block: 0.35em;
+}
+.course-rich-prose blockquote {
+  margin-inline: 0;
+  padding: 1rem 1.4rem;
+  background: var(--surface);
+  border-radius: 10px;
+}
+.course-rich-prose a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.course-lessons button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.course-view-nav button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

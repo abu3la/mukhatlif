@@ -1,3 +1,13 @@
+## Native learning work (2026-10-15)
+
+The owner requires courses in the existing Hono API, Supabase and R2, with
+simulated checkout only and the existing blog editor for course/lesson text.
+The separate LMS service and credentials have been removed from this branch.
+See `docs/LEARNING_NATIVE_API.md`. Migration 0025 is tested locally but **not
+applied remotely**; development Supabase DNS checks currently fail. Do not
+claim hosted readiness or deploy consumers before the schema and real-account/R2
+acceptance gates pass. No apex-domain change is authorized.
+
 ## Authorized automatic production release (2026-09-08)
 
 The owner explicitly authorized publishing through GitHub automation to

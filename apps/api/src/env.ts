@@ -14,9 +14,6 @@ export type ResendEnvironment = (typeof RESEND_ENVIRONMENTS)[number];
 export const MAILCHIMP_NEWSLETTER_RECIPIENT_TAG = 'nlpage';
 
 export interface Env {
-  LEARNING_URL?: string;
-  LEARNING_API_KEY?: string;
-  LEARNING_API_SECRET?: string;
   LEARNING_SIMULATION_ENABLED?: string;
   APP_ENV?: string;
   /** Runtime owner. Cloudflare Workers is development-only; Hostinger owns production. */

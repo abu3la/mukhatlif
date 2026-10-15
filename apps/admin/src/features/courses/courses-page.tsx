@@ -1,3 +1,6 @@
+import { RichTextEditor } from '../articles/ui/rich-text-editor';
+import { richTextDocumentSchema } from '@mukhtalif/validation';
+import type { RichTextDocument } from '@mukhtalif/types';
 import { useCallback, useEffect, useState, useRef, type ReactNode } from 'react';
 import {
   CLIENT_SURFACE_HEADER,
@@ -236,22 +239,24 @@ function CourseManager({
                     onChange={(e) => patch({ title: e.target.value })}
                   />
                 </Field>
-                <Field title="وصف الدورة">
-                  <textarea
-                    maxLength={20000}
-                    rows={4}
-                    value={course.description}
-                    onChange={(e) => patch({ description: e.target.value })}
-                  />
-                </Field>
-                <Field title="نبذة تفصيلية: ماذا سيتعلم المتدرب؟">
-                  <textarea
-                    rows={5}
-                    maxLength={20000}
-                    value={course.overview ?? ''}
-                    onChange={(e) => patch({ overview: e.target.value })}
-                  />
-                </Field>
+                <CourseTextEditor
+                  disabled={busy}
+                  key={`${course.id}-description`}
+                  title="وصف الدورة"
+                  text={course.description}
+                  document={course.descriptionDocument}
+                  onChange={(description, descriptionDocument) =>
+                    patch({ description, descriptionDocument })
+                  }
+                />
+                <CourseTextEditor
+                  disabled={busy}
+                  key={`${course.id}-overview`}
+                  title="ماذا سيتعلم المتدرب؟"
+                  text={course.overview ?? ''}
+                  document={course.overviewDocument}
+                  onChange={(overview, overviewDocument) => patch({ overview, overviewDocument })}
+                />
                 <Field title="لمن هذه الدورة؟">
                   <textarea
                     rows={2}
@@ -330,20 +335,20 @@ function CourseManager({
                         }
                       />
                     </Field>
-                    <Field title="محتوى الدرس">
-                      <textarea
-                        rows={5}
-                        maxLength={20000}
-                        value={lesson.body}
-                        onChange={(e) =>
-                          patch({
-                            lessons: course.lessons.map((x) =>
-                              x.id === lesson.id ? { ...x, body: e.target.value } : x,
-                            ),
-                          })
-                        }
-                      />
-                    </Field>
+                    <CourseTextEditor
+                      disabled={busy}
+                      key={lesson.id}
+                      title="محتوى الدرس"
+                      text={lesson.body}
+                      document={lesson.bodyDocument}
+                      onChange={(body, bodyDocument) =>
+                        patch({
+                          lessons: course.lessons.map((x) =>
+                            x.id === lesson.id ? { ...x, body, bodyDocument } : x,
+                          ),
+                        })
+                      }
+                    />
                     <AssetField
                       title="فيديو الدرس"
                       courseId={course.id}
@@ -476,10 +481,8 @@ function CourseManager({
                     {Object.values(row.enrollment.progress).filter((x) => x.complete).length} من{' '}
                     {course.lessonCount} درس مكتمل
                   </p>
-                  <p>
-                    تسجيل تجريبي: {row.enrollment.order.amount} ر.س ·{' '}
-                    {row.enrollment.order.createdAt}
-                  </p>
+                  <p>تسجيل تجريبي: {row.enrollment.order.amount} ر.س</p>
+                  <p>{new Date(row.enrollment.order.createdAt).toLocaleDateString('ar-SA')}</p>
                   <p>رقم العملية: {row.enrollment.order.id}</p>
                   <p>
                     {row.enrollment.certificate
@@ -916,5 +919,40 @@ function Grade({
       {notice && <p role="status">{notice}</p>}
       <button disabled={busy}>{busy ? 'جارٍ الحفظ…' : 'حفظ التقييم'}</button>
     </form>
+  );
+}
+
+function CourseTextEditor({
+  disabled,
+  title,
+  text,
+  document,
+  onChange,
+}: {
+  disabled?: boolean;
+  title: string;
+  text: string;
+  document?: RichTextDocument;
+  onChange: (text: string, document: RichTextDocument) => void;
+}) {
+  return (
+    <div className="studio-course-field studio-course-rich-field">
+      <span>{title}</span>
+      <RichTextEditor
+        label={title}
+        disabled={disabled}
+        textOnly
+        initialDocument={
+          document ?? {
+            type: 'doc',
+            content: text.split('\n').map((line) => ({
+              type: 'paragraph',
+              content: line ? [{ type: 'text', text: line }] : [],
+            })),
+          }
+        }
+        onChange={(value) => onChange(value.text, richTextDocumentSchema.parse(value.document))}
+      />
+    </div>
   );
 }

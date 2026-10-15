@@ -42,7 +42,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
           flexWrap: 'wrap',
         }}
       >
-        <strong>مختبر محلي: حسابات وهمية، بيانات Frappe فعلية، بلا دفع.</strong>
+        <strong>مختبر محلي: حسابات وهمية، API مختلف، بلا دفع.</strong>
         <label>
           حساب الاختبار
           <select value={id} onChange={(e) => select(e.target.value)}>
@@ -52,6 +52,13 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
           </select>
         </label>
         <button
+          style={{
+            background: 'white',
+            color: '#171a56',
+            border: 0,
+            borderRadius: 6,
+            padding: '6px 12px',
+          }}
           onClick={() => {
             setDark(!dark);
             document.documentElement.dataset.concept = dark ? 'first' : 'third';

@@ -106,6 +106,10 @@ function CourseContent({ courseId }: { courseId: string }) {
   };
   const lesson = workspace?.course.lessons.find((item) => item.id === selected);
   const course = workspace?.course;
+  const isLessonLocked = (index: number) =>
+    !!course?.lessons
+      .slice(0, index)
+      .some((item) => !workspace?.enrollment.progress[item.id]?.complete);
   const lessonIndex = course?.lessons.findIndex((item) => item.id === selected) ?? -1;
   const [reading, setReading] = useState<Record<string, number>>({});
   const openLesson = (id: string) => {
@@ -149,7 +153,7 @@ function CourseContent({ courseId }: { courseId: string }) {
         <>
           <header className="courses-heading">
             <h1>{detail.title}</h1>
-            {!workspace && <p>{detail.description}</p>}
+            {!workspace && <CourseProse text={detail.description} html={detail.descriptionHtml} />}
             <div className="course-facts">
               {detail.instructor && (
                 <span>
@@ -180,7 +184,10 @@ function CourseContent({ courseId }: { courseId: string }) {
               <section className="course-overview">
                 {detail.hasTrailer && <CourseTrailer courseId={courseId} />}
                 <h2>عن الدورة</h2>
-                <p className="course-prose">{detail.overview || detail.description}</p>
+                <CourseProse
+                  text={detail.overview || detail.description}
+                  html={detail.overviewHtml || detail.descriptionHtml}
+                />
                 {detail.audience && (
                   <>
                     <h2>لمن هذه الدورة؟</h2>
@@ -192,7 +199,9 @@ function CourseContent({ courseId }: { courseId: string }) {
                   {detail.lessons.map((item) => (
                     <li key={item.id}>
                       <span>{item.title}</span>
-                      <small>{Math.ceil(item.durationSeconds / 60)} دقيقة</small>
+                      {item.durationSeconds > 0 && (
+                        <small>{Math.ceil(item.durationSeconds / 60)} دقيقة</small>
+                      )}
                     </li>
                   ))}
                 </ol>
@@ -260,6 +269,12 @@ function CourseContent({ courseId }: { courseId: string }) {
                 ].map(([id, label]) => (
                   <button
                     key={id}
+                    disabled={
+                      ['quiz', 'assignment'].includes(id) &&
+                      course!.lessons.some(
+                        (item) => !workspace.enrollment.progress[item.id]?.complete,
+                      )
+                    }
                     aria-current={view === id ? 'page' : undefined}
                     onClick={() => setView(id)}
                   >
@@ -277,6 +292,8 @@ function CourseContent({ courseId }: { courseId: string }) {
                         {course!.lessons.map((item, index) => (
                           <li key={item.id}>
                             <button
+                              disabled={isLessonLocked(index)}
+                              title={isLessonLocked(index) ? 'أكمل الدرس السابق أولًا' : undefined}
                               aria-current={item.id === selected ? 'step' : undefined}
                               onClick={() => openLesson(item.id)}
                             >
@@ -304,7 +321,7 @@ function CourseContent({ courseId }: { courseId: string }) {
                       انتقل إلى درس
                       <select value={selected} onChange={(event) => openLesson(event.target.value)}>
                         {course!.lessons.map((item, index) => (
-                          <option key={item.id} value={item.id}>
+                          <option key={item.id} value={item.id} disabled={isLessonLocked(index)}>
                             {index + 1}. {item.title}
                           </option>
                         ))}
@@ -361,6 +378,10 @@ function CourseContent({ courseId }: { courseId: string }) {
                             ].map(([id, label]) => (
                               <button
                                 key={id}
+                                disabled={
+                                  ['quiz', 'assignment'].includes(id) &&
+                                  !workspace.enrollment.progress[lesson.id]?.complete
+                                }
                                 aria-current={lessonView === id ? 'page' : undefined}
                                 onClick={() => setLessonView(id)}
                               >
@@ -389,12 +410,13 @@ function CourseContent({ courseId }: { courseId: string }) {
                                 />
                               )}
                               {lesson.video ? (
-                                <div className="course-prose">{lesson.body}</div>
+                                <CourseProse text={lesson.body} html={lesson.bodyHtml} />
                               ) : (
                                 <LessonReading
                                   courseId={courseId}
                                   lessonId={lesson.id}
                                   body={lesson.body}
+                                  html={lesson.bodyHtml}
                                   initialPercent={
                                     workspace.enrollment.progress[lesson.id]?.readPercent ?? 0
                                   }
@@ -439,7 +461,10 @@ function CourseContent({ courseId }: { courseId: string }) {
                             {lessonIndex + 1} / {course!.lessons.length}
                           </span>
                           <button
-                            disabled={lessonIndex >= course!.lessons.length - 1}
+                            disabled={
+                              lessonIndex >= course!.lessons.length - 1 ||
+                              isLessonLocked(lessonIndex + 1)
+                            }
                             onClick={() => openLesson(course!.lessons[lessonIndex + 1].id)}
                           >
                             الدرس التالي
@@ -547,7 +572,12 @@ function CourseContent({ courseId }: { courseId: string }) {
                         <p>تشهد مختلف بأن</p>
                         <h3>{workspace.enrollment.certificate.member}</h3>
                         <p>أكمل دورة «{course!.title}» ومتطلباتها.</p>
-                        <p>{workspace.enrollment.certificate.issuedAt}</p>
+                        <p>
+                          {new Date(workspace.enrollment.certificate.issuedAt).toLocaleDateString(
+                            'ar-SA',
+                            { year: 'numeric', month: 'long', day: 'numeric' },
+                          )}
+                        </p>
                         <small>رقم الشهادة: {workspace.enrollment.certificate.id}</small>
                       </div>
                       <button className="course-button" onClick={() => window.print()}>
@@ -847,6 +877,7 @@ function LessonReading({
   courseId,
   lessonId,
   body,
+  html,
   initialPercent,
   complete,
   onProgress,
@@ -855,6 +886,7 @@ function LessonReading({
   courseId: string;
   lessonId: string;
   body: string;
+  html?: string;
   initialPercent: number;
   complete: boolean;
   onProgress: (percent: number) => void;
@@ -932,7 +964,7 @@ function LessonReading({
   }, [api, courseId, lessonId, initialPercent, complete, retry]);
   return (
     <div ref={element}>
-      <div className="course-prose">{body}</div>
+      <CourseProse text={body} html={html} />
       <p className="course-reading-status" role="status">
         {complete ? 'اكتملت القراءة' : 'يُحفظ تقدم القراءة تلقائيًا عند التمرير.'}
       </p>
@@ -989,5 +1021,14 @@ function CourseTrailer({ courseId }: { courseId: string }) {
         </div>
       )}
     </section>
+  );
+}
+
+/** HTML is generated by the shared API's allowlisted blog renderer. */
+function CourseProse({ text, html }: { text: string; html?: string }) {
+  return html ? (
+    <div className="course-prose course-rich-prose" dangerouslySetInnerHTML={{ __html: html }} />
+  ) : (
+    <div className="course-prose">{text}</div>
   );
 }

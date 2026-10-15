@@ -2,12 +2,18 @@ import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { z } from 'zod';
 import { requireAdmin, requireAuth, type AppEnv } from '../auth';
-import { learningRequest, LearningError } from '../learning/frappe';
+import { learningRequest, LearningError } from '../learning/service';
+
+import { serveLearningMedia } from '../learning/media';
 
 export const publicCoursesRoute = new Hono<AppEnv>();
 export const customerCoursesRoute = new Hono<AppEnv>();
 export const studioCoursesRoute = new Hono<AppEnv>();
 for (const route of [publicCoursesRoute, customerCoursesRoute, studioCoursesRoute]) {
+  route.use('*', async (c, next) => {
+    c.header('Cache-Control', 'private, no-store');
+    await next();
+  });
   route.onError((error, c) =>
     error instanceof LearningError
       ? c.json({ error: error.message }, error.status)
@@ -44,9 +50,11 @@ async function call(c: Context<AppEnv>, action: string, payload: unknown = {}) {
             admin,
           }
         : undefined,
+      c.env.MEDIA_PUBLIC_ORIGIN || new URL(c.req.url).origin,
     ),
   );
 }
+publicCoursesRoute.get('/media/:ticket', serveLearningMedia);
 publicCoursesRoute.get('/', (c) => call(c, 'catalog'));
 publicCoursesRoute.get('/:id/trailer', (c) =>
   call(c, 'trailer', { courseId: id.parse(c.req.param('id')) }),
@@ -123,7 +131,7 @@ const uploads = {
         .int()
         .min(0)
         .max(512 * 1024 * 1024),
-      content: z.string().max(1400000),
+      content: z.string().max(7100000),
     })
     .strict(),
   'upload-finish': z.object({ token: z.string().max(3000) }).strict(),

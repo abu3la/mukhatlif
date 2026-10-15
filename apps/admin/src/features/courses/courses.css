@@ -106,3 +106,16 @@
     gap: 0.5rem;
   }
 }
+
+.studio-course-rich-field {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.studio-course-rich-field .article-rich-editor__surface {
+  min-height: 180px;
+  max-height: 480px;
+  overflow-y: auto;
+}
+.studio-course-rich-field .article-rich-editor__content {
+  min-block-size: 180px;
+}

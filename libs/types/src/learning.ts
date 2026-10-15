@@ -1,8 +1,13 @@
+import type { RichTextDocument } from './article';
 /** Public course data never includes lesson bodies, media paths or answer keys. */
 export interface CourseSummary {
   id: string;
   title: string;
   description: string;
+  descriptionDocument?: RichTextDocument;
+  descriptionHtml?: string;
+  overviewDocument?: RichTextDocument;
+  overviewHtml?: string;
   overview?: string;
   audience?: string;
   hasTrailer?: boolean;
@@ -44,6 +49,8 @@ export interface CourseLesson {
   id: string;
   title: string;
   body: string;
+  bodyDocument?: RichTextDocument;
+  bodyHtml?: string;
   video: string;
   durationSeconds: number;
   resources: CourseResource[];
