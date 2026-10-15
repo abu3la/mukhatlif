@@ -64,7 +64,7 @@ def assessments(course, kind):
 
 
 def all_files(course):
-    result = set()
+    result = {course["trailer"]} if course.get("trailer") else set()
     for source in [course, *course["lessons"]]:
         if source.get("video"):
             result.add(source["video"])
@@ -121,6 +121,13 @@ def execute(action, payload, actor):
     course_id = course["id"]
     if action == "detail":
         return {**summary(course), "lessons": [{"id": x["id"], "title": x["title"], "durationSeconds": x["durationSeconds"]} for x in course["lessons"]]}
+    if action == "trailer":
+        file_url = course.get('trailer')
+        if not file_url:
+            raise Denied('لا يوجد مقطع تعريفي لهذه الدورة.', 404)
+        require_owned_file(file_url, course_id)
+        ticket = base64.urlsafe_b64encode(json.dumps({'course': course_id, 'file': file_url, 'preview': True, 'exp': int(time.time()) + 3600}).encode()).decode()
+        return {'url': get_url('/api/method/mukhtalif_learning.api.asset?') + urlencode({'ticket': ticket, 'signature': sign(ticket)})}
     if action == "studio.detail":
         return course
     if action in ("studio.upload-start", "studio.upload-chunk", "studio.upload-finish"):
@@ -319,7 +326,10 @@ def asset(ticket, signature):
         course = course_definition(data["course"])
         if data["file"] not in all_files(course):
             raise ValueError()
-        if not frappe.db.exists("LMS Enrollment", {"course": data["course"], "member": data["member"]}):
+        if data.get('preview') is True:
+            if not course.get('trailer') or data['file'] != course['trailer']:
+                raise ValueError()
+        elif not frappe.db.exists("LMS Enrollment", {"course": data["course"], "member": data["member"]}):
             raise ValueError()
         require_owned_file(data["file"], data["course"])
     except (ValueError, KeyError, Denied):

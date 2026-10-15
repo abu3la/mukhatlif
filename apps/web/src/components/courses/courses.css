@@ -899,3 +899,60 @@
 .courses-filter-panel[open]::details-content {
   display: contents;
 }
+.course-catalog-navigation {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.4rem;
+  width: fit-content;
+  background: var(--surface);
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+}
+.course-catalog-navigation a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  padding: 0.75rem 1rem;
+  border-radius: 7px;
+  color: var(--fg);
+}
+.course-catalog-navigation a[aria-current] {
+  background: var(--fg);
+  color: var(--bg);
+  font-weight: 700;
+}
+.course-trailer {
+  margin-bottom: 2rem;
+}
+.course-trailer video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #111;
+  border-radius: 10px;
+}
+.course-purchase-facts {
+  display: grid;
+  gap: 0.8rem;
+}
+.course-purchase-facts span {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.course-overview h2 {
+  margin-block: 1.5rem 1rem;
+}
+.course-overview .course-curriculum {
+  list-style: decimal;
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 1rem 2.5rem 1rem 1rem;
+}
+@media (min-width: 761px) {
+  .course-checkout {
+    position: sticky;
+    top: 100px;
+  }
+}

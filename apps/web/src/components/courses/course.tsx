@@ -177,7 +177,16 @@ function CourseContent({ courseId }: { courseId: string }) {
           {notice && <p role="status">{notice}</p>}
           {!workspace ? (
             <div className="course-intro">
-              <section>
+              <section className="course-overview">
+                {detail.hasTrailer && <CourseTrailer courseId={courseId} />}
+                <h2>عن الدورة</h2>
+                <p className="course-prose">{detail.overview || detail.description}</p>
+                {detail.audience && (
+                  <>
+                    <h2>لمن هذه الدورة؟</h2>
+                    <p className="course-prose">{detail.audience}</p>
+                  </>
+                )}
                 <h2>محتوى الدورة</h2>
                 <ol className="course-curriculum">
                   {detail.lessons.map((item) => (
@@ -190,6 +199,24 @@ function CourseContent({ courseId }: { courseId: string }) {
               </section>
               <section className="course-checkout">
                 <h2>{detail.price ? `${detail.price} ر.س` : 'دورة مجانية'}</h2>
+                <div className="course-purchase-facts">
+                  <span>
+                    <BrandIcon name="queue" />
+                    {detail.lessonCount} درس
+                  </span>
+                  {detail.level && (
+                    <span>
+                      <BrandIcon name="level" />
+                      {detail.level}
+                    </span>
+                  )}
+                  {detail.instructor && (
+                    <span>
+                      <BrandIcon name="user" />
+                      {detail.instructor}
+                    </span>
+                  )}
+                </div>
                 <p>التسجيل حاليًا بمحاكاة دفع. لن نطلب بطاقة ولن نخصم أي مبلغ.</p>
                 {checkout ? (
                   <>
@@ -216,7 +243,8 @@ function CourseContent({ courseId }: { courseId: string }) {
                       if (customer.requireAccount()) setCheckout(true);
                     }}
                   >
-                    سجّل في الدورة
+                    <BrandIcon name="next" />
+                    المتابعة للتسجيل
                   </button>
                 )}
               </section>
@@ -917,5 +945,49 @@ function LessonReading({
         </div>
       )}
     </div>
+  );
+}
+
+function CourseTrailer({ courseId }: { courseId: string }) {
+  const api = useCoursesApi();
+  const [url, setUrl] = useState('');
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController();
+    setError('');
+    api<{ url: string }>(`/courses/${courseId}/trailer`, undefined, controller.signal)
+      .then((result) => {
+        if (!controller.signal.aborted) setUrl(result.url);
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted) setError(e.message);
+      });
+    return () => controller.abort();
+  }, [api, courseId, retry]);
+  return (
+    <section className="course-trailer" aria-label="المقطع التعريفي">
+      <h2>شاهد مقدمة الدورة</h2>
+      {url && !error ? (
+        <video
+          src={url}
+          controls
+          playsInline
+          preload="metadata"
+          aria-label="المقطع التعريفي للدورة"
+          onError={() => setError('تعذّر تشغيل المقطع التعريفي.')}
+        />
+      ) : (
+        !error && <p role="status">جارٍ تحميل المقطع التعريفي…</p>
+      )}
+      {error && (
+        <div role="alert">
+          <p>{error}</p>
+          <button className="course-button" onClick={() => setRetry(retry + 1)}>
+            حاول مجددًا
+          </button>
+        </div>
+      )}
+    </section>
   );
 }

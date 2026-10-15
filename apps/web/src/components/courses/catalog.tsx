@@ -77,6 +77,16 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
   });
   const content = (
     <div className="page courses-page courses-catalog-page">
+      <nav className="course-catalog-navigation" aria-label="تنقل الدورات">
+        <Link href="/courses" aria-current={!mine ? 'page' : undefined}>
+          <BrandIcon name="library" />
+          استكشف الدورات
+        </Link>
+        <Link href="/library/courses" aria-current={mine ? 'page' : undefined}>
+          <BrandIcon name="user" />
+          دوراتي
+        </Link>
+      </nav>
       <header className="courses-heading">
         <h1>{mine ? 'دوراتي' : 'تعلّم مع مختلف'}</h1>
         <p>
@@ -84,9 +94,6 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
             ? 'ارجع إلى آخر درس، وأكمل من حيث توقفت.'
             : 'دروس وتطبيقات تساعدك على تحويل المعرفة إلى ممارسة.'}
         </p>
-        <Link href={mine ? '/courses' : '/library/courses'}>
-          {mine ? 'استكشف الدورات' : 'دوراتي'}
-        </Link>
       </header>
       <section className="courses-discovery" aria-label="البحث وتصفية الدورات">
         <label className="courses-search">

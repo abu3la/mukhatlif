@@ -140,3 +140,28 @@ def run_reading():
     assert final['progress']['read-1']['complete']
     assert call('workspace', {'courseId': course_id})['enrollment']['progress']['read-1']['readPercent'] == 100
     return {'passed': True, 'courseId': course_id, 'checks': 5}
+
+
+def run_trailer():
+    import base64
+    from urllib.parse import urlparse, parse_qs
+    result = run_media()
+    course_id = result['courseId']
+    admin = {'id': 'dev:usr-admin-1', 'admin': True}
+    course = api.execute('studio.detail', {'courseId': course_id}, admin)
+    course['trailer'] = course['lessons'][0]['video']
+    course['overview'] = 'تعرّف على تجربة التعلم: مشاهدة الدروس، حفظ موضعك، ثم التطبيق العملي. هذا المقطع تجريبي لاختبار المشغّل فقط.'
+    course['audience'] = 'لمن يريد تجربة التعلّم في مختلف قبل التسجيل.'
+    saved = api.dispatch('studio.save', course, admin)
+    assert 'data' in saved, saved
+    frappe.db.commit()
+    detail = api.execute('detail', {'courseId': course_id}, None)
+    assert detail['hasTrailer'] and 'trailer' not in detail
+    assert '/private/files/' not in json.dumps(detail)
+    preview = api.execute('trailer', {'courseId': course_id}, None)
+    token = parse_qs(urlparse(preview['url']).query)['ticket'][0]
+    data = json.loads(base64.urlsafe_b64decode(token))
+    assert data['preview'] is True and data['file'] == course['trailer'] and 'member' not in data
+    denied = api.dispatch('workspace', {'courseId': course_id}, None)
+    assert 'error' in denied
+    return {'passed': True, 'courseId': course_id, 'checks': 4}

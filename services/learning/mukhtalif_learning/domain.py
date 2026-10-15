@@ -42,6 +42,10 @@ def validate_definition(data):
               "price": number(data.get("price"), 0, 100000), "durationMinutes": 0}
     for key in ("category", "skill", "level", "instructor"):
         result[key] = text(data.get(key, ""), 200)
+    result['overview'] = text(data.get('overview', ''))
+    result['audience'] = text(data.get('audience', ''), 3000)
+    result['trailer'] = private_file(data.get('trailer', ''))
+    check(not result['trailer'] or result['trailer'].lower().endswith(('.mp4', '.webm')), 'ارفع فيديو MP4 أو WebM للمقطع التعريفي.')
     seen = set()
     def unique(value):
         value = identifier(value)
@@ -85,7 +89,7 @@ def validate_definition(data):
 
 
 def summary(course):
-    return {k: v for k, v in course.items() if k not in ("lessons", "resources", "quiz", "assignment")}
+    return {**{k: v for k, v in course.items() if k not in ("lessons", "resources", "quiz", "assignment", "trailer")}, "hasTrailer": bool(course.get("trailer"))}
 
 
 def learner_course(course):

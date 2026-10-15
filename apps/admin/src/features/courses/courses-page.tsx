@@ -244,6 +244,30 @@ function CourseManager({
                     onChange={(e) => patch({ description: e.target.value })}
                   />
                 </Field>
+                <Field title="نبذة تفصيلية: ماذا سيتعلم المتدرب؟">
+                  <textarea
+                    rows={5}
+                    maxLength={20000}
+                    value={course.overview ?? ''}
+                    onChange={(e) => patch({ overview: e.target.value })}
+                  />
+                </Field>
+                <Field title="لمن هذه الدورة؟">
+                  <textarea
+                    rows={2}
+                    maxLength={3000}
+                    value={course.audience ?? ''}
+                    onChange={(e) => patch({ audience: e.target.value })}
+                  />
+                </Field>
+                <AssetField
+                  title="المقطع التعريفي العام قبل التسجيل (MP4 أو WebM)"
+                  courseId={course.id}
+                  value={course.trailer ?? ''}
+                  persisted={persisted}
+                  request={request}
+                  onChange={(trailer) => patch({ trailer })}
+                />
                 <div className="studio-course-columns">
                   {(['category', 'skill', 'instructor'] as const).map((key, i) => (
                     <Field key={key} title={['المجال', 'المهارة', 'المدرّب'][i]}>

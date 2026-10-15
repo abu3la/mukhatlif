@@ -48,6 +48,9 @@ async function call(c: Context<AppEnv>, action: string, payload: unknown = {}) {
   );
 }
 publicCoursesRoute.get('/', (c) => call(c, 'catalog'));
+publicCoursesRoute.get('/:id/trailer', (c) =>
+  call(c, 'trailer', { courseId: id.parse(c.req.param('id')) }),
+);
 publicCoursesRoute.get('/:id', (c) => call(c, 'detail', { courseId: id.parse(c.req.param('id')) }));
 customerCoursesRoute.get('/', (c) => call(c, 'library'));
 customerCoursesRoute.get('/:id', (c) =>

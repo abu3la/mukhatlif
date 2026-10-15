@@ -3,6 +3,9 @@ export interface CourseSummary {
   id: string;
   title: string;
   description: string;
+  overview?: string;
+  audience?: string;
+  hasTrailer?: boolean;
   category: string;
   skill: string;
   level: string;
@@ -48,6 +51,7 @@ export interface CourseLesson {
   assignment?: CourseAssignment;
 }
 export interface CourseDefinition extends CourseSummary {
+  trailer?: string;
   lessons: CourseLesson[];
   resources: CourseResource[];
   quiz?: CourseQuiz;
