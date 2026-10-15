@@ -71,6 +71,7 @@ const requests = {
       start: z.number().finite().min(0).max(86400).optional(),
       end: z.number().finite().min(0).max(86400).optional(),
       read: z.boolean().optional(),
+      readPercent: z.number().finite().min(0).max(100).optional(),
     })
     .strict(),
   quiz: z.object({ quizId: id, answers: z.record(z.number().int().min(0).max(9)) }).strict(),

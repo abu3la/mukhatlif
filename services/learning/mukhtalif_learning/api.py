@@ -193,8 +193,9 @@ def progress(course, state, member, payload):
     state["_reported"][lesson["id"]] = now
     state["_ranges"][lesson["id"]] = ranges
     watched = sum(right - left for left, right in ranges)
-    complete = previous["complete"] or (watched >= lesson["durationSeconds"] * .9 if lesson["video"] else payload.get("read") is True)
-    state["progress"][lesson["id"]] = {"position": position, "watched": watched, "complete": complete}
+    read_percent = max(previous.get("readPercent", 0), number(payload.get("readPercent", 0), 0, 100)) if not lesson["video"] else 0
+    complete = previous["complete"] or (watched >= lesson["durationSeconds"] * .9 if lesson["video"] else payload.get("read") is True or read_percent >= 100)
+    state["progress"][lesson["id"]] = {"position": position, "watched": watched, "complete": complete, "readPercent": read_percent}
     state["lastLesson"] = lesson["id"]
     if complete and not previous["complete"]:
         frappe.get_doc({"doctype": "LMS Course Progress", "course": course["id"], "chapter": native_id(course["id"], "chapter"), "lesson": native_id(course["id"], lesson["id"]), "member": member, "status": "Complete"}).insert(ignore_permissions=True)

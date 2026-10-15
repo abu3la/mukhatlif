@@ -54,6 +54,7 @@ export interface CourseDefinition extends CourseSummary {
   assignment?: CourseAssignment;
 }
 export interface CourseProgress {
+  readPercent?: number;
   position: number;
   watched: number;
   complete: boolean;

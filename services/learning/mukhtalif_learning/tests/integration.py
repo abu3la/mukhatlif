@@ -114,3 +114,29 @@ def run_media():
     assert final['progress']['video-one']['watched'] == 12
     assert call('workspace', {'courseId': course_id})['enrollment']['lastLesson'] == 'video-one'
     return {'passed': True, 'courseId': course_id, 'checks': 8}
+
+
+def run_reading():
+    guard()
+    frappe.set_user(frappe.conf.mukhtalif_bridge_user)
+    actor = {'id': 'dev:usr-listener-2', 'name': 'متعلم القراءة', 'admin': False}
+    admin = {'id': 'dev:usr-admin-1', 'admin': True}
+    def call(action, payload, who=actor):
+        result = api.dispatch(action, payload, who)
+        assert 'data' in result, result
+        frappe.db.commit()
+        return result['data']
+    course_id = 'learning-reading-' + frappe.generate_hash(length=8)
+    body = '\n\n'.join(f'{i}. مراجعة الخطوة العملية\nاختر هدفًا محددًا لهذا الأسبوع. اكتب النتيجة التي تريد الوصول إليها، ثم قسّم العمل إلى خطوات صغيرة. حدد وقتًا لكل خطوة وراجع ما أنجزته قبل الانتقال إلى الخطوة التالية.' for i in range(1, 13))
+    definition = {'id': course_id, 'title': 'مختبر القراءة والتقدم', 'description': 'دورة محلية للتحقق من التمرير وحفظ القراءة.', 'category': 'التجربة', 'skill': 'التخطيط', 'level': 'مبتدئ', 'instructor': 'فريق مختلف', 'price': 0, 'published': True, 'resources': [], 'lessons': [{'id': f'read-{i}', 'title': title, 'body': body, 'video': '', 'durationSeconds': 0, 'resources': []} for i, title in enumerate(['تحديد الهدف', 'بناء خطة أسبوعية', 'مراجعة الإنجاز'], 1)]}
+    call('studio.save', definition, admin)
+    call('checkout', {'courseId': course_id, 'mode': 'simulation', 'outcome': 'success'})
+    partial = call('progress', {'courseId': course_id, 'lessonId': 'read-1', 'position': 0, 'readPercent': 45})
+    assert partial['progress']['read-1']['readPercent'] == 45
+    assert not partial['progress']['read-1']['complete']
+    lower = call('progress', {'courseId': course_id, 'lessonId': 'read-1', 'position': 0, 'readPercent': 20})
+    assert lower['progress']['read-1']['readPercent'] == 45
+    final = call('progress', {'courseId': course_id, 'lessonId': 'read-1', 'position': 0, 'readPercent': 100})
+    assert final['progress']['read-1']['complete']
+    assert call('workspace', {'courseId': course_id})['enrollment']['progress']['read-1']['readPercent'] == 100
+    return {'passed': True, 'courseId': course_id, 'checks': 5}

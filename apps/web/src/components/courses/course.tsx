@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type {
   CourseDefinition,
   CourseEnrollment,
@@ -107,8 +107,7 @@ function CourseContent({ courseId }: { courseId: string }) {
   const lesson = workspace?.course.lessons.find((item) => item.id === selected);
   const course = workspace?.course;
   const lessonIndex = course?.lessons.findIndex((item) => item.id === selected) ?? -1;
-  const completed =
-    course?.lessons.filter((item) => workspace?.enrollment.progress[item.id]?.complete).length ?? 0;
+  const [reading, setReading] = useState<Record<string, number>>({});
   const openLesson = (id: string) => {
     setSelected(id);
     setView('lesson');
@@ -125,6 +124,17 @@ function CourseContent({ courseId }: { courseId: string }) {
           workspace.enrollment.assignments[item.assignment.id]?.status === 'Pass'),
     );
 
+  const percentFor = (item: CourseDefinition['lessons'][number]) => {
+    const progress = workspace?.enrollment.progress[item.id];
+    return progress?.complete
+      ? 100
+      : item.video
+        ? Math.min(
+            100,
+            Math.round(((progress?.watched ?? 0) / Math.max(1, item.durationSeconds)) * 100),
+          )
+        : Math.max(reading[item.id] ?? 0, progress?.readPercent ?? 0);
+  };
   return (
     <div className={`page courses-page ${workspace ? 'course-learning-page' : ''}`}>
       <Link href="/courses">الدورات</Link>
@@ -198,15 +208,6 @@ function CourseContent({ courseId }: { courseId: string }) {
             </div>
           ) : (
             <>
-              <div className="course-location" aria-live="polite">
-                <strong>
-                  الدرس {lessonIndex + 1} من {course!.lessons.length}: {lesson?.title}
-                </strong>
-                <span>
-                  الدروس المكتملة: {completed} من {course!.lessons.length}
-                </span>
-                <progress aria-label="تقدم الدورة" value={completed} max={course!.lessons.length} />
-              </div>
               <nav className="course-view-nav" aria-label="أقسام الدورة">
                 {[
                   ['lesson', 'التعلّم'],
@@ -237,7 +238,8 @@ function CourseContent({ courseId }: { courseId: string }) {
                               aria-current={item.id === selected ? 'step' : undefined}
                               onClick={() => openLesson(item.id)}
                             >
-                              <span>
+                              <span className="course-lesson-name">
+                                <LessonRing value={percentFor(item)} />
                                 {index + 1}. {item.title}
                               </span>
                               <small>
@@ -267,7 +269,13 @@ function CourseContent({ courseId }: { courseId: string }) {
                     {lesson && (
                       <>
                         <div className="course-lesson-heading">
-                          <h2>{lesson.title}</h2>
+                          <h2 className="course-lesson-name">
+                            <LessonRing value={percentFor(lesson)} />
+                            {lesson.title}
+                          </h2>
+                          <span dir="ltr">
+                            {lessonIndex + 1}/{course!.lessons.length}
+                          </span>
                           <span>
                             {workspace.enrollment.progress[lesson.id]?.complete
                               ? 'مكتمل'
@@ -296,60 +304,63 @@ function CourseContent({ courseId }: { courseId: string }) {
                             ))}
                           </nav>
                         )}
-                        {lessonView === 'content' && (
-                          <>
-                            {lesson.video && (
-                              <CourseVideo
-                                courseId={courseId}
-                                lesson={lesson}
-                                initialPosition={
-                                  workspace.enrollment.progress[lesson.id]?.position ?? 0
-                                }
-                                onSaved={save}
-                              />
-                            )}
-                            <div className="course-prose">{lesson.body}</div>
-                            {!lesson.video && (
-                              <button
-                                className="course-button"
-                                disabled={
-                                  busy || workspace.enrollment.progress[lesson.id]?.complete
-                                }
-                                onClick={() =>
-                                  act(
-                                    'progress',
-                                    { lessonId: lesson.id, position: 0, read: true },
-                                    'اكتمل الدرس.',
-                                  )
-                                }
-                              >
-                                <BrandIcon name="check" />
-                                {workspace.enrollment.progress[lesson.id]?.complete
-                                  ? 'الدرس مكتمل'
-                                  : 'أكملت قراءة الدرس'}
-                              </button>
-                            )}
-                          </>
-                        )}
-                        {lessonView === 'files' && (
-                          <Resources courseId={courseId} resources={lesson.resources} />
-                        )}
-                        {lessonView === 'quiz' && (
-                          <Assessment
-                            courseId={courseId}
-                            source={{ quiz: lesson.quiz }}
-                            enrollment={workspace.enrollment}
-                            onSaved={save}
-                          />
-                        )}
-                        {lessonView === 'assignment' && (
-                          <Assessment
-                            courseId={courseId}
-                            source={{ assignment: lesson.assignment }}
-                            enrollment={workspace.enrollment}
-                            onSaved={save}
-                          />
-                        )}
+                        <div
+                          className="course-lesson-body"
+                          key={lessonView}
+                          tabIndex={0}
+                          aria-label="محتوى الدرس"
+                        >
+                          {lessonView === 'content' && (
+                            <>
+                              {lesson.video && (
+                                <CourseVideo
+                                  courseId={courseId}
+                                  lesson={lesson}
+                                  initialPosition={
+                                    workspace.enrollment.progress[lesson.id]?.position ?? 0
+                                  }
+                                  onSaved={save}
+                                />
+                              )}
+                              {lesson.video ? (
+                                <div className="course-prose">{lesson.body}</div>
+                              ) : (
+                                <LessonReading
+                                  courseId={courseId}
+                                  lessonId={lesson.id}
+                                  body={lesson.body}
+                                  initialPercent={
+                                    workspace.enrollment.progress[lesson.id]?.readPercent ?? 0
+                                  }
+                                  complete={!!workspace.enrollment.progress[lesson.id]?.complete}
+                                  onProgress={(percent) =>
+                                    setReading((old) => ({ ...old, [lesson.id]: percent }))
+                                  }
+                                  onSaved={save}
+                                />
+                              )}
+                            </>
+                          )}
+                          {lessonView === 'files' && (
+                            <Resources courseId={courseId} resources={lesson.resources} />
+                          )}
+                          {lessonView === 'quiz' && (
+                            <Assessment
+                              courseId={courseId}
+                              source={{ quiz: lesson.quiz }}
+                              enrollment={workspace.enrollment}
+                              onSaved={save}
+                            />
+                          )}
+                          {lessonView === 'assignment' && (
+                            <Assessment
+                              courseId={courseId}
+                              source={{ assignment: lesson.assignment }}
+                              enrollment={workspace.enrollment}
+                              onSaved={save}
+                            />
+                          )}
+                        </div>
                         <nav className="course-step-nav" aria-label="التنقل بين الدروس">
                           <button
                             disabled={lessonIndex <= 0}
@@ -662,5 +673,136 @@ function Assignment({
         {busy ? 'جارٍ الإرسال…' : state ? 'إعادة إرسال الحل' : 'إرسال الحل للتقييم'}
       </button>
     </form>
+  );
+}
+
+function LessonRing({ value }: { value: number }) {
+  const percent = Math.max(0, Math.min(100, Math.round(value)));
+  return (
+    <svg
+      className="lesson-ring"
+      viewBox="0 0 36 36"
+      role="img"
+      aria-label={`تقدم الدرس ${percent}٪`}
+    >
+      <circle className="lesson-ring-track" cx="18" cy="18" r="15" />
+      <circle
+        className="lesson-ring-fill"
+        cx="18"
+        cy="18"
+        r="15"
+        pathLength="100"
+        strokeDasharray={`${percent} 100`}
+        transform="rotate(-90 18 18)"
+      />
+      <text x="18" y="18" textAnchor="middle" dominantBaseline="central">
+        {percent}
+      </text>
+    </svg>
+  );
+}
+
+function LessonReading({
+  courseId,
+  lessonId,
+  body,
+  initialPercent,
+  complete,
+  onProgress,
+  onSaved,
+}: {
+  courseId: string;
+  lessonId: string;
+  body: string;
+  initialPercent: number;
+  complete: boolean;
+  onProgress: (percent: number) => void;
+  onSaved: (state: CourseEnrollment) => void;
+}) {
+  const element = useRef<HTMLDivElement>(null);
+  const callbacks = useRef({ onProgress, onSaved });
+  callbacks.current = { onProgress, onSaved };
+  const api = useCoursesApi();
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    const node = element.current;
+    const pane = node?.parentElement;
+    if (!node || !pane || complete) return;
+    let best = initialPercent;
+    let sent = initialPercent;
+    let active = true;
+    let visible = false;
+    let timer: ReturnType<typeof setTimeout>;
+    let chain = Promise.resolve();
+    const saveProgress = () => {
+      if (best <= sent) return;
+      const value = best;
+      sent = value;
+      chain = chain
+        .then(async () => {
+          const state = await api<CourseEnrollment>(`/app/courses/${courseId}/progress`, {
+            lessonId,
+            position: 0,
+            readPercent: value,
+          });
+          if (active) {
+            callbacks.current.onSaved(state);
+            setError('');
+          }
+        })
+        .catch((e) => {
+          sent = initialPercent;
+          if (active) setError(e.message);
+        });
+    };
+    const measure = () => {
+      if (!visible || document.visibilityState !== 'visible') return;
+      const percent = Math.min(
+        100,
+        Math.floor(((pane.scrollTop + pane.clientHeight) / Math.max(1, pane.scrollHeight)) * 100),
+      );
+      best = Math.max(best, percent);
+      callbacks.current.onProgress(best);
+      clearTimeout(timer);
+      timer = setTimeout(saveProgress, 500);
+    };
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        if (visible) {
+          clearTimeout(timer);
+          timer = setTimeout(measure, 1800);
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(pane);
+    pane.addEventListener('scroll', measure, { passive: true });
+    document.addEventListener('visibilitychange', measure);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      observer.disconnect();
+      pane.removeEventListener('scroll', measure);
+      document.removeEventListener('visibilitychange', measure);
+      saveProgress();
+    };
+  }, [api, courseId, lessonId, initialPercent, complete, retry]);
+  return (
+    <div ref={element}>
+      <div className="course-prose">{body}</div>
+      <p className="course-reading-status" role="status">
+        {complete ? 'اكتملت القراءة' : 'يُحفظ تقدم القراءة تلقائيًا عند التمرير.'}
+      </p>
+      {error && (
+        <div role="alert">
+          <p>{error}</p>
+          <button className="course-button" onClick={() => setRetry(retry + 1)}>
+            أعد حفظ التقدم
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
