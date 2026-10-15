@@ -286,3 +286,115 @@
   display: block;
   margin: 0 auto 1rem;
 }
+
+.course-learning-page {
+  padding-block: 1.5rem 3rem;
+}
+.course-learning-page .courses-heading {
+  margin-block: 0.75rem 1rem;
+}
+.course-learning-page .courses-heading h1 {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  margin-bottom: 0.4rem;
+}
+.course-location {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem 1.5rem;
+  padding: 1rem;
+  background: var(--surface);
+}
+.course-location strong {
+  flex: 1 1 300px;
+}
+.course-location progress {
+  width: 120px;
+  accent-color: var(--fg);
+}
+.course-view-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 1rem 1.5rem;
+}
+.course-view-nav button,
+.course-step-nav button {
+  padding: 0.65rem 1rem;
+  min-height: 44px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+}
+.course-view-nav button[aria-current] {
+  background: var(--surface);
+  font-weight: 700;
+}
+.course-view-nav button:hover,
+.course-step-nav button:not(:disabled):hover {
+  background: var(--surface);
+}
+.course-lesson-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  justify-content: space-between;
+}
+.course-lesson-heading h2 {
+  margin: 0;
+}
+.course-step-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+.course-learning-page .course-materials,
+.course-learning-page .course-completion {
+  margin-top: 0;
+}
+.course-learning-page .course-assessment {
+  margin-top: 1rem;
+}
+.course-outline h2 {
+  font-size: 1.1rem;
+  margin-block: 0 0.8rem;
+}
+.course-lesson-picker {
+  margin-top: 0.75rem;
+}
+@media (min-width: 761px) {
+  .course-lesson-picker {
+    display: none !important;
+  }
+  .course-lessons {
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+}
+@media (max-width: 760px) {
+  .course-outline {
+    display: none;
+  }
+  .course-location {
+    gap: 0.5rem;
+  }
+  .course-location strong {
+    flex-basis: 100%;
+  }
+  .course-location progress {
+    margin-inline-start: auto;
+  }
+  .course-view-nav {
+    gap: 0.25rem;
+  }
+  .course-view-nav button {
+    padding: 0.6rem 0.7rem;
+  }
+  .course-step-nav button {
+    padding-inline: 0.5rem;
+  }
+}

@@ -28,6 +28,8 @@ function CourseContent({ courseId }: { courseId: string }) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [workspace, setWorkspace] = useState<CourseWorkspace | null>(null);
   const [selected, setSelected] = useState('');
+  const [view, setView] = useState('lesson');
+  const [lessonView, setLessonView] = useState('content');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -93,8 +95,27 @@ function CourseContent({ courseId }: { courseId: string }) {
   };
   const lesson = workspace?.course.lessons.find((item) => item.id === selected);
   const course = workspace?.course;
+  const lessonIndex = course?.lessons.findIndex((item) => item.id === selected) ?? -1;
+  const completed =
+    course?.lessons.filter((item) => workspace?.enrollment.progress[item.id]?.complete).length ?? 0;
+  const openLesson = (id: string) => {
+    setSelected(id);
+    setView('lesson');
+    setLessonView('content');
+  };
+  const certificateReady =
+    !!course &&
+    !!workspace &&
+    course.lessons.every((item) => workspace.enrollment.progress[item.id]?.complete) &&
+    [course, ...course.lessons].every(
+      (item) =>
+        (!item.quiz || workspace.enrollment.quizzes[item.quiz.id]?.passed) &&
+        (!item.assignment?.required ||
+          workspace.enrollment.assignments[item.assignment.id]?.status === 'Pass'),
+    );
+
   return (
-    <div className="page courses-page">
+    <div className={`page courses-page ${workspace ? 'course-learning-page' : ''}`}>
       <Link href="/courses">الدورات</Link>
       {loading ? (
         <p role="status">جارٍ تحميل الدورة…</p>
@@ -107,7 +128,7 @@ function CourseContent({ courseId }: { courseId: string }) {
         <>
           <header className="courses-heading">
             <h1>{detail.title}</h1>
-            <p>{detail.description}</p>
+            {!workspace && <p>{detail.description}</p>}
             <span>
               {detail.instructor} · {detail.lessonCount} درس · {detail.durationMinutes} دقيقة
             </span>
@@ -166,115 +187,235 @@ function CourseContent({ courseId }: { courseId: string }) {
             </div>
           ) : (
             <>
-              <div className="course-workspace">
-                <aside>
-                  <h2>دروس الدورة</h2>
-                  <ol className="course-lessons">
-                    {course!.lessons.map((item, index) => (
-                      <li key={item.id}>
-                        <button
-                          aria-current={item.id === selected ? 'step' : undefined}
-                          onClick={() => setSelected(item.id)}
-                        >
-                          <span>
-                            {index + 1}. {item.title}
-                          </span>
-                          <small>
-                            {workspace.enrollment.progress[item.id]?.complete
-                              ? 'مكتمل'
-                              : 'لم يكتمل'}
-                          </small>
-                        </button>
-                      </li>
-                    ))}
-                  </ol>
-                  <p>
-                    {Object.values(workspace.enrollment.progress).filter((x) => x.complete).length}{' '}
-                    من {course!.lessonCount} درس مكتمل
-                  </p>
-                </aside>
-                <section className="course-lesson" key={selected}>
-                  {lesson && (
-                    <>
-                      <h2>{lesson.title}</h2>
-                      {lesson.video && (
-                        <CourseVideo
-                          courseId={courseId}
-                          lesson={lesson}
-                          initialPosition={workspace.enrollment.progress[lesson.id]?.position ?? 0}
-                          onSaved={save}
-                        />
-                      )}
-                      <div className="course-prose">{lesson.body}</div>
-                      {!lesson.video && (
-                        <button
-                          className="course-button"
-                          disabled={busy || workspace.enrollment.progress[lesson.id]?.complete}
-                          onClick={() =>
-                            act(
-                              'progress',
-                              { lessonId: lesson.id, position: 0, read: true },
-                              'اكتمل الدرس.',
-                            )
-                          }
-                        >
-                          {workspace.enrollment.progress[lesson.id]?.complete
-                            ? 'الدرس مكتمل'
-                            : 'أكملت قراءة الدرس'}
-                        </button>
-                      )}
-                      <Resources courseId={courseId} resources={lesson.resources} />
-                      <Assessment
-                        courseId={courseId}
-                        source={lesson}
-                        enrollment={workspace.enrollment}
-                        onSaved={save}
-                      />
-                    </>
-                  )}
-                </section>
+              <div className="course-location" aria-live="polite">
+                <strong>
+                  الدرس {lessonIndex + 1} من {course!.lessons.length}: {lesson?.title}
+                </strong>
+                <span>
+                  الدروس المكتملة: {completed} من {course!.lessons.length}
+                </span>
+                <progress aria-label="تقدم الدورة" value={completed} max={course!.lessons.length} />
               </div>
-              <section className="course-materials">
-                <h2>ملفات الدورة وتقييمها</h2>
-                <Resources courseId={courseId} resources={course!.resources} />
+              <nav className="course-view-nav" aria-label="أقسام الدورة">
+                {[
+                  ['lesson', 'التعلّم'],
+                  ['materials', 'ملفات الدورة'],
+                  ...(course!.quiz ? [['quiz', 'اختبار الدورة']] : []),
+                  ...(course!.assignment ? [['assignment', 'ورقة عمل الدورة']] : []),
+                  ['certificate', 'الشهادة'],
+                ].map(([id, label]) => (
+                  <button
+                    key={id}
+                    aria-current={view === id ? 'page' : undefined}
+                    onClick={() => setView(id)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </nav>
+              {view === 'lesson' && (
+                <div className="course-workspace">
+                  <aside>
+                    <div className="course-outline">
+                      <h2>دروس الدورة ({course!.lessons.length})</h2>
+                      <ol className="course-lessons">
+                        {course!.lessons.map((item, index) => (
+                          <li key={item.id}>
+                            <button
+                              aria-current={item.id === selected ? 'step' : undefined}
+                              onClick={() => openLesson(item.id)}
+                            >
+                              <span>
+                                {index + 1}. {item.title}
+                              </span>
+                              <small>
+                                {item.id === selected
+                                  ? 'الدرس الحالي'
+                                  : workspace.enrollment.progress[item.id]?.complete
+                                    ? 'مكتمل'
+                                    : 'لم يكتمل'}
+                              </small>
+                            </button>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                    <label className="course-lesson-picker">
+                      انتقل إلى درس
+                      <select value={selected} onChange={(event) => openLesson(event.target.value)}>
+                        {course!.lessons.map((item, index) => (
+                          <option key={item.id} value={item.id}>
+                            {index + 1}. {item.title}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </aside>
+                  <section className="course-lesson" key={selected}>
+                    {lesson && (
+                      <>
+                        <div className="course-lesson-heading">
+                          <h2>{lesson.title}</h2>
+                          <span>
+                            {workspace.enrollment.progress[lesson.id]?.complete
+                              ? 'مكتمل'
+                              : 'لم يكتمل بعد'}
+                          </span>
+                        </div>
+                        {(lesson.resources.length > 0 || lesson.quiz || lesson.assignment) && (
+                          <nav
+                            className="course-view-nav course-lesson-nav"
+                            aria-label="أقسام الدرس"
+                          >
+                            {[
+                              ['content', 'الدرس'],
+                              ...(lesson.resources.length ? [['files', 'ملفات الدرس']] : []),
+                              ...(lesson.quiz ? [['quiz', 'اختبار الدرس']] : []),
+                              ...(lesson.assignment ? [['assignment', 'ورقة العمل']] : []),
+                            ].map(([id, label]) => (
+                              <button
+                                key={id}
+                                aria-current={lessonView === id ? 'page' : undefined}
+                                onClick={() => setLessonView(id)}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </nav>
+                        )}
+                        {lessonView === 'content' && (
+                          <>
+                            {lesson.video && (
+                              <CourseVideo
+                                courseId={courseId}
+                                lesson={lesson}
+                                initialPosition={
+                                  workspace.enrollment.progress[lesson.id]?.position ?? 0
+                                }
+                                onSaved={save}
+                              />
+                            )}
+                            <div className="course-prose">{lesson.body}</div>
+                            {!lesson.video && (
+                              <button
+                                className="course-button"
+                                disabled={
+                                  busy || workspace.enrollment.progress[lesson.id]?.complete
+                                }
+                                onClick={() =>
+                                  act(
+                                    'progress',
+                                    { lessonId: lesson.id, position: 0, read: true },
+                                    'اكتمل الدرس.',
+                                  )
+                                }
+                              >
+                                {workspace.enrollment.progress[lesson.id]?.complete
+                                  ? 'الدرس مكتمل'
+                                  : 'أكملت قراءة الدرس'}
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {lessonView === 'files' && (
+                          <Resources courseId={courseId} resources={lesson.resources} />
+                        )}
+                        {lessonView === 'quiz' && (
+                          <Assessment
+                            courseId={courseId}
+                            source={{ quiz: lesson.quiz }}
+                            enrollment={workspace.enrollment}
+                            onSaved={save}
+                          />
+                        )}
+                        {lessonView === 'assignment' && (
+                          <Assessment
+                            courseId={courseId}
+                            source={{ assignment: lesson.assignment }}
+                            enrollment={workspace.enrollment}
+                            onSaved={save}
+                          />
+                        )}
+                        <nav className="course-step-nav" aria-label="التنقل بين الدروس">
+                          <button
+                            disabled={lessonIndex <= 0}
+                            onClick={() => openLesson(course!.lessons[lessonIndex - 1].id)}
+                          >
+                            الدرس السابق
+                          </button>
+                          <span>
+                            {lessonIndex + 1} / {course!.lessons.length}
+                          </span>
+                          <button
+                            disabled={lessonIndex >= course!.lessons.length - 1}
+                            onClick={() => openLesson(course!.lessons[lessonIndex + 1].id)}
+                          >
+                            الدرس التالي
+                          </button>
+                        </nav>
+                      </>
+                    )}
+                  </section>
+                </div>
+              )}
+              {view === 'materials' && (
+                <section className="course-materials">
+                  <h2>ملفات الدورة</h2>
+                  <Resources courseId={courseId} resources={course!.resources} />
+                  {!course!.resources.length && <p>لا توجد ملفات إضافية لهذه الدورة.</p>}
+                </section>
+              )}
+              {view === 'quiz' && (
                 <Assessment
                   courseId={courseId}
-                  source={course!}
+                  source={{ quiz: course!.quiz }}
                   enrollment={workspace.enrollment}
                   onSaved={save}
                 />
-                {!course!.resources.length && !course!.quiz && !course!.assignment && (
-                  <p>لا توجد ملفات أو تقييمات إضافية لهذه الدورة.</p>
-                )}
-              </section>
-              <section className="course-completion">
-                <h2>شهادة الإكمال</h2>
-                <p>أكمل الدروس واجتز الاختبارات وأوراق العمل المطلوبة للحصول على شهادتك.</p>
-                {workspace.enrollment.certificate ? (
-                  <>
-                    <div className="course-certificate">
-                      <img src="/handoff/mukhtalif-logo.svg" alt="مختلف" width="160" height="54" />
-                      <h2>شهادة إكمال</h2>
-                      <p>تشهد مختلف بأن</p>
-                      <h3>{workspace.enrollment.certificate.member}</h3>
-                      <p>أكمل دورة «{course!.title}» ومتطلباتها.</p>
-                      <p>{workspace.enrollment.certificate.issuedAt}</p>
-                      <small>رقم الشهادة: {workspace.enrollment.certificate.id}</small>
-                    </div>
-                    <button className="course-button" onClick={() => window.print()}>
-                      طباعة الشهادة أو حفظها PDF
+              )}
+              {view === 'assignment' && (
+                <Assessment
+                  courseId={courseId}
+                  source={{ assignment: course!.assignment }}
+                  enrollment={workspace.enrollment}
+                  onSaved={save}
+                />
+              )}
+              {view === 'certificate' && (
+                <section className="course-completion">
+                  <h2>شهادة الإكمال</h2>
+                  <p>أكمل الدروس واجتز الاختبارات وأوراق العمل المطلوبة للحصول على شهادتك.</p>
+                  {workspace.enrollment.certificate ? (
+                    <>
+                      <div className="course-certificate">
+                        <img
+                          src="/handoff/mukhtalif-logo.svg"
+                          alt="مختلف"
+                          width="160"
+                          height="54"
+                        />
+                        <h2>شهادة إكمال</h2>
+                        <p>تشهد مختلف بأن</p>
+                        <h3>{workspace.enrollment.certificate.member}</h3>
+                        <p>أكمل دورة «{course!.title}» ومتطلباتها.</p>
+                        <p>{workspace.enrollment.certificate.issuedAt}</p>
+                        <small>رقم الشهادة: {workspace.enrollment.certificate.id}</small>
+                      </div>
+                      <button className="course-button" onClick={() => window.print()}>
+                        طباعة الشهادة أو حفظها PDF
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="course-button"
+                      disabled={busy || !certificateReady}
+                      onClick={() => act('certificate', {}, 'صدرت شهادة الإكمال.')}
+                    >
+                      إصدار الشهادة
                     </button>
-                  </>
-                ) : (
-                  <button
-                    className="course-button"
-                    disabled={busy}
-                    onClick={() => act('certificate', {}, 'صدرت شهادة الإكمال.')}
-                  >
-                    إصدار الشهادة
-                  </button>
-                )}
-              </section>
+                  )}
+                </section>
+              )}
             </>
           )}
         </>
