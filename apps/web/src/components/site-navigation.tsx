@@ -12,12 +12,13 @@ const NAVIGATION = [
   { href: '/episodes', label: 'الحلقات' },
   { href: '/guests', label: 'الضيوف' },
   { href: '/articles', label: 'قراءات من مختلف' },
+  { href: '/courses', label: 'الدورات' },
   { href: '/about', label: 'من نحن' },
   { href: '/services', label: 'الإنتاج' },
 ] as const;
 
 const MENU_GROUPS = [
-  { title: 'اكتشف مختلف', links: NAVIGATION.slice(0, 5) },
+  { title: 'اكتشف مختلف', links: NAVIGATION.slice(0, 6) },
   {
     title: 'عن مختلف',
     links: [
@@ -35,6 +36,7 @@ const MENU_GROUPS = [
     links: [
       { href: '/account', label: 'حسابي' },
       { href: '/library', label: 'مكتبتي' },
+      { href: '/library/courses', label: 'دوراتي' },
       { href: '/library?tab=playlists', label: 'قوائم التشغيل' },
       { href: '/search', label: 'بحث' },
     ],

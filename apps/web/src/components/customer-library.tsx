@@ -51,6 +51,7 @@ export function CustomerLibraryPage({ tab = 'saved' }: { tab?: string }) {
           <p>ما حفظته وتابعته، في مكان واحد.</p>
         </header>
         <nav className="customer-library-tabs" aria-label="أقسام المكتبة">
+          <Link href="/library/courses">دوراتي</Link>
           {tabs.map(([key, title]) => (
             <Link
               key={key}

@@ -20,6 +20,10 @@ export interface HostingerRuntime {
 }
 
 const ENV_KEYS = [
+  'LEARNING_URL',
+  'LEARNING_API_KEY',
+  'LEARNING_API_SECRET',
+  'LEARNING_SIMULATION_ENABLED',
   'APP_ENV',
   'DEPLOYMENT_PLATFORM',
   'ALLOW_DEV_AUTH',

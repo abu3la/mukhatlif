@@ -185,8 +185,9 @@ describe('public namespace', () => {
       const response = await request(route);
       // 404 is a legitimate answer for a placeholder identifier; 401 and 403
       // are not, because nothing here may require a caller.
-      const allowedStatuses =
-        route.path === '/forms/careers/attachments'
+      const allowedStatuses = route.path.startsWith('/courses')
+        ? [503] // The isolated namespace test has no Frappe service configured.
+        : route.path === '/forms/careers/attachments'
           ? [415]
           : route.method === 'POST'
             ? [200, 202, 400, 404]

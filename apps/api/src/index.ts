@@ -1,3 +1,4 @@
+import { publicCoursesRoute, customerCoursesRoute, studioCoursesRoute } from './routes/courses';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { CLIENT_SURFACE_HEADER } from '@mukhtalif/types';
@@ -199,5 +200,9 @@ app.route('/studio/permissions', permissionsRoute);
 app.route('/studio/audit-logs', auditRoute);
 app.route('/studio/subscribers', subscriberUsersRoute);
 app.route('/studio/subscriptions', subscriptionsRoute);
+
+app.route('/courses', publicCoursesRoute);
+app.route('/app/courses', customerCoursesRoute);
+app.route('/studio/courses', studioCoursesRoute);
 
 export default app;

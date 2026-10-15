@@ -1,0 +1,10 @@
+app_name = "mukhtalif_learning"
+app_title = "Mukhtalif Learning"
+app_publisher = "Mukhtalif"
+app_description = "Verified customer identity, simulated enrollment, progress and assessment bridge"
+app_email = "support@mukhtalif.net"
+app_license = "MIT"
+required_apps = ["lms"]
+after_install = "mukhtalif_learning.install.setup"
+after_migrate = "mukhtalif_learning.install.setup"
+scheduler_events = {"daily": ["mukhtalif_learning.uploads.cleanup"]}

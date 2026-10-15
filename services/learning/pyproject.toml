@@ -1,0 +1,10 @@
+[build-system]
+requires = ["flit_core>=3.4,<4"]
+build-backend = "flit_core.buildapi"
+[project]
+name = "mukhtalif_learning"
+version = "0.1.0"
+description = "Mukhtalif account bridge for Frappe Learning"
+authors = [{name = "Mukhtalif"}]
+requires-python = ">=3.14"
+dependencies = ["boto3>=1.43.114,<2"]

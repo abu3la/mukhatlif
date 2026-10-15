@@ -1,0 +1,108 @@
+.studio-courses {
+  max-width: 1160px;
+  margin-inline: auto;
+  padding: 2rem;
+}
+.studio-courses h1 {
+  font-size: 2rem;
+}
+.studio-courses p {
+  line-height: 1.8;
+}
+.studio-courses button {
+  min-height: 42px;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  cursor: pointer;
+}
+.studio-courses button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.studio-courses nav,
+.studio-courses-toolbar,
+.studio-course-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: end;
+  margin-block: 1rem;
+}
+.studio-courses nav button[aria-current] {
+  font-weight: 700;
+}
+.studio-course-fields {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+  display: grid;
+  gap: 1.5rem;
+}
+.studio-course-field {
+  display: grid;
+  gap: 0.5rem;
+  margin-block: 0.8rem;
+}
+.studio-course-field input,
+.studio-course-field textarea,
+.studio-course-field select,
+.studio-courses-toolbar select {
+  min-width: 0;
+  width: 100%;
+  padding: 0.75rem;
+  font: inherit;
+  border: 1px solid #78716c;
+  border-radius: 5px;
+  color: inherit;
+  background: transparent;
+}
+.studio-course-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+.studio-course-lesson {
+  padding: 1.5rem;
+  background: #fff;
+  color: #26221e;
+  border-radius: 8px;
+}
+.studio-course-lesson summary {
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.studio-course-assessments,
+.studio-course-resources {
+  display: grid;
+  gap: 1rem;
+  margin-block: 1.5rem;
+}
+.studio-course-assessments fieldset {
+  border: 0;
+  padding: 1rem 0;
+}
+.studio-course-learner {
+  margin-block: 2rem;
+  padding-block: 1rem;
+}
+.studio-course-learner form {
+  max-width: 750px;
+  margin-block: 2rem;
+}
+.studio-course-answer {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.studio-course-save {
+  justify-self: start;
+}
+@media (max-width: 760px) {
+  .studio-courses {
+    padding: 1rem;
+  }
+  .studio-course-columns {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}

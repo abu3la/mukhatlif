@@ -217,3 +217,5 @@ export type {
   CustomerLibraryDocument,
   CustomerLibrary,
 } from './customer';
+
+export type * from './learning';
