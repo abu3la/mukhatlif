@@ -563,3 +563,157 @@
   outline: 2px solid var(--fg);
   outline-offset: -2px;
 }
+
+.course-complete-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  width: fit-content;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: #dcefe2;
+  color: #17603b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.course-complete-chip svg {
+  width: 15px;
+  height: 15px;
+}
+.lesson-ring.is-complete {
+  color: #227247;
+}
+.course-lesson-meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline-start: 43px;
+}
+.course-lessons {
+  gap: 0.65rem;
+}
+.course-lessons button {
+  background: var(--surface);
+  border-radius: 9px;
+  border: 2px solid transparent;
+  padding: 0.9rem;
+  gap: 0.65rem;
+}
+.course-lessons button[aria-current] {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+.course-lessons button[aria-current] .lesson-ring {
+  color: currentColor;
+}
+.course-lessons button[aria-current] .lesson-ring.is-complete {
+  color: #a3e6b8;
+}
+.course-lessons button:not([aria-current]):hover {
+  border-color: color-mix(in srgb, var(--fg) 30%, transparent);
+}
+.course-lesson-heading > .course-complete-chip {
+  justify-self: end;
+}
+.course-certificate-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  text-align: start;
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent);
+  border-radius: 9px;
+}
+.course-certificate-entry > svg {
+  flex-shrink: 0;
+}
+.course-certificate-entry > span {
+  display: grid;
+  gap: 0.4rem;
+  flex: 1;
+}
+.course-certificate-entry small {
+  font-size: 0.78rem;
+  line-height: 1.7;
+  font-weight: 400;
+}
+.course-certificate-entry:hover {
+  background: color-mix(in srgb, var(--fg) 8%, var(--surface));
+}
+.course-completion {
+  max-width: 900px;
+  margin-inline: auto;
+}
+.course-certificate-heading {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-block: 1rem 1.5rem;
+}
+.course-certificate-heading > svg {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.course-certificate-heading > div {
+  flex: 1;
+}
+.course-certificate-heading h2 {
+  margin: 0 0 0.5rem;
+}
+.course-certificate-heading p {
+  margin: 0;
+  line-height: 1.8;
+}
+.course-certificate-requirements {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+  margin-block: 0 1.5rem;
+}
+.course-certificate-requirements li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: var(--surface);
+}
+.course-certificate-requirements .course-control {
+  background: var(--bg);
+  color: var(--fg);
+  border: 0;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+}
+[data-concept='third'] .course-complete-chip {
+  background: #183d2b;
+  color: #b5ebc7;
+}
+[data-concept='third'] .lesson-ring.is-complete {
+  color: #a3e6b8;
+}
+[data-concept='third'] .course-lessons button[aria-current] .lesson-ring.is-complete {
+  color: #17603b;
+}
+@media (max-width: 760px) {
+  .course-certificate-entry {
+    margin-top: 0.75rem;
+    padding: 0.7rem 1rem;
+  }
+  .course-certificate-heading {
+    flex-wrap: wrap;
+  }
+}

@@ -214,7 +214,6 @@ function CourseContent({ courseId }: { courseId: string }) {
                   ...(course!.resources.length ? [['materials', 'ملفات الدورة']] : []),
                   ...(course!.quiz ? [['quiz', 'اختبار الدورة']] : []),
                   ...(course!.assignment ? [['assignment', 'ورقة عمل الدورة']] : []),
-                  ['certificate', 'الشهادة'],
                 ].map(([id, label]) => (
                   <button
                     key={id}
@@ -239,16 +238,20 @@ function CourseContent({ courseId }: { courseId: string }) {
                               onClick={() => openLesson(item.id)}
                             >
                               <span className="course-lesson-name">
-                                <LessonRing value={percentFor(item)} />
+                                <LessonRing
+                                  value={percentFor(item)}
+                                  complete={!!workspace.enrollment.progress[item.id]?.complete}
+                                />
                                 {index + 1}. {item.title}
                               </span>
-                              <small>
-                                {item.id === selected
-                                  ? 'الدرس الحالي'
-                                  : workspace.enrollment.progress[item.id]?.complete
-                                    ? 'مكتمل'
-                                    : 'لم يكتمل'}
-                              </small>
+                              <span className="course-lesson-meta">
+                                {item.id === selected && <small>الدرس الحالي</small>}
+                                {workspace.enrollment.progress[item.id]?.complete ? (
+                                  <CompletionChip />
+                                ) : (
+                                  item.id !== selected && <small>لم يكتمل</small>
+                                )}
+                              </span>
                             </button>
                           </li>
                         ))}
@@ -264,23 +267,43 @@ function CourseContent({ courseId }: { courseId: string }) {
                         ))}
                       </select>
                     </label>
+                    <button
+                      className="course-certificate-entry"
+                      onClick={() => setView('certificate')}
+                    >
+                      <BrandIcon name="certificate" />
+                      <span>
+                        <strong>شهادة الإكمال</strong>
+                        <small>
+                          {workspace.enrollment.certificate
+                            ? 'شهادتك جاهزة للعرض'
+                            : certificateReady
+                              ? 'أكملت المتطلبات، أصدر شهادتك'
+                              : 'محطتك الأخيرة بعد إكمال المتطلبات'}
+                        </small>
+                      </span>
+                      <BrandIcon name="next" />
+                    </button>
                   </aside>
                   <section className="course-lesson" key={selected}>
                     {lesson && (
                       <>
                         <div className="course-lesson-heading">
                           <h2 className="course-lesson-name">
-                            <LessonRing value={percentFor(lesson)} />
+                            <LessonRing
+                              value={percentFor(lesson)}
+                              complete={!!workspace.enrollment.progress[lesson.id]?.complete}
+                            />
                             {lesson.title}
                           </h2>
                           <span dir="ltr">
                             {lessonIndex + 1}/{course!.lessons.length}
                           </span>
-                          <span>
-                            {workspace.enrollment.progress[lesson.id]?.complete
-                              ? 'مكتمل'
-                              : 'لم يكتمل بعد'}
-                          </span>
+                          {workspace.enrollment.progress[lesson.id]?.complete ? (
+                            <CompletionChip />
+                          ) : (
+                            <span>لم يكتمل بعد</span>
+                          )}
                         </div>
                         {(lesson.resources.length > 0 || lesson.quiz || lesson.assignment) && (
                           <nav
@@ -410,8 +433,64 @@ function CourseContent({ courseId }: { courseId: string }) {
               )}
               {view === 'certificate' && (
                 <section className="course-completion">
-                  <h2>شهادة الإكمال</h2>
-                  <p>أكمل الدروس واجتز الاختبارات وأوراق العمل المطلوبة للحصول على شهادتك.</p>
+                  <header className="course-certificate-heading">
+                    <BrandIcon name="certificate" />
+                    <div>
+                      <h2>شهادة الإكمال</h2>
+                      <p>
+                        {workspace.enrollment.certificate
+                          ? 'أتممت متطلبات الدورة. شهادتك جاهزة للحفظ والمشاركة.'
+                          : certificateReady
+                            ? 'أكملت جميع المتطلبات. يمكنك إصدار شهادتك الآن.'
+                            : 'أكمل المتطلبات التالية للحصول على شهادتك.'}
+                      </p>
+                    </div>
+                    {(certificateReady || workspace.enrollment.certificate) && <CompletionChip />}
+                  </header>
+                  {!workspace.enrollment.certificate && (
+                    <ul className="course-certificate-requirements">
+                      {course!.lessons.map((item) => (
+                        <li key={item.id}>
+                          <span>{item.title}</span>
+                          {workspace.enrollment.progress[item.id]?.complete ? (
+                            <CompletionChip />
+                          ) : (
+                            <button className="course-control" onClick={() => openLesson(item.id)}>
+                              متابعة الدرس
+                              <BrandIcon name="next" />
+                            </button>
+                          )}
+                        </li>
+                      ))}
+                      {[course!, ...course!.lessons].flatMap((item) => [
+                        ...(item.quiz
+                          ? [
+                              <li key={item.quiz.id}>
+                                <span>{item.quiz.title}</span>
+                                {workspace.enrollment.quizzes[item.quiz.id]?.passed ? (
+                                  <CompletionChip />
+                                ) : (
+                                  <span>اجتياز الاختبار مطلوب</span>
+                                )}
+                              </li>,
+                            ]
+                          : []),
+                        ...(item.assignment?.required
+                          ? [
+                              <li key={item.assignment.id}>
+                                <span>{item.assignment.title}</span>
+                                {workspace.enrollment.assignments[item.assignment.id]?.status ===
+                                'Pass' ? (
+                                  <CompletionChip />
+                                ) : (
+                                  <span>اعتماد ورقة العمل مطلوب</span>
+                                )}
+                              </li>,
+                            ]
+                          : []),
+                      ])}
+                    </ul>
+                  )}
                   {workspace.enrollment.certificate ? (
                     <>
                       <div className="course-certificate">
@@ -676,14 +755,22 @@ function Assignment({
   );
 }
 
-function LessonRing({ value }: { value: number }) {
-  const percent = Math.max(0, Math.min(100, Math.round(value)));
+function CompletionChip() {
+  return (
+    <span className="course-complete-chip">
+      <BrandIcon name="check" />
+      مكتمل
+    </span>
+  );
+}
+function LessonRing({ value, complete = false }: { value: number; complete?: boolean }) {
+  const percent = complete ? 100 : Math.max(0, Math.min(99, Math.round(value)));
   return (
     <svg
-      className="lesson-ring"
+      className={`lesson-ring ${complete ? 'is-complete' : ''}`}
       viewBox="0 0 36 36"
       role="img"
-      aria-label={`تقدم الدرس ${percent}٪`}
+      aria-label={complete ? 'الدرس مكتمل' : `تقدم الدرس ${percent}٪`}
     >
       <circle className="lesson-ring-track" cx="18" cy="18" r="15" />
       <circle
@@ -695,9 +782,20 @@ function LessonRing({ value }: { value: number }) {
         strokeDasharray={`${percent} 100`}
         transform="rotate(-90 18 18)"
       />
-      <text x="18" y="18" textAnchor="middle" dominantBaseline="central">
-        {percent}
-      </text>
+      {complete ? (
+        <path
+          d="m11 18 5 5 9-10"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : (
+        <text x="18" y="18" textAnchor="middle" dominantBaseline="central">
+          {percent}
+        </text>
+      )}
     </svg>
   );
 }
