@@ -41,7 +41,13 @@ try {
       throw Error(`${name} failed; provider output withheld to protect credentials.`);
     return r.stdout;
   };
-  const sql = (input) => run('psql', ['-XAt', '-v', 'ON_ERROR_STOP=1'], input).trim();
+  // Session poolers may ignore startup PGOPTIONS. Set the supported CLI role explicitly.
+  const sql = (input) =>
+    run(
+      'psql',
+      ['-XAtq', '-v', 'ON_ERROR_STOP=1'],
+      (args.includes('--cli-login-role') ? 'set role postgres;\n' : '') + input,
+    ).trim();
   if (
     sql(
       "select exists(select 1 from public.schema_migrations where filename='0024_customer_accounts_library.sql');",
@@ -82,7 +88,12 @@ try {
     throw Error('Use a new absolute backup directory outside this checkout.');
   mkdirSync(backup, { mode: 0o700, recursive: true });
   const dump = join(backup, 'before-full.dump');
-  run('pg_dump', ['--format=custom', '--file', dump]);
+  run('pg_dump', [
+    '--format=custom',
+    '--file',
+    dump,
+    ...(args.includes('--cli-login-role') ? ['--role=postgres'] : []),
+  ]);
   chmodSync(dump, 0o600);
   const toc = run('pg_restore', ['--list', dump]);
   if (!toc.includes('TABLE auth users') || !toc.includes('TABLE public episodes'))

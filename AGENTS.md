@@ -1,12 +1,15 @@
-## Native learning work (2026-10-15)
+## Native learning development release (2026-10-17)
 
-The owner requires courses in the existing Hono API, Supabase and R2, with
-simulated checkout only and the existing blog editor for course/lesson text.
-The separate LMS service and credentials have been removed from this branch.
-See `docs/LEARNING_NATIVE_API.md`. Migration 0025 is tested locally but **not
-applied remotely**; development Supabase DNS checks currently fail. Do not
-claim hosted readiness or deploy consumers before the schema and real-account/R2
-acceptance gates pass. No apex-domain change is authorized.
+The native courses API, Studio and Web are deployed to Cloudflare development.
+Supabase development project `acomtixjibgkauzeltsn` was restored from INACTIVE on
+October 16. Migration 0025 was applied October 17 after a verified full database/Auth
+backup; existing Auth/user/article/episode fingerprints were unchanged.
+Real Supabase sessions passed checkout, progress, quiz, worksheet grading,
+certificate gating, account isolation and fresh-login persistence checks. Native R2
+multipart upload, byte ranges, private access and browser video playback passed.
+Source application commit: `1e353b8`. Deployment versions and backup receipt are in
+`docs/LEARNING_DEVELOPMENT_RELEASE_20261017.md`. Payment remains simulated.
+No production or apex-domain changes were made or are authorized by this release.
 
 ## Authorized automatic production release (2026-09-08)
 

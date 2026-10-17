@@ -43,10 +43,14 @@ Rollback application code first and retain additive tables/media. Never drop tab
 - A 24-check local HTTP acceptance pass exercised the actual Hono routes and Supabase client against PostgreSQL: rich-document save/render, private content denial, declined/successful checkout, idempotency, progress, quiz gating/grading, assignment submission/admin grading, certificate gating, account isolation, library, multipart upload and HTTP 206 byte comparisons.
 - Studio browser editing saved bold text and preserved it across reload. The student browser rendered the rich lesson, saved reading progress automatically, passed the quiz, submitted the worksheet and received a certificate only after Studio grading.
 - Additional private-media checks passed for enrollment denial, course ownership, suffix byte ranges, invalid-range 416, private cache headers and immediate publication revocation. Browser trailer playback reached readyState 4 with advancing playback and no media error. Desktop and 390-pixel mobile layout were inspected.
-- Remote development database and REST checks failed DNS resolution (`ENOTFOUND`) even outside sandbox restrictions. **Migration 0025 is not applied remotely, nothing is deployed, and real Supabase/R2 acceptance is not complete.**
+- Historical October 15 blocker: remote database and REST checks failed DNS resolution (`ENOTFOUND`). This was resolved by restoring the paused development project; migration and deployment completed October 17 as recorded below.
 
 ## Local preview
 
 Run `pnpm exec tsx tools/learning-preview/native-api.mts` for the loopback-only acceptance API, then `node tools/learning-preview/server.mjs` for the learner preview. The local harness uses the real Hono routes, Supabase client and PostgreSQL schema, but fixture identities, a limited local REST test adapter and local media storage. It is never deployed and is not evidence of remote Supabase/R2 readiness. The preview course is `/courses/learning-native-preview`.
 
 Run `node tools/learning-preview/smoke.mjs /private/path/test.mp4` against that loopback API for repeatable HTTP acceptance. It creates uniquely named local courses and tests formatting, checkout, progress, grading, certificates, account isolation and private media. Without an MP4 argument it explicitly skips the media portion.
+
+## Development release October 17, 2026
+
+Supabase connectivity is restored, migration 0025 is applied, and native learning is deployed to all three development Workers. See `LEARNING_DEVELOPMENT_RELEASE_20261017.md` for verification and deployment receipts. Production remains unchanged.
