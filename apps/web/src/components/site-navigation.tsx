@@ -12,7 +12,7 @@ const NAVIGATION = [
   { href: '/episodes', label: 'الحلقات' },
   { href: '/guests', label: 'الضيوف' },
   { href: '/articles', label: 'قراءات من مختلف' },
-  { href: '/courses', label: 'الدورات' },
+  { href: '/courses', label: 'أكاديمية مختلف' },
   { href: '/about', label: 'من نحن' },
   { href: '/services', label: 'الإنتاج' },
 ] as const;

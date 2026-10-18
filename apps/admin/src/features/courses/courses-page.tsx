@@ -153,7 +153,7 @@ function CourseManager({
   return (
     <main className="studio-courses">
       <header>
-        <h1>الدورات</h1>
+        <h1>أكاديمية مختلف</h1>
         <p>إدارة المحتوى والتسجيلات والتقييم. جميع عمليات الدفع هنا تجريبية.</p>
       </header>
       {error && (

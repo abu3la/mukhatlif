@@ -146,7 +146,7 @@ function CourseContent({ courseId }: { courseId: string }) {
   };
   return (
     <div className={`page courses-page ${workspace ? 'course-learning-page' : ''}`}>
-      <Link href="/courses">الدورات</Link>
+      <Link href="/courses">أكاديمية مختلف</Link>
       {loading ? (
         <p role="status">جار تحميل الدورة…</p>
       ) : !detail ? (
