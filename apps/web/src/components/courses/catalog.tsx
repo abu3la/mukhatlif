@@ -77,10 +77,10 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
   });
   const content = (
     <div className="page courses-page courses-catalog-page">
-      <nav className="course-catalog-navigation" aria-label="تنقل الدورات">
+      <nav className="course-catalog-navigation" aria-label="تنقل أكاديمية مختلف">
         <Link href="/courses" aria-current={!mine ? 'page' : undefined}>
           <BrandIcon name="library" />
-          استكشف الدورات
+          أكاديمية مختلف
         </Link>
         <Link href="/library/courses" aria-current={mine ? 'page' : undefined}>
           <BrandIcon name="user" />
@@ -88,7 +88,7 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
         </Link>
       </nav>
       <header className="courses-heading">
-        <h1>{mine ? 'دوراتي' : 'تعلّم مع مختلف'}</h1>
+        <h1>{mine ? 'دوراتي' : 'أكاديمية مختلف'}</h1>
         <p>
           {mine
             ? 'ارجع إلى آخر درس، وأكمل من حيث توقفت.'
@@ -207,7 +207,7 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
               <article key={course.id} className="course-summary">
                 <div className="course-card-cover">
                   <span className="course-card-skill">
-                    {course.skill || course.category || 'تعلّم مع مختلف'}
+                    {course.skill || course.category || 'أكاديمية مختلف'}
                   </span>
                   <h2>
                     <Link href={`/courses/${course.id}`}>{course.title}</Link>

@@ -162,7 +162,7 @@ export function StudioShell({
                 aria-current={pathname === '/courses' ? 'page' : undefined}
                 onClick={() => setIsNavigationOpen(false)}
               >
-                الدورات
+                أكاديمية مختلف
               </Link>
             )}
             {visibleItems.map((item) => {
