@@ -54,6 +54,7 @@ test('API archive pins source, excludes env files, and fails closed on invalid r
   assert.match(entries, /^node.cjs$/m);
   const launcher = await readFile(join(out, 'source/server.js'), 'utf8');
   assert.ok(launcher.includes(manifest.sha));
+  assert.ok(launcher.includes("process.env.LEARNING_SIMULATION_ENABLED ??= 'true'"));
   const pkg = JSON.parse(await readFile(join(out, 'source/package.json')));
   assert.match(pkg.scripts.start, /assert-hostinger-production-env/);
   const fail = spawnSync(

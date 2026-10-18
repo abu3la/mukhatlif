@@ -18,7 +18,7 @@ Learner bookmarks persist in enrollment state, scoped to the authenticated accou
 
 ## Configuration and release
 
-No additional LMS host or API credential is needed. Use the existing matching Supabase URL/service key and private `MEDIA` storage. Set `LEARNING_SIMULATION_ENABLED=true` explicitly. Keep remote `ALLOW_DEV_AUTH=false`. Media links use the configured `MEDIA_PUBLIC_ORIGIN`.
+No additional LMS host or API credential is needed. Use the existing matching Supabase URL/service key and private `MEDIA` storage. Set `LEARNING_SIMULATION_ENABLED=true` explicitly. The approved Hostinger release launcher defaults this flag to `true` for the owner-requested simulated checkout; an explicit runtime `false` still disables it. No real payment is enabled. Keep remote `ALLOW_DEV_AUTH=false`. Media links use the configured `MEDIA_PUBLIC_ORIGIN`.
 
 1. Run the guarded development migration preflight with a fresh supported database login:
 
