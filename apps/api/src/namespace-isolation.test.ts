@@ -186,11 +186,13 @@ describe('public namespace', () => {
       // 404 is a legitimate answer for a placeholder identifier; 401 and 403
       // are not, because nothing here may require a caller.
       const allowedStatuses =
-        route.path === '/forms/careers/attachments'
-          ? [415]
-          : route.method === 'POST'
-            ? [200, 202, 400, 404]
-            : [200, 206, 302, 404, 416];
+        route.path.startsWith('/courses') || route.path === '/health/learning-schema'
+          ? [503] // The isolated namespace test has no learning database configured.
+          : route.path === '/forms/careers/attachments'
+            ? [415]
+            : route.method === 'POST'
+              ? [200, 202, 400, 404]
+              : [200, 206, 302, 404, 416];
       expect(allowedStatuses).toContain(response.status);
     },
   );

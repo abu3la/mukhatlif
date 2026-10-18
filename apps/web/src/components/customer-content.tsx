@@ -1,5 +1,9 @@
 'use client';
 
+import { BrandIcon } from './brand-icon';
+
+import { BusyButton } from './busy-button';
+
 import { ContentSkeleton } from './content-skeleton';
 
 import Link from 'next/link';
@@ -16,7 +20,8 @@ export function FollowShowButton({ showId }: { showId: string }) {
   const [busy, setBusy] = useState(false);
   const followed = customer.library.followedShowIds.includes(showId);
   return (
-    <button
+    <BusyButton loadingMode="replace"
+      aria-busy={Boolean(busy)}
       type="button"
       className="customer-primary customer-follow"
       aria-pressed={followed}
@@ -34,7 +39,7 @@ export function FollowShowButton({ showId }: { showId: string }) {
     >
       {followed && <CustomerIcon name="check" />}
       {followed ? 'تتابع البرنامج' : 'تابع البرنامج'}
-    </button>
+    </BusyButton>
   );
 }
 
@@ -43,7 +48,8 @@ export function ArticleLibraryActions({ articleId }: { articleId: string }) {
   const [busy, setBusy] = useState(false);
   const saved = customer.library.savedArticleIds.includes(articleId);
   return (
-    <button
+    <BusyButton loadingMode="replace"
+      aria-busy={Boolean(busy)}
       type="button"
       className="customer-text-button customer-inline-save"
       aria-pressed={saved}
@@ -61,7 +67,7 @@ export function ArticleLibraryActions({ articleId }: { articleId: string }) {
     >
       <CustomerIcon name={saved ? 'check' : 'save'} />
       {saved ? 'محفوظة' : 'احفظ القراءة'}
-    </button>
+    </BusyButton>
   );
 }
 
@@ -157,7 +163,7 @@ export function CustomerEpisodeRow({
         </h3>
         <p>
           {show?.titleAr}
-          {show && ' · '}
+          <BrandIcon name="clock" className="metadata-icon" />
           {formatDuration(episode.durationSec)}
         </p>
         {position > 0 && (
@@ -183,7 +189,8 @@ export function CustomerEpisodeRow({
           />
         )}
         {episode.premium && <span className="customer-muted">للمشتركين</span>}
-        <button
+        <BusyButton loadingMode="replace"
+          aria-busy={Boolean(busy)}
           type="button"
           className="customer-icon-button"
           aria-label={saved ? `إزالة ${episode.titleAr} من المحفوظات` : `حفظ ${episode.titleAr}`}
@@ -201,7 +208,7 @@ export function CustomerEpisodeRow({
           }}
         >
           <CustomerIcon name={saved ? 'check' : 'save'} />
-        </button>
+        </BusyButton>
         {children}
       </div>
     </article>

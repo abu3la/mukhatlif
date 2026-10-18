@@ -83,6 +83,8 @@ export interface RichTextValue {
 }
 
 interface RichTextEditorProps {
+  readonly label?: string;
+  readonly textOnly?: boolean;
   readonly initialDocument: JSONContent;
   readonly onChange: (value: RichTextValue) => void;
   readonly disabled?: boolean;
@@ -490,6 +492,8 @@ const editorExtensions = [
 ];
 
 export function RichTextEditor({
+  label = 'محتوى المقال',
+  textOnly = false,
   initialDocument,
   onChange,
   disabled = false,
@@ -550,7 +554,7 @@ export function RichTextEditor({
         class: 'article-rich-editor__surface',
         dir: 'rtl',
         role: 'textbox',
-        'aria-label': 'محتوى المقال',
+        'aria-label': label,
         'aria-multiline': 'true',
         'aria-readonly': String(disabled),
         'aria-required': String(required),
@@ -1029,54 +1033,58 @@ export function RichTextEditor({
         >
           <Unlink aria-hidden="true" focusable="false" size={19} strokeWidth={1.9} />
         </button>
-        <button
-          ref={imageTriggerRef}
-          type="button"
-          className="article-rich-editor__tool"
-          aria-label={editor.isActive('imageBlock') ? 'تعديل الصورة' : 'رفع صورة'}
-          title={editor.isActive('imageBlock') ? 'تعديل الصورة' : 'رفع صورة'}
-          aria-pressed={editor.isActive('imageBlock') || mediaDialog?.kind === 'image'}
-          disabled={disabled || !refreshMedia || !uploadImage}
-          onClick={() => openMediaEditor('image')}
-        >
-          <ImageIcon aria-hidden="true" focusable="false" size={19} strokeWidth={1.9} />
-        </button>
-        <button
-          ref={galleryTriggerRef}
-          type="button"
-          className="article-rich-editor__tool"
-          aria-label={galleryToolbarLabel}
-          title={galleryToolbarLabel}
-          aria-pressed={galleryIsActive || mediaDialog?.kind === 'gallery'}
-          disabled={disabled || !refreshMedia || !uploadImage || !canOpenGallery}
-          onClick={() => openMediaEditor('gallery')}
-        >
-          <Images aria-hidden="true" focusable="false" size={19} strokeWidth={1.9} />
-        </button>
-        <button
-          ref={videoTriggerRef}
-          type="button"
-          className="article-rich-editor__tool"
-          aria-label={editor.isActive('videoEmbed') ? 'تعديل الفيديو' : 'فيديو'}
-          title={editor.isActive('videoEmbed') ? 'تعديل الفيديو' : 'فيديو'}
-          aria-pressed={editor.isActive('videoEmbed') || mediaDialog?.kind === 'video'}
-          disabled={disabled || !refreshMedia || !uploadImage}
-          onClick={() => openMediaEditor('video')}
-        >
-          <Video aria-hidden="true" focusable="false" size={19} strokeWidth={1.9} />
-        </button>
-        <button
-          ref={adTriggerRef}
-          type="button"
-          className="article-rich-editor__tool"
-          aria-label={adToolbarLabel}
-          title={adToolbarLabel}
-          aria-pressed={adBlockIsActive || Boolean(adEditor)}
-          disabled={disabled || !canOpenAdBlock}
-          onClick={() => openAdEditor()}
-        >
-          <Megaphone aria-hidden="true" focusable="false" size={19} strokeWidth={1.9} />
-        </button>
+        {!textOnly && (
+          <>
+            <button
+              ref={imageTriggerRef}
+              type="button"
+              className="article-rich-editor__tool"
+              aria-label={editor.isActive('imageBlock') ? 'تعديل الصورة' : 'رفع صورة'}
+              title={editor.isActive('imageBlock') ? 'تعديل الصورة' : 'رفع صورة'}
+              aria-pressed={editor.isActive('imageBlock') || mediaDialog?.kind === 'image'}
+              disabled={disabled || !refreshMedia || !uploadImage}
+              onClick={() => openMediaEditor('image')}
+            >
+              <ImageIcon aria-hidden="true" focusable="false" size={19} strokeWidth={1.9} />
+            </button>
+            <button
+              ref={galleryTriggerRef}
+              type="button"
+              className="article-rich-editor__tool"
+              aria-label={galleryToolbarLabel}
+              title={galleryToolbarLabel}
+              aria-pressed={galleryIsActive || mediaDialog?.kind === 'gallery'}
+              disabled={disabled || !refreshMedia || !uploadImage || !canOpenGallery}
+              onClick={() => openMediaEditor('gallery')}
+            >
+              <Images aria-hidden="true" focusable="false" size={19} strokeWidth={1.9} />
+            </button>
+            <button
+              ref={videoTriggerRef}
+              type="button"
+              className="article-rich-editor__tool"
+              aria-label={editor.isActive('videoEmbed') ? 'تعديل الفيديو' : 'فيديو'}
+              title={editor.isActive('videoEmbed') ? 'تعديل الفيديو' : 'فيديو'}
+              aria-pressed={editor.isActive('videoEmbed') || mediaDialog?.kind === 'video'}
+              disabled={disabled || !refreshMedia || !uploadImage}
+              onClick={() => openMediaEditor('video')}
+            >
+              <Video aria-hidden="true" focusable="false" size={19} strokeWidth={1.9} />
+            </button>
+            <button
+              ref={adTriggerRef}
+              type="button"
+              className="article-rich-editor__tool"
+              aria-label={adToolbarLabel}
+              title={adToolbarLabel}
+              aria-pressed={adBlockIsActive || Boolean(adEditor)}
+              disabled={disabled || !canOpenAdBlock}
+              onClick={() => openAdEditor()}
+            >
+              <Megaphone aria-hidden="true" focusable="false" size={19} strokeWidth={1.9} />
+            </button>
+          </>
+        )}
         {tool('تراجع', Undo2, undefined, !editor.can().undo(), () =>
           editor.chain().focus().undo().run(),
         )}
@@ -1245,8 +1253,9 @@ export function RichTextEditor({
         </ArticleMediaEditorProvider>
       </AdBlockEditorProvider>
       <p className="article-rich-editor__note">
-        عنوان المقال هو العنوان الرئيسي. استخدم عنوان 2 وعنوان 3 داخل المحتوى، وأضف الصور
-        والفيديوهات والمساحات الإعلانية في مواضعها.
+        {textOnly
+          ? 'نسّق المحتوى بالعناوين والقوائم والروابط.'
+          : 'عنوان المقال هو العنوان الرئيسي. استخدم عنوان 2 وعنوان 3 داخل المحتوى، وأضف الصور والفيديوهات والمساحات الإعلانية في مواضعها.'}
       </p>
       {mediaDialog && mediaDialog.kind !== 'gallery' && refreshMedia && uploadImage ? (
         <ArticleMediaDialog

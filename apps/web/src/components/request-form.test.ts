@@ -3,6 +3,12 @@ import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RequestForm } from './request-form';
+vi.mock('./upload-with-progress', () => ({
+  uploadWithProgress: (url: string, body: FormData, progress: (percent: number) => void) => {
+    progress(42);
+    return fetch(url, { method: 'POST', body });
+  },
+}));
 let root: Root, container: HTMLDivElement, attached: File | null;
 const NativeFormData = FormData;
 async function update(fn: () => void) {

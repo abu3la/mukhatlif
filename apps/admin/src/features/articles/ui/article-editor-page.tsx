@@ -1,3 +1,4 @@
+import { UploadProgress } from '@/shared/ui/upload-progress';
 import {
   type ChangeEvent,
   type FormEvent,
@@ -582,6 +583,7 @@ export function ArticleEditorView() {
   const [selectedCoverPreviewUrl, setSelectedCoverPreviewUrl] = useState('');
   const [coverUploadProgress, setCoverUploadProgress] = useState<number | null>(null);
   const [coverUploadError, setCoverUploadError] = useState('');
+  const [copyingTemplate, setCopyingTemplate] = useState(false);
   const [coverUploadFeedback, setCoverUploadFeedback] = useState('');
 
   const currentArticle = useMemo(
@@ -954,7 +956,8 @@ export function ArticleEditorView() {
   }
 
   async function copyAiTemplate() {
-    if (!canManage || busy) return;
+    if (!canManage || busy || copyingTemplate) return;
+    setCopyingTemplate(true);
     setAiImportError('');
     setAiImportFeedback('');
     try {
@@ -962,6 +965,8 @@ export function ArticleEditorView() {
       setAiImportFeedback('نسخ القالب. أضف موضوعك ومصادرك إلى المساعد، ثم الصق ناتج JSON هنا.');
     } catch {
       setAiImportError('تعذر نسخ القالب. انسخه يدويا أو امنح المتصفح إذن الحافظة.');
+    } finally {
+      setCopyingTemplate(false);
     }
   }
 
@@ -1335,6 +1340,7 @@ export function ArticleEditorView() {
                   <Button
                     type="button"
                     className="article-publisher__ai-template-button"
+                    aria-busy={copyingTemplate}
                     disabled={!canManage || busy}
                     onClick={() => void copyAiTemplate()}
                   >
@@ -1718,21 +1724,15 @@ export function ArticleEditorView() {
                         type="button"
                         variant="primary"
                         className="article-cover-upload__action"
+                        aria-busy={coverUploadProgress !== null}
                         disabled={busy || !fields.coverAlt.trim()}
                         onClick={() => void uploadCoverImage()}
                       >
                         رفع صورة الغلاف
                       </Button>
                     ) : null}
-                    {coverUploadProgress !== null ? (
-                      <div className="article-cover-upload__progress" aria-live="polite">
-                        <progress
-                          value={coverUploadProgress}
-                          max={100}
-                          aria-label="تقدم رفع الغلاف"
-                        />
-                        <span>{formatArabicInteger(coverUploadProgress)}%</span>
-                      </div>
+                    {coverUploadProgress !== null && selectedCoverImage ? (
+                      <UploadProgress filename={selectedCoverImage.file.name} bytes={selectedCoverImage.file.size} percent={coverUploadProgress} />
                     ) : null}
                     {coverUploadError ? (
                       <p className="notice notice--error" role="alert">

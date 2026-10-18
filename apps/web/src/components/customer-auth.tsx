@@ -1,5 +1,7 @@
 'use client';
 
+import { BusyButton } from './busy-button';
+
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -19,7 +21,7 @@ const copy: Record<AuthMode, [string, string]> = {
   confirm: ['تأكيد البريد الإلكتروني', 'افتح رابط التأكيد في بريدك لإكمال التسجيل.'],
   forgot: ['نسيت كلمة المرور؟', 'أدخل البريد الإلكتروني المرتبط بالحساب.'],
   reset: ['تغيير كلمة المرور', 'اختر كلمة مرور جديدة.'],
-  callback: ['تأكيد الحساب', 'جارٍ التحقق من رابط التأكيد…'],
+  callback: ['تأكيد الحساب', 'جار التحقق من رابط التأكيد…'],
 };
 
 export function CustomerAuth({
@@ -250,7 +252,11 @@ export function CustomerAuth({
     return (
       <CustomerAuthFrame
         title={emailChangePending ? 'تأكيد عنوان البريد الآخر' : copy.callback[0]}
-        intro={emailChangePending ? 'تغيير البريد يتطلب تأكيد العنوانين الحالي والجديد.' : copy.callback[1]}
+        intro={
+          emailChangePending
+            ? 'تغيير البريد يتطلب تأكيد العنوانين الحالي والجديد.'
+            : copy.callback[1]
+        }
       >
         {linkError || error || customer.error ? (
           <>
@@ -276,7 +282,7 @@ export function CustomerAuth({
           <>
             <p role="status">
               {!callbackChecked || customer.loading || customer.user
-                ? 'جارٍ تأكيد الحساب…'
+                ? 'جار تأكيد الحساب…'
                 : 'لم نجد جلسة دخول. افتح أحدث رابط تأكيد في البريد الإلكتروني.'}
             </p>
             {!customer.loading && !customer.user && (
@@ -333,7 +339,8 @@ export function CustomerAuth({
         )}
         {customer.config.googleEnabled && (mode === 'login' || mode === 'signup') && (
           <>
-            <button
+            <BusyButton
+              aria-busy={Boolean(busy)}
               type="button"
               className="customer-google"
               onClick={() => void google()}
@@ -341,7 +348,7 @@ export function CustomerAuth({
             >
               <img src="/handoff/google.svg" width="20" height="20" alt="" />
               {mode === 'signup' ? 'إنشاء حساب باستخدام Google' : 'تسجيل الدخول باستخدام Google'}
-            </button>
+            </BusyButton>
             <p className="customer-auth-divider">
               <span>أو بالبريد الإلكتروني</span>
             </p>
@@ -425,14 +432,15 @@ export function CustomerAuth({
           </p>
         )}
         {customer.error && customer.user && (
-          <button
+          <BusyButton
+            aria-busy={Boolean(busy)}
             type="button"
             className="customer-text-button"
             disabled={busy}
             onClick={() => void customer.refresh()}
           >
             إعادة تحميل الحساب
-          </button>
+          </BusyButton>
         )}
         {message && (
           <p className="customer-message" role="status">
@@ -447,7 +455,8 @@ export function CustomerAuth({
             </Link>
           </>
         ) : (
-          <button
+          <BusyButton
+            aria-busy={Boolean(busy)}
             className="customer-primary"
             disabled={
               busy ||
@@ -456,8 +465,8 @@ export function CustomerAuth({
               (mode === 'reset' && (!callbackChecked || customer.loading))
             }
           >
-            {busy ? 'جارٍ المتابعة…' : submitLabel}
-          </button>
+            {busy ? 'جار المتابعة…' : submitLabel}
+          </BusyButton>
         )}
         {mode === 'confirm' && (
           <>

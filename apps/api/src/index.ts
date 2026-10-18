@@ -1,3 +1,5 @@
+import { learningHealthRoute } from './learning/health';
+import { publicCoursesRoute, customerCoursesRoute, studioCoursesRoute } from './routes/courses';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { CLIENT_SURFACE_HEADER } from '@mukhtalif/types';
@@ -54,6 +56,7 @@ const app = new Hono<AppEnv>();
 // Infrastructure readiness must still fail generically when Auth/CORS config
 // is unavailable, and must never resolve or provision a requesting identity.
 app.route('/health/customer-schema', customerSchemaHealthRoute);
+app.route('/health/learning-schema', learningHealthRoute);
 
 app.use(
   '*',
@@ -199,5 +202,9 @@ app.route('/studio/permissions', permissionsRoute);
 app.route('/studio/audit-logs', auditRoute);
 app.route('/studio/subscribers', subscriberUsersRoute);
 app.route('/studio/subscriptions', subscriptionsRoute);
+
+app.route('/courses', publicCoursesRoute);
+app.route('/app/courses', customerCoursesRoute);
+app.route('/studio/courses', studioCoursesRoute);
 
 export default app;

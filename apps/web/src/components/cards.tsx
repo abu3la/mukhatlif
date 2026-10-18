@@ -1,3 +1,4 @@
+import { BrandIcon } from './brand-icon';
 import Link from 'next/link';
 import { EpisodeThumbnail } from './episode-thumbnail';
 import {
@@ -134,7 +135,7 @@ export function ArticleCard({
         {article.author.displayName}
         {article.publishedAt ? (
           <>
-            {' · '}
+            <BrandIcon name="clock" className="metadata-icon" />
             <time dateTime={dateTimeAttribute(article.publishedAt)}>
               {formatDate(article.publishedAt)}
             </time>
@@ -218,7 +219,9 @@ export function EpisodeRow({
         {variant === 'list' && (showName || publishedDate) ? (
           <span className="episode-row__meta">
             {showName ? <span>{showName}</span> : null}
-            {showName && publishedDate ? ' · ' : null}
+            {showName && publishedDate ? (
+              <BrandIcon name="clock" className="metadata-icon" />
+            ) : null}
             {publishedDate ? <time dateTime={publishedDateTime}>{publishedDate}</time> : null}
           </span>
         ) : null}
@@ -272,7 +275,7 @@ export function EpisodeCard({
       )}
       <p className="handoff-episode-card__meta">
         {showName}
-        {showName ? ' · ' : ''}
+        <BrandIcon name="clock" className="metadata-icon" />
         <bdi>{formatDuration(episode.durationSec)}</bdi>
       </p>
       <Link href={href}>

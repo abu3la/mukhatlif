@@ -1,5 +1,9 @@
 'use client';
 
+import { BrandIcon } from './brand-icon';
+
+import { BusyButton } from './busy-button';
+
 import { ContentSkeleton } from './content-skeleton';
 
 import Link from 'next/link';
@@ -51,6 +55,7 @@ export function CustomerLibraryPage({ tab = 'saved' }: { tab?: string }) {
           <p>ما حفظته وتابعته، في مكان واحد.</p>
         </header>
         <nav className="customer-library-tabs" aria-label="أقسام المكتبة">
+          <Link href="/library/courses">دوراتي</Link>
           {tabs.map(([key, title]) => (
             <Link
               key={key}
@@ -331,7 +336,8 @@ function BookmarkList() {
             >
               {episodes.find((episode) => episode.id === bookmark.episodeId)?.titleAr ||
                 'العودة إلى الحلقة'}{' '}
-              · <bdi>{formatPlaybackTime(bookmark.positionSec)}</bdi>
+              <BrandIcon name="clock" className="metadata-icon" />{' '}
+              <bdi>{formatPlaybackTime(bookmark.positionSec)}</bdi>
             </Link>
             {bookmark.label && <p>{bookmark.label}</p>}
           </div>
@@ -403,9 +409,9 @@ function BookmarkEdit({ bookmark, onClose }: { bookmark: CustomerBookmark; onClo
             {error}
           </p>
         )}
-        <button className="customer-primary" disabled={busy}>
-          {busy ? 'جارٍ الحفظ…' : 'حفظ الملاحظة'}
-        </button>
+        <BusyButton aria-busy={Boolean(busy)} className="customer-primary" disabled={busy}>
+          {busy ? 'جار الحفظ…' : 'حفظ الملاحظة'}
+        </BusyButton>
       </form>
     </CustomerDialog>
   );
@@ -461,9 +467,9 @@ export function CustomerInterestsForm({
           {error}
         </p>
       )}
-      <button className="customer-primary" disabled={busy}>
-        {busy ? 'جارٍ الحفظ…' : onComplete ? 'اختيار البرامج' : 'حفظ الاهتمامات'}
-      </button>
+      <BusyButton aria-busy={Boolean(busy)} className="customer-primary" disabled={busy}>
+        {busy ? 'جار الحفظ…' : onComplete ? 'اختيار البرامج' : 'حفظ الاهتمامات'}
+      </BusyButton>
     </form>
   );
 }
@@ -542,9 +548,9 @@ export function PlaylistNameDialog({
             {error}
           </p>
         )}
-        <button className="customer-primary" disabled={busy}>
-          {busy ? 'جارٍ الحفظ…' : playlist ? 'حفظ الاسم' : 'إنشاء القائمة'}
-        </button>
+        <BusyButton aria-busy={Boolean(busy)} className="customer-primary" disabled={busy}>
+          {busy ? 'جار الحفظ…' : playlist ? 'حفظ الاسم' : 'إنشاء القائمة'}
+        </BusyButton>
       </form>
     </CustomerDialog>
   );
@@ -567,6 +573,7 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
   const playableEpisodes = loading || error ? [] : episodes.filter((episode) => !episode.premium);
   const [dialog, setDialog] = useState<'rename' | 'add' | 'delete' | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingAction, setPendingAction] = useState('');
   if (!playlist)
     return (
       <div className="page customer-page">
@@ -588,6 +595,7 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
     if (target < 0 || target >= ids.length) return;
     [ids[index], ids[target]] = [ids[target], ids[index]];
     setBusy(true);
+    setPendingAction(`${direction}:${id}`);
     try {
       await customer.mutateLibrary(`/playlists/${encodeURIComponent(playlistId)}`, 'PATCH', {
         episodeIds: ids,
@@ -597,12 +605,14 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
       customer.notify(customerError(failure));
     } finally {
       setBusy(false);
+      setPendingAction('');
     }
   }
 
   async function remove(id: string) {
     if (!playlist || busy) return;
     setBusy(true);
+    setPendingAction(`remove:${id}`);
     try {
       await customer.mutateLibrary(`/playlists/${encodeURIComponent(playlistId)}`, 'PATCH', {
         episodeIds: playlist.episodeIds.filter((item) => item !== id),
@@ -612,6 +622,7 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
       customer.notify(customerError(failure));
     } finally {
       setBusy(false);
+      setPendingAction('');
     }
   }
 
@@ -680,30 +691,33 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
                 <p>هذه الحلقة غير متاحة الآن.</p>
               )}
               <div className="customer-playlist-tools">
-                <button
+                <BusyButton
+                  aria-busy={pendingAction === `-1:${id}`}
                   className="customer-icon-button"
                   disabled={busy || index === 0}
                   aria-label={`نقل ${episode?.titleAr || 'الحلقة'} للأعلى`}
                   onClick={() => void reorder(id, -1)}
                 >
                   <CustomerIcon name="up" />
-                </button>
-                <button
+                </BusyButton>
+                <BusyButton
+                  aria-busy={pendingAction === `1:${id}`}
                   className="customer-icon-button"
                   disabled={busy || index === playlist.episodeIds.length - 1}
                   aria-label={`نقل ${episode?.titleAr || 'الحلقة'} للأسفل`}
                   onClick={() => void reorder(id, 1)}
                 >
                   <CustomerIcon name="down" />
-                </button>
-                <button
+                </BusyButton>
+                <BusyButton
+                  aria-busy={pendingAction === `remove:${id}`}
                   className="customer-icon-button"
                   disabled={busy}
                   aria-label={`إزالة ${episode?.titleAr || 'الحلقة'} من القائمة`}
                   onClick={() => void remove(id)}
                 >
                   <CustomerIcon name="close" />
-                </button>
+                </BusyButton>
               </div>
             </div>
           );
@@ -753,6 +767,7 @@ function PlaylistPicker({
   const [page, setPage] = useState(1);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pendingEpisode, setPendingEpisode] = useState('');
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let active = true;
@@ -808,11 +823,13 @@ function PlaylistPicker({
               return (
                 <div className="customer-picker-result" key={episode.id}>
                   <h3>{episode.titleAr}</h3>
-                  <button
+                  <BusyButton
+                    aria-busy={busy && pendingEpisode === episode.id}
                     className="customer-text-button"
                     disabled={busy || added}
                     onClick={async () => {
                       setBusy(true);
+                      setPendingEpisode(episode.id);
                       try {
                         await customer.mutateLibrary(
                           `/playlists/${encodeURIComponent(playlist.id)}`,
@@ -828,7 +845,7 @@ function PlaylistPicker({
                     }}
                   >
                     {added ? 'مضافة' : 'إضافة'}
-                  </button>
+                  </BusyButton>
                 </div>
               );
             })}
@@ -886,7 +903,8 @@ function LibraryConfirm({
         </p>
       )}
       <div className="customer-action-row">
-        <button
+        <BusyButton
+          aria-busy={Boolean(busy)}
           className="customer-primary customer-destructive"
           disabled={busy}
           onClick={async () => {
@@ -901,8 +919,8 @@ function LibraryConfirm({
             }
           }}
         >
-          {busy ? 'جارٍ الحذف…' : action}
-        </button>
+          {busy ? 'جار الحذف…' : action}
+        </BusyButton>
         <button className="customer-text-button" disabled={busy} onClick={onClose}>
           إلغاء
         </button>

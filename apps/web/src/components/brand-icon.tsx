@@ -1,6 +1,19 @@
 import type { SVGProps } from 'react';
 
 const marks = {
+  edit: 'm16 2 6 6-13 13-7 1 1-7zm0 3-2 2 3 3 2-2zM5 16l-.5 3.5L8 19l7.5-7.5-3-3z',
+  lock: 'M7 10V7a5 5 0 0 1 10 0v3h3v12H4V10zm2 0h6V7a3 3 0 0 0-6 0zm2 4v4h2v-4z',
+  clock:
+    'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16m-1 2h2v5.5l4 2-1 1.8-5-2.8z',
+  level: 'M3 15h4v6H3zm7-6h4v12h-4zm7-6h4v18h-4z',
+  filter: 'M3 5h18v2H3zm3 6h12v2H6zm3 6h6v2H9z',
+
+  previous: 'm13 4 8 8-8 8-1.5-1.5L17 13H3v-2h14l-5.5-5.5z',
+  next: 'm11 4 1.5 1.5L7 11h14v2H7l5.5 5.5L11 20l-8-8z',
+  document: 'M5 2h9l5 5v15H5zm2 2v16h10V9h-5V4zm7 1v2h2zM9 12h6v2H9zm0 4h6v2H9z',
+  check: 'm4 11 5 5L20 5l1.5 1.5L9 19 2.5 12.5z',
+  certificate: 'M3 3h18v13h-5v6l-4-2-4 2v-6H3zm2 2v9h3v-3h8v3h3V5zm5 8v6l2-1 2 1v-6z',
+
   search:
     'M10 3a7 7 0 1 0 4.8 12.1l5.4 5.4 1.5-1.5-5.4-5.4A7 7 0 0 0 10 3m0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10',
   library: 'M3 3h4v18H3zm6 0h4v18H9zm6 1 4-1 4 17-4 1z',
