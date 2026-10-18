@@ -1,6 +1,8 @@
 import type { SVGProps } from 'react';
 
 const marks = {
+  edit: 'm16 2 6 6-13 13-7 1 1-7zm0 3-2 2 3 3 2-2zM5 16l-.5 3.5L8 19l7.5-7.5-3-3z',
+  lock: 'M7 10V7a5 5 0 0 1 10 0v3h3v12H4V10zm2 0h6V7a3 3 0 0 0-6 0zm2 4v4h2v-4z',
   clock:
     'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16m-1 2h2v5.5l4 2-1 1.8-5-2.8z',
   level: 'M3 15h4v6H3zm7-6h4v12h-4zm7-6h4v18h-4z',

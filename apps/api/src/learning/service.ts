@@ -8,6 +8,7 @@ import {
   files,
   publicState,
   updateState,
+  assertVideoAccess,
   LearningError,
   type State,
 } from './domain';
@@ -180,6 +181,7 @@ export async function learningRequest(
     const state = r.data.state as State;
     if (action === 'workspace') return { course: learnerCourse(c), enrollment: publicState(state) };
     if (action === 'asset') {
+      assertVideoAccess(c, state, String(p.file));
       const { assetLink } = await import('./media');
       return assetLink(env, origin, c, String(p.file), actor.id);
     }

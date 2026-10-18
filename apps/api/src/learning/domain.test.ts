@@ -145,3 +145,28 @@ describe('native learning rules', () => {
     expect(summary(saved).overviewHtml).not.toContain('<script>');
   });
 });
+
+describe('personal video bookmarks', () => {
+  it('upserts retries, edits and deletes without changing progress', () => {
+    const c = course();
+    c.lessons[0].video = '/private/files/lesson.mp4';
+    c.lessons[0].durationSeconds = 60;
+    const s = state();
+    const payload = { id: '9fb59dcf-c290-4b6e-950a-b34d240aff26', lessonId: 'reading', position: 20, note: 'فكرة مهمة' };
+    updateState(c, s, 'bookmark', payload, 'متعلم');
+    updateState(c, s, 'bookmark', payload, 'متعلم');
+    expect(Object.keys(s.bookmarks!)).toHaveLength(1);
+    expect(s.progress).toEqual({});
+    updateState(c, s, 'bookmark', { ...payload, note: 'تعديل' }, 'متعلم');
+    expect(publicState(s).bookmarks![payload.id].note).toBe('تعديل');
+    expect(() => updateState(c, s, 'bookmark', { ...payload, position: 61 }, 'متعلم')).toThrow();
+    expect(() => updateState(c, s, 'bookmark', { ...payload, lessonId: 'missing' }, 'متعلم')).toThrow();
+    updateState(c, s, 'bookmark', { ...payload, remove: true }, 'متعلم');
+    expect(s.bookmarks).toEqual({});
+  });
+  it('rejects bookmarks on locked lessons', () => {
+    const c = course();
+    c.lessons.push({ ...c.lessons[0], id: 'locked', video: '/private/files/video.mp4', durationSeconds: 60 });
+    expect(() => updateState(c, state(), 'bookmark', { id: '9fb59dcf-c290-4b6e-950a-b34d240aff26', lessonId: 'locked', position: 1, note: '' }, 'متعلم')).toThrow('أكمل الدروس السابقة');
+  });
+});

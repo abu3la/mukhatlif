@@ -1,5 +1,7 @@
 'use client';
 
+import { BusyButton } from './busy-button';
+
 import { ContentSkeleton } from './content-skeleton';
 
 import { useEffect, useState, type FormEvent } from 'react';
@@ -100,17 +102,22 @@ function OnboardingContent({ step, next }: { step: number; next: string }) {
                 ))}
               </div>
             )}
-            <button className="customer-primary" disabled={busy || loadingShows}>
-              {busy ? 'جارٍ الحفظ…' : 'بدء الاستماع'}
-            </button>
-            <button
+            <BusyButton
+              aria-busy={Boolean(busy)}
+              className="customer-primary"
+              disabled={busy || loadingShows}
+            >
+              {busy ? 'جار الحفظ…' : 'بدء الاستماع'}
+            </BusyButton>
+            <BusyButton
+              aria-busy={Boolean(busy)}
               type="button"
               className="customer-text-button"
               disabled={busy}
               onClick={() => router.push(`/onboarding?next=${encodeURIComponent(next)}`)}
             >
               تعديل الموضوعات
-            </button>
+            </BusyButton>
           </form>
         )}
         {error && (
@@ -118,9 +125,14 @@ function OnboardingContent({ step, next }: { step: number; next: string }) {
             {error}
           </p>
         )}
-        <button className="customer-text-button" disabled={busy} onClick={() => void finish()}>
+        <BusyButton
+          aria-busy={Boolean(busy)}
+          className="customer-text-button"
+          disabled={busy}
+          onClick={() => void finish()}
+        >
           تخطي الإعداد
-        </button>
+        </BusyButton>
       </div>
     </CustomerAuthFrame>
   );

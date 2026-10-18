@@ -1,5 +1,7 @@
 'use client';
 
+import { BusyButton } from './busy-button';
+
 import Link from 'next/link';
 import { useRef, useState, type FormEvent } from 'react';
 import { CLIENT_SURFACE_HEADER } from '@mukhtalif/types';
@@ -318,15 +320,20 @@ export function ProductionRequest({
           </p>
         ) : null}
         <div className="public-reading-controls">
-          <button type="submit" className="public-primary" disabled={busy}>
+          <BusyButton
+            aria-busy={Boolean(busy)}
+            type="submit"
+            className="public-primary"
+            disabled={busy}
+          >
             {busy
-              ? 'جارٍ إرسال الطلب…'
+              ? 'جار إرسال الطلب…'
               : step === 1
                 ? 'التالي: حدد النطاق'
                 : step === 2
                   ? 'التالي: راجع الملخص'
                   : 'أرسل الطلب'}
-          </button>
+          </BusyButton>
           {step > 1 ? (
             <button
               type="button"

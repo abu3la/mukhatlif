@@ -73,6 +73,7 @@ export interface CourseProgress {
 export interface CourseEnrollment {
   courseId: string;
   lastLesson: string | null;
+  bookmarks?: Record<string, { lessonId: string; position: number; note: string }>;
   progress: Record<string, CourseProgress>;
   quizzes: Record<string, { attempts: number; passed: boolean; percentage: number }>;
   assignments: Record<string, { id: string; status: string; comments: string; answer?: string }>;

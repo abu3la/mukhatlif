@@ -901,12 +901,12 @@ describe('ArticleEditorView', () => {
     await applyInitialCoverCrop(user);
     await user.click(await screen.findByRole('button', { name: 'رفع صورة الغلاف' }));
 
-    expect(await screen.findByRole('progressbar', { name: 'تقدم رفع الغلاف' })).toHaveValue(42);
+    expect(await screen.findByRole('progressbar', { name: /^تقدم رفع/ })).toHaveValue(42);
     expect(screen.getByRole('button', { name: 'حفظ المسودة' })).toBeDisabled();
     await act(async () => resolveUpload?.(uploaded));
     await waitFor(() =>
       expect(
-        screen.queryByRole('progressbar', { name: 'تقدم رفع الغلاف' }),
+        screen.queryByRole('progressbar', { name: /^تقدم رفع/ }),
       ).not.toBeInTheDocument(),
     );
 

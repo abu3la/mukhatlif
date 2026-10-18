@@ -89,6 +89,7 @@ export function AuthErrorView() {
             type="button"
             variant="primary"
             disabled={isSubmitting}
+            aria-busy={isSubmitting}
             onClick={() => void retry()}
           >
             إعادة المحاولة
@@ -96,6 +97,7 @@ export function AuthErrorView() {
           <Button
             type="button"
             disabled={isSubmitting}
+            aria-busy={isSubmitting}
             onClick={() => {
               setActionError('');
               void signOut().catch(() => setActionError('تعذر تسجيل الخروج. حاول مرة أخرى.'));

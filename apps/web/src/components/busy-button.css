@@ -1,0 +1,39 @@
+.action-loading-indicator {
+  display: inline-block;
+  inline-size: 1em;
+  block-size: 1em;
+  flex: 0 0 1em;
+  box-sizing: border-box;
+  border: 2px solid currentColor;
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+  vertical-align: -0.12em;
+  margin-inline-end: 0.5em;
+  animation: action-loading-spin 0.8s linear infinite;
+}
+@keyframes action-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .action-loading-indicator {
+    animation-duration: 2.4s;
+  }
+}
+.icon-action > .action-loading-indicator,
+.customer-icon-button > .action-loading-indicator { margin-inline: 0; }
+
+button[data-loading-mode='replace'] { position: relative; }
+button[data-loading-mode='replace'][aria-busy='true'] > .action-button-label { opacity: 0; }
+button[data-loading-mode='replace'] > .action-loading-indicator { position: absolute; inset: 0; margin: auto; }
+button[data-unavailable='true']:disabled,
+button[data-unavailable='true']:disabled:hover {
+  background: color-mix(in srgb, var(--fg, #1d1a4c) 10%, var(--bg, white));
+  color: color-mix(in srgb, var(--fg, #1d1a4c) 58%, var(--bg, white));
+  border-color: transparent;
+  opacity: 1;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.action-button-label { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; }

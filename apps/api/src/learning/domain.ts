@@ -168,6 +168,15 @@ export function eligible(c: CourseDefinition, s: State) {
     )
   );
 }
+/** Enforce the lesson sequence when media is requested, not only when progress is saved. */
+export function assertVideoAccess(c: CourseDefinition, s: State, file: string) {
+  if (file === c.trailer) return;
+  const owners = c.lessons.map((lesson, index) => ({ lesson, index })).filter(({ lesson }) => lesson.video === file);
+  if (owners.length && !owners.some(({ index }) => c.lessons.slice(0, index).every((lesson) => s.progress[lesson.id]?.complete))) {
+    throw new LearningError(403, 'أكمل الدروس السابقة لمشاهدة هذا الفيديو.');
+  }
+}
+
 export function updateState(
   c: CourseDefinition,
   s: State,
@@ -180,7 +189,7 @@ export function updateState(
     throw new LearningError(422, message);
   };
   // UI locks are repeated here so direct API calls cannot skip the curriculum.
-  if (action === 'progress') {
+  if (action === 'progress' || action === 'bookmark') {
     const index = c.lessons.findIndex((l) => l.id === p.lessonId);
     if (index > 0 && c.lessons.slice(0, index).some((l) => !s.progress[l.id]?.complete))
       return fail('أكمل الدروس السابقة أولًا.');
@@ -273,6 +282,19 @@ export function updateState(
       comments: '',
       answer: z.string().trim().min(1).max(20000).parse(p.answer),
     };
+  } else if (action === 'bookmark') {
+    const lesson = c.lessons.find((item) => item.id === p.lessonId);
+    if (!lesson?.video) return fail('علامات الوقت متاحة لدروس الفيديو فقط.');
+    const id = z.string().uuid().parse(p.id);
+    const position = z.number().finite().min(0).max(lesson.durationSeconds).parse(p.position);
+    const note = z.string().trim().max(2000).parse(p.note);
+    s.bookmarks ??= {};
+    if (s.bookmarks[id] && s.bookmarks[id].lessonId !== lesson.id) return fail('العلامة تخص درسًا آخر.');
+    if (p.remove === true) delete s.bookmarks[id];
+    else {
+      if (!s.bookmarks[id] && Object.keys(s.bookmarks).length >= 500) return fail('وصلت إلى الحد الأقصى للعلامات في هذه الدورة.');
+      s.bookmarks[id] = { lessonId: lesson.id, position, note };
+    }
   } else if (action === 'certificate') {
     if (!eligible(c, s)) return fail('أكمل الدروس واجتز الاختبارات وأوراق العمل المطلوبة أولًا.');
     s.certificate ??= { id: crypto.randomUUID(), issuedAt: new Date(now).toISOString(), member };

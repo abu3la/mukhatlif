@@ -106,3 +106,35 @@ describe('learning trust boundary', () => {
     expect(await response.text()).not.toContain('sensitive');
   });
 });
+
+describe('course upload size limits', () => {
+  it.each([
+    ['video.mp4', 5 * 1024 ** 3],
+    ['video.WEBM', 5 * 1024 ** 3],
+    ['audio.mp3', 1024 ** 3],
+    ['worksheet.pdf', 100 * 1024 ** 2],
+  ])('accepts the limit and rejects excess bytes for %s', async (filename, size) => {
+    const options = { user: 'usr-admin-1', surface: 'studio' };
+    const valid = await request('/studio/courses/course-1/upload-start', {
+      ...options,
+      body: { filename, size },
+    });
+    expect(valid.status).toBe(200);
+    upstream.mockClear();
+    const oversized = await request('/studio/courses/course-1/upload-start', {
+      ...options,
+      body: { filename, size: size + 1 },
+    });
+    expect(oversized.status).toBe(422);
+    expect(upstream).not.toHaveBeenCalled();
+  });
+  it('allows multipart offsets beyond 512 MiB without increasing chunk size', async () => {
+    const response = await request('/studio/courses/course-1/upload-chunk', {
+      user: 'usr-admin-1',
+      surface: 'studio',
+      body: { token: 'asset', offset: 4 * 1024 ** 3, content: 'YQ==' },
+    });
+    expect(response.status).toBe(200);
+    expect(upstream).toHaveBeenCalled();
+  });
+});

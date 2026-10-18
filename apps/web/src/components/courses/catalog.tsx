@@ -189,7 +189,7 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
           </button>
         </div>
       ) : !courses ? (
-        <p role="status">جارٍ تحميل الدورات…</p>
+        <p role="status">جار تحميل الدورات…</p>
       ) : !filtered?.length ? (
         <p>
           {courses.length
@@ -205,7 +205,21 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
             const complete = Object.values(state?.progress ?? {}).filter((x) => x.complete).length;
             return (
               <article key={course.id} className="course-summary">
-                <div>
+                <div className="course-card-cover">
+                  <span className="course-card-skill">
+                    {course.skill || course.category || 'تعلّم مع مختلف'}
+                  </span>
+                  <h2>
+                    <Link href={`/courses/${course.id}`}>{course.title}</Link>
+                  </h2>
+
+                  {course.hasTrailer && (
+                    <Link className="course-card-preview" href={`/courses/${course.id}`}>
+                      <BrandIcon name="play" /> شاهد تعريف الدورة
+                    </Link>
+                  )}
+                </div>
+                <div className="course-card-body">
                   <div className="course-card-category">
                     {course.category && (
                       <span>
@@ -220,9 +234,6 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
                       </span>
                     )}
                   </div>
-                  <h2>
-                    <Link href={`/courses/${course.id}`}>{course.title}</Link>
-                  </h2>
                   <p>{course.description}</p>
                   <div className="course-facts">
                     {course.instructor && (
@@ -257,7 +268,10 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
                     </>
                   ) : (
                     <>
-                      <strong>{course.price ? `${course.price} ر.س` : 'مجانية'}</strong>
+                      <div className="course-card-price">
+                        <small>رسوم الدورة</small>
+                        <strong>{course.price ? `${course.price} ر.س` : 'مجانية'}</strong>
+                      </div>
                       <Link className="course-button" href={`/courses/${course.id}`}>
                         تفاصيل الدورة
                         <BrandIcon name="next" />

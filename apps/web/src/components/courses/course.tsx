@@ -1,4 +1,6 @@
 'use client';
+
+import { BusyButton } from '../busy-button';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type {
@@ -110,6 +112,7 @@ function CourseContent({ courseId }: { courseId: string }) {
     !!course?.lessons
       .slice(0, index)
       .some((item) => !workspace?.enrollment.progress[item.id]?.complete);
+  const completedLessons = course?.lessons.filter((item) => workspace?.enrollment.progress[item.id]?.complete).length ?? 0;
   const lessonIndex = course?.lessons.findIndex((item) => item.id === selected) ?? -1;
   const [reading, setReading] = useState<Record<string, number>>({});
   const openLesson = (id: string) => {
@@ -128,6 +131,8 @@ function CourseContent({ courseId }: { courseId: string }) {
           workspace.enrollment.assignments[item.assignment.id]?.status === 'Pass'),
     );
 
+  const certificateLocked = !workspace?.enrollment.certificate && !certificateReady;
+
   const percentFor = (item: CourseDefinition['lessons'][number]) => {
     const progress = workspace?.enrollment.progress[item.id];
     return progress?.complete
@@ -143,7 +148,7 @@ function CourseContent({ courseId }: { courseId: string }) {
     <div className={`page courses-page ${workspace ? 'course-learning-page' : ''}`}>
       <Link href="/courses">الدورات</Link>
       {loading ? (
-        <p role="status">جارٍ تحميل الدورة…</p>
+        <p role="status">جار تحميل الدورة…</p>
       ) : !detail ? (
         <>
           <p role="alert">{error || 'الدورة غير موجودة.'}</p>
@@ -196,8 +201,11 @@ function CourseContent({ courseId }: { courseId: string }) {
                 )}
                 <h2>محتوى الدورة</h2>
                 <ol className="course-curriculum">
-                  {detail.lessons.map((item) => (
+                  {detail.lessons.map((item, index) => (
                     <li key={item.id}>
+                      <span className="course-curriculum-number">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
                       <span>{item.title}</span>
                       {item.durationSeconds > 0 && (
                         <small>{Math.ceil(item.durationSeconds / 60)} دقيقة</small>
@@ -231,16 +239,21 @@ function CourseContent({ courseId }: { courseId: string }) {
                   <>
                     <h3>محاكاة الدفع</h3>
                     <p>اختر نتيجة العملية لتجربة التسجيل.</p>
-                    <button
+                    <BusyButton
+                      aria-busy={Boolean(busy)}
                       className="course-button"
                       disabled={busy}
                       onClick={() => enroll('success')}
                     >
                       محاكاة دفع ناجح والتسجيل
-                    </button>
-                    <button disabled={busy} onClick={() => enroll('declined')}>
+                    </BusyButton>
+                    <BusyButton
+                      aria-busy={Boolean(busy)}
+                      disabled={busy}
+                      onClick={() => enroll('declined')}
+                    >
                       محاكاة رفض الدفع
-                    </button>
+                    </BusyButton>
                     <button disabled={busy} onClick={() => setCheckout(false)}>
                       إلغاء
                     </button>
@@ -260,6 +273,7 @@ function CourseContent({ courseId }: { courseId: string }) {
             </div>
           ) : (
             <>
+              {(view !== 'lesson' || course!.resources.length > 0 || course!.quiz || course!.assignment) && (
               <nav className="course-view-nav" aria-label="أقسام الدورة">
                 {[
                   ['lesson', 'التعلّم'],
@@ -283,11 +297,16 @@ function CourseContent({ courseId }: { courseId: string }) {
                   </button>
                 ))}
               </nav>
+              )}
               {view === 'lesson' && (
                 <div className="course-workspace">
                   <aside>
                     <div className="course-outline">
-                      <h2>دروس الدورة ({course!.lessons.length})</h2>
+                      <div className="course-outline-summary">
+                        <h2>محتوى الدورة</h2>
+                        <span>{completedLessons}/{course!.lessons.length} مكتمل</span>
+                        <progress value={completedLessons} max={course!.lessons.length || 1} aria-label="الدروس المكتملة" />
+                      </div>
                       <ol className="course-lessons">
                         {course!.lessons.map((item, index) => (
                           <li key={item.id}>
@@ -305,12 +324,8 @@ function CourseContent({ courseId }: { courseId: string }) {
                                 {index + 1}. {item.title}
                               </span>
                               <span className="course-lesson-meta">
-                                {item.id === selected && <small>الدرس الحالي</small>}
-                                {workspace.enrollment.progress[item.id]?.complete ? (
-                                  <CompletionChip />
-                                ) : (
-                                  item.id !== selected && <small>لم يكتمل</small>
-                                )}
+                                <span><BrandIcon name={item.video ? 'play' : 'document'} />{item.video ? 'فيديو' : 'قراءة'}</span>
+                                {item.id === selected ? <small>الدرس الحالي</small> : isLessonLocked(index) ? <small>بعد الدرس السابق</small> : item.video && item.durationSeconds > 0 ? <small>{Math.ceil(item.durationSeconds / 60)} دقيقة</small> : null}
                               </span>
                             </button>
                           </li>
@@ -327,43 +342,61 @@ function CourseContent({ courseId }: { courseId: string }) {
                         ))}
                       </select>
                     </label>
-                    <button
-                      className="course-certificate-entry"
-                      onClick={() => setView('certificate')}
-                    >
-                      <BrandIcon name="certificate" />
-                      <span>
-                        <strong>شهادة الإكمال</strong>
-                        <small>
-                          {workspace.enrollment.certificate
-                            ? 'شهادتك جاهزة للعرض'
-                            : certificateReady
-                              ? 'أكملت المتطلبات، أصدر شهادتك'
-                              : 'محطتك الأخيرة بعد إكمال المتطلبات'}
-                        </small>
-                      </span>
-                      <BrandIcon name="next" />
-                    </button>
+                    <details className="course-certificate-disclosure" data-locked={certificateLocked || undefined}>
+                      <summary className="course-certificate-entry">
+                        <BrandIcon name={certificateLocked ? 'lock' : 'certificate'} />
+                        <span>
+                          <strong>{certificateLocked ? 'الشهادة مقفلة' : 'شهادة الإكمال'}</strong>
+                          <small>{workspace.enrollment.certificate ? 'شهادتك جاهزة للعرض' : certificateReady ? 'أكملت المتطلبات' : 'عرض متطلبات الشهادة'}</small>
+                        </span>
+                        <BrandIcon name="down" className="course-certificate-toggle" />
+                      </summary>
+                      <div className="course-certificate-details">
+                        {workspace.enrollment.certificate ? (
+                          <button className="course-button" onClick={() => setView('certificate')}>
+                            <BrandIcon name="certificate" />عرض الشهادة
+                          </button>
+                        ) : (
+                          <>
+                            <ul className="course-certificate-checklist" aria-label="متطلبات الشهادة">
+                              <li>
+                                <BrandIcon name={completedLessons === course!.lessons.length ? 'check' : 'play'} />
+                                <span>إكمال الدروس<small>{completedLessons}/{course!.lessons.length} مكتمل</small></span>
+                              </li>
+                              {[course!, ...course!.lessons].flatMap((item) => [
+                                ...(item.quiz ? [
+                                  <li key={`quiz-${item.quiz.id}`}>
+                                    <BrandIcon name={workspace.enrollment.quizzes[item.quiz.id]?.passed ? 'check' : 'document'} />
+                                    <span>{item.quiz.title}<small>{workspace.enrollment.quizzes[item.quiz.id]?.passed ? 'تم الاجتياز' : 'اجتياز الاختبار مطلوب'}</small></span>
+                                  </li>,
+                                ] : []),
+                                ...(item.assignment?.required ? [
+                                  <li key={`assignment-${item.assignment.id}`}>
+                                    <BrandIcon name={workspace.enrollment.assignments[item.assignment.id]?.status === 'Pass' ? 'check' : 'document'} />
+                                    <span>{item.assignment.title}<small>{workspace.enrollment.assignments[item.assignment.id]?.status === 'Pass' ? 'تم الاعتماد' : 'اعتماد ورقة العمل مطلوب'}</small></span>
+                                  </li>,
+                                ] : []),
+                              ])}
+                            </ul>
+                            {certificateReady && (
+                              <BusyButton loadingMode="replace" aria-busy={busy} className="course-button" disabled={busy} onClick={() => act('certificate', {}, 'صدرت شهادة الإكمال.')}>
+                                <BrandIcon name="certificate" />إصدار الشهادة
+                              </BusyButton>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </details>
                   </aside>
                   <section className="course-lesson" key={selected}>
                     {lesson && (
                       <>
                         <div className="course-lesson-heading">
-                          <h2 className="course-lesson-name">
-                            <LessonRing
-                              value={percentFor(lesson)}
-                              complete={!!workspace.enrollment.progress[lesson.id]?.complete}
-                            />
-                            {lesson.title}
-                          </h2>
-                          <span dir="ltr">
-                            {lessonIndex + 1}/{course!.lessons.length}
-                          </span>
-                          {workspace.enrollment.progress[lesson.id]?.complete ? (
-                            <CompletionChip />
-                          ) : (
-                            <span>لم يكتمل بعد</span>
-                          )}
+                          <div className="course-lesson-heading-title">
+                            <h2>{lesson.title}</h2>
+                            {workspace.enrollment.progress[lesson.id]?.complete && <CompletionChip />}
+                          </div>
+                          <span className="course-lesson-index" dir="ltr">{lessonIndex + 1}/{course!.lessons.length}</span>
                         </div>
                         {(lesson.resources.length > 0 || lesson.quiz || lesson.assignment) && (
                           <nav
@@ -406,6 +439,7 @@ function CourseContent({ courseId }: { courseId: string }) {
                                   initialPosition={
                                     workspace.enrollment.progress[lesson.id]?.position ?? 0
                                   }
+                                  bookmarks={workspace.enrollment.bookmarks}
                                   onSaved={save}
                                 />
                               )}
@@ -502,63 +536,19 @@ function CourseContent({ courseId }: { courseId: string }) {
               {view === 'certificate' && (
                 <section className="course-completion">
                   <header className="course-certificate-heading">
-                    <BrandIcon name="certificate" />
+                    <BrandIcon name={certificateLocked ? 'lock' : 'certificate'} />
                     <div>
-                      <h2>شهادة الإكمال</h2>
+                      <h2>{certificateLocked ? 'الشهادة مقفلة' : 'شهادة الإكمال'}</h2>
                       <p>
                         {workspace.enrollment.certificate
                           ? 'أتممت متطلبات الدورة. شهادتك جاهزة للحفظ والمشاركة.'
                           : certificateReady
                             ? 'أكملت جميع المتطلبات. يمكنك إصدار شهادتك الآن.'
-                            : 'أكمل المتطلبات التالية للحصول على شهادتك.'}
+                            : 'تُفتح الشهادة بعد إكمال جميع المتطلبات التالية.'}
                       </p>
                     </div>
                     {(certificateReady || workspace.enrollment.certificate) && <CompletionChip />}
                   </header>
-                  {!workspace.enrollment.certificate && (
-                    <ul className="course-certificate-requirements">
-                      {course!.lessons.map((item) => (
-                        <li key={item.id}>
-                          <span>{item.title}</span>
-                          {workspace.enrollment.progress[item.id]?.complete ? (
-                            <CompletionChip />
-                          ) : (
-                            <button className="course-control" onClick={() => openLesson(item.id)}>
-                              متابعة الدرس
-                              <BrandIcon name="next" />
-                            </button>
-                          )}
-                        </li>
-                      ))}
-                      {[course!, ...course!.lessons].flatMap((item) => [
-                        ...(item.quiz
-                          ? [
-                              <li key={item.quiz.id}>
-                                <span>{item.quiz.title}</span>
-                                {workspace.enrollment.quizzes[item.quiz.id]?.passed ? (
-                                  <CompletionChip />
-                                ) : (
-                                  <span>اجتياز الاختبار مطلوب</span>
-                                )}
-                              </li>,
-                            ]
-                          : []),
-                        ...(item.assignment?.required
-                          ? [
-                              <li key={item.assignment.id}>
-                                <span>{item.assignment.title}</span>
-                                {workspace.enrollment.assignments[item.assignment.id]?.status ===
-                                'Pass' ? (
-                                  <CompletionChip />
-                                ) : (
-                                  <span>اعتماد ورقة العمل مطلوب</span>
-                                )}
-                              </li>,
-                            ]
-                          : []),
-                      ])}
-                    </ul>
-                  )}
                   {workspace.enrollment.certificate ? (
                     <>
                       <div className="course-certificate">
@@ -586,14 +576,15 @@ function CourseContent({ courseId }: { courseId: string }) {
                       </button>
                     </>
                   ) : (
-                    <button
+                    <BusyButton
+                      aria-busy={Boolean(busy)}
                       className="course-button"
                       disabled={busy || !certificateReady}
                       onClick={() => act('certificate', {}, 'صدرت شهادة الإكمال.')}
                     >
-                      <BrandIcon name="certificate" />
-                      إصدار الشهادة
-                    </button>
+                      <BrandIcon name={certificateLocked ? 'lock' : 'certificate'} />
+                      {certificateLocked ? 'الشهادة مقفلة' : 'إصدار الشهادة'}
+                    </BusyButton>
                   )}
                 </section>
               )}
@@ -632,9 +623,13 @@ function Resources({ courseId, resources }: { courseId: string; resources: Cours
         <ul className="course-resources">
           {resources.map((resource) => (
             <li key={resource.id}>
-              <button disabled={Boolean(busy)} onClick={() => download(resource)}>
-                {busy === resource.id ? 'جارٍ تجهيز الملف…' : `تنزيل ${resource.title}`}
-              </button>
+              <BusyButton
+                aria-busy={busy === resource.id}
+                disabled={Boolean(busy)}
+                onClick={() => download(resource)}
+              >
+                {busy === resource.id ? 'جار تجهيز الملف…' : `تنزيل ${resource.title}`}
+              </BusyButton>
             </li>
           ))}
         </ul>
@@ -742,13 +737,14 @@ function Quiz({
         </p>
       )}
       {error && <p role="alert">{error}</p>}
-      <button
+      <BusyButton
+        aria-busy={Boolean(busy)}
         className="course-button"
         disabled={busy || (state?.attempts ?? 0) >= quiz.maxAttempts}
       >
         <BrandIcon name="check" />
-        {busy ? 'جارٍ التصحيح…' : 'إرسال الإجابات'}
-      </button>
+        {busy ? 'جار التصحيح…' : 'إرسال الإجابات'}
+      </BusyButton>
     </form>
   );
 }
@@ -820,10 +816,14 @@ function Assignment({
         </p>
       )}
       {error && <p role="alert">{error}</p>}
-      <button className="course-button" disabled={busy || state?.status === 'Pass'}>
+      <BusyButton
+        aria-busy={Boolean(busy)}
+        className="course-button"
+        disabled={busy || state?.status === 'Pass'}
+      >
         <BrandIcon name="document" />
-        {busy ? 'جارٍ الإرسال…' : state ? 'إعادة إرسال الحل' : 'إرسال الحل للتقييم'}
-      </button>
+        {busy ? 'جار الإرسال…' : state ? 'إعادة إرسال الحل' : 'إرسال الحل للتقييم'}
+      </BusyButton>
     </form>
   );
 }
@@ -1010,7 +1010,7 @@ function CourseTrailer({ courseId }: { courseId: string }) {
           onError={() => setError('تعذّر تشغيل المقطع التعريفي.')}
         />
       ) : (
-        !error && <p role="status">جارٍ تحميل المقطع التعريفي…</p>
+        !error && <p role="status">جار تحميل المقطع التعريفي…</p>
       )}
       {error && (
         <div role="alert">

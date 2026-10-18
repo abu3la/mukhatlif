@@ -1,3 +1,4 @@
+import { MAX_COURSE_UPLOAD_BYTES, courseUploadLimit } from '@mukhtalif/types';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { z } from 'zod';
@@ -75,6 +76,7 @@ customerCoursesRoute.post('/:id/checkout', async (c) => {
   return call(c, 'checkout', { ...input.data, courseId: id.parse(c.req.param('id')) });
 });
 const requests = {
+  bookmark: z.object({ id: z.string().uuid(), lessonId: id, position: z.number().finite().min(0).max(86400), note: z.string().trim().max(2000), remove: z.boolean().optional() }).strict(),
   progress: z
     .object({
       lessonId: id,
@@ -116,21 +118,14 @@ const uploads = {
   'upload-start': z
     .object({
       filename: z.string().regex(/^[a-zA-Z0-9_.-]{1,120}\.(pdf|mp4|webm|mp3)$/i),
-      size: z
-        .number()
-        .int()
-        .min(1)
-        .max(512 * 1024 * 1024),
+      size: z.number().int().min(1).max(MAX_COURSE_UPLOAD_BYTES),
     })
-    .strict(),
+    .strict()
+    .refine(({ filename, size }) => size <= (courseUploadLimit(filename)?.bytes ?? 0)),
   'upload-chunk': z
     .object({
       token: z.string().max(3000),
-      offset: z
-        .number()
-        .int()
-        .min(0)
-        .max(512 * 1024 * 1024),
+      offset: z.number().int().min(0).max(MAX_COURSE_UPLOAD_BYTES),
       content: z.string().max(7100000),
     })
     .strict(),

@@ -3,7 +3,7 @@ import type { CourseDefinition } from '@mukhtalif/types';
 import type { Env } from '../env';
 import type { AppEnv } from '../auth';
 import { learningDb, checkDb } from './service';
-import { files, LearningError } from './domain';
+import { files, LearningError, assertVideoAccess, type State } from './domain';
 export async function assetLink(
   env: Env,
   origin: string,
@@ -50,12 +50,13 @@ export async function serveLearningMedia(c: Context<AppEnv>) {
   if (ticket.user_id) {
     const e = await db
       .from('learning_enrollments')
-      .select('user_id')
+      .select('user_id,state')
       .eq('course_id', course.id)
       .eq('user_id', ticket.user_id)
       .maybeSingle();
     checkDb(e.error);
     if (!e.data) throw new LearningError(403, 'سجّل في الدورة أولًا.');
+    assertVideoAccess(course, e.data.state as State, ticket.file);
   } else if (ticket.file !== course.trailer) throw new LearningError(403, 'الملف غير متاح.');
   const ar = await db
     .from('learning_assets')
@@ -66,6 +67,11 @@ export async function serveLearningMedia(c: Context<AppEnv>) {
     .maybeSingle();
   checkDb(ar.error);
   if (!ar.data || !c.env.MEDIA) throw new LearningError(404, 'الملف غير موجود.');
+  // Browser navigation to a lesson video is not an authorized playback surface.
+  // This is a convenience barrier, not DRM: clients can spoof fetch metadata.
+  if (ticket.user_id && ar.data.mime.startsWith('video/') && c.req.header('Sec-Fetch-Dest') === 'document') {
+    throw new LearningError(403, 'شاهد الفيديو من داخل الدورة.');
+  }
   const a = ar.data,
     head = await c.env.MEDIA.head(a.object_key);
   if (!head) throw new LearningError(404, 'الملف غير موجود.');

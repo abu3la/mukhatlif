@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import type { CourseEnrollment, CourseLesson } from '@mukhtalif/types';
+import { BusyButton } from '../busy-button';
 import { BrandIcon } from '../brand-icon';
 import { useCoursesApi } from './api';
 
@@ -9,7 +10,9 @@ export function CourseVideo({
   lesson,
   initialPosition,
   onSaved,
+  bookmarks,
 }: {
+  bookmarks?: CourseEnrollment['bookmarks'];
   courseId: string;
   lesson: CourseLesson;
   initialPosition: number;
@@ -22,9 +25,23 @@ export function CourseVideo({
   saved.current = onSaved;
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
-  const [status, setStatus] = useState('');
+  const [draft, setDraft] = useState<{id: string; position: number; note: string} | null>(null);
+  const [bookmarkBusy, setBookmarkBusy] = useState(false);
+  const [bookmarkError, setBookmarkError] = useState('');
+  const marks = Object.entries(bookmarks ?? {}).filter(([, mark]) => mark.lessonId === lesson.id).sort((a, b) => a[1].position - b[1].position);
+  const timestamp = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+  const writeBookmark = async (remove = false) => {
+    if (!draft || bookmarkBusy) return;
+    setBookmarkBusy(true);
+    setBookmarkError('');
+    try {
+      const state = await api<CourseEnrollment>(`/app/courses/${courseId}/bookmark`, { ...draft, lessonId: lesson.id, remove });
+      saved.current(state);
+      setDraft(null);
+    } catch (e) { setBookmarkError((e as Error).message); }
+    finally { setBookmarkBusy(false); }
+  };
   const [retry, setRetry] = useState(0);
-  const flush = useRef<() => void>(() => {});
   useEffect(() => {
     const controller = new AbortController();
     setUrl('');
@@ -67,7 +84,6 @@ export function CourseVideo({
           const state = await api<CourseEnrollment>(`/app/courses/${courseId}/progress`, body);
           if (active) {
             saved.current(state);
-            setStatus('حُفظ موضعك');
             setError('');
           }
         })
@@ -75,7 +91,6 @@ export function CourseVideo({
           if (active) setError(`${e.message} قد لا يُحفظ آخر موضع.`);
         });
     };
-    flush.current = () => send();
     const metadata = () => {
       element.currentTime = Math.min(initial.current, element.duration || 0);
       start = previous = element.currentTime;
@@ -125,21 +140,49 @@ export function CourseVideo({
           ref={video}
           src={url}
           controls
+          controlsList="nodownload"
+          onContextMenu={(event) => event.preventDefault()}
           aria-label={`فيديو الدرس: ${lesson.title}`}
           playsInline
           preload="metadata"
           onError={() => setError('تعذّر تشغيل الفيديو. أعد تحميله.')}
         />
       ) : (
-        !error && <p role="status">جارٍ تحميل الفيديو…</p>
+        !error && <p role="status">جار تحميل الفيديو…</p>
       )}
-      <div className="course-video-status">
-        <span role="status">{status}</span>
-        <button className="course-control" onClick={() => flush.current()}>
-          <BrandIcon name="save" />
-          احفظ موضعي
-        </button>
+      <div className="course-bookmark-controls">
+        <button className="course-control" disabled={!url || bookmarkBusy} onClick={() => {
+          video.current?.pause();
+          setBookmarkError('');
+          setDraft({ id: crypto.randomUUID(), position: Math.min(video.current?.currentTime ?? 0, lesson.durationSeconds), note: '' });
+        }}><BrandIcon name="save" />أضف علامة</button>
       </div>
+      {draft && (
+        <form className="course-bookmark-editor" onSubmit={(event) => { event.preventDefault(); void writeBookmark(); }}>
+          <label>ملاحظة عند <bdi>{timestamp(draft.position)}</bdi>
+            <textarea maxLength={2000} value={draft.note} placeholder="ما الذي تريد تذكّره؟" onChange={(event) => setDraft({ ...draft, note: event.target.value })} disabled={bookmarkBusy} />
+          </label>
+          <div className="course-bookmark-controls">
+            <BusyButton className="course-button" loadingMode="replace" aria-busy={bookmarkBusy} disabled={bookmarkBusy} type="submit"><BrandIcon name="save" />حفظ العلامة</BusyButton>
+            <button type="button" className="course-control" disabled={bookmarkBusy} onClick={() => setDraft(null)}>إلغاء</button>
+            {bookmarks?.[draft.id] && <BusyButton type="button" className="course-control" loadingMode="replace" aria-busy={bookmarkBusy} disabled={bookmarkBusy} onClick={() => void writeBookmark(true)}>حذف العلامة</BusyButton>}
+          </div>
+          {bookmarkError && <p role="alert">{bookmarkError}</p>}
+        </form>
+      )}
+      {marks.length > 0 && (
+        <div className="course-bookmarks" aria-label="علامات الفيديو">
+          {marks.map(([id, mark]) => (
+            <div className="course-bookmark" key={id}>
+              <button className="course-control" aria-label={`انتقل إلى ${timestamp(mark.position)}`} disabled={!url} onClick={() => {
+                if (video.current) { video.current.currentTime = mark.position; void video.current.play().catch(() => {}); }
+              }}><BrandIcon name="play" /><bdi>{timestamp(mark.position)}</bdi></button>
+              <p>{mark.note || 'علامة بدون ملاحظة'}</p>
+              <button className="course-control" aria-label="تعديل الملاحظة" title="تعديل الملاحظة" disabled={bookmarkBusy} onClick={() => { setBookmarkError(''); setDraft({ id, position: mark.position, note: mark.note }); }}><BrandIcon name="edit" /></button>
+            </div>
+          ))}
+        </div>
+      )}
       {error && (
         <div role="alert">
           <p>{error}</p>

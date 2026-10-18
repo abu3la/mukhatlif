@@ -1,5 +1,7 @@
 'use client';
 
+import { BusyButton } from './busy-button';
+
 import { ContentSkeleton } from './content-skeleton';
 
 import Link from 'next/link';
@@ -88,7 +90,7 @@ function statusLabel(status: PlayerStatus, error: string | null): string {
   if (error) return error;
   switch (status) {
     case 'loading':
-      return 'جارٍ تجهيز الصوت…';
+      return 'جار تجهيز الصوت…';
     case 'playing':
       return '';
     case 'paused':
@@ -549,7 +551,7 @@ export function PlayEpisodeButton({
       )}
       {variant === 'label' ? (
         <span>
-          {loading ? 'جارٍ التحميل' : playing ? 'إيقاف مؤقت' : current ? 'متابعة' : 'استمع الآن'}
+          {loading ? 'جار التحميل' : playing ? 'إيقاف مؤقت' : current ? 'متابعة' : 'استمع الآن'}
         </span>
       ) : null}
     </button>
@@ -852,6 +854,7 @@ function PlayerTools() {
   const bookmarkDialog = useRef<HTMLDialogElement>(null);
   const [titles, setTitles] = useState<Record<string, Episode>>({});
   const [busy, setBusy] = useState(false);
+  const [pendingAction, setPendingAction] = useState('');
   const [message, setMessage] = useState('');
   const [note, setNote] = useState('');
   const [moment, setMoment] = useState<{ episode: PlayerEpisode; seconds: number } | null>(null);
@@ -881,9 +884,11 @@ function PlayerTools() {
       setMessage('تعذّر تحميل بعض الحلقات. حاول مرة أخرى.');
     } finally {
       setBusy(false);
+      setPendingAction('');
     }
   };
-  const update = async (ids: string[]) => {
+  const update = async (ids: string[], action: string) => {
+    setPendingAction(action);
     setBusy(true);
     setMessage('');
     try {
@@ -893,6 +898,7 @@ function PlayerTools() {
       setMessage('تعذّر تحديث الانتظار. حاول مرة أخرى.');
     } finally {
       setBusy(false);
+      setPendingAction('');
     }
   };
   return (
@@ -948,7 +954,8 @@ function PlayerTools() {
           <ol className="queue-list">
             {customer.library.queueEpisodeIds.map((id, index) => (
               <li key={id}>
-                <button
+                <BusyButton
+                  aria-busy={pendingAction === `play:${id}`}
                   className="queue-list__title"
                   disabled={busy || !titles[id] || titles[id].premium}
                   onClick={() => {
@@ -963,7 +970,7 @@ function PlayerTools() {
                       audioSrc: `${customer.config.apiOrigin}/episodes/${encodeURIComponent(id)}/audio`,
                       href: `/episodes/${encodeURIComponent(id)}`,
                     });
-                    void update(customer.library.queueEpisodeIds.filter((value) => value !== id));
+                    void update(customer.library.queueEpisodeIds.filter((value) => value !== id), `play:${id}`);
                     queueDialog.current?.close();
                   }}
                 >
@@ -976,42 +983,45 @@ function PlayerTools() {
                     ) : (
                       'الحلقة غير متاحة'
                     ))}
-                </button>
+                </BusyButton>
                 <div className="queue-list__tools">
-                  <button
+                  <BusyButton
+                    aria-busy={pendingAction === `up:${id}`}
                     className="icon-action"
                     aria-label="تقديم الحلقة في الانتظار"
                     disabled={busy || index === 0}
                     onClick={() => {
                       const ids = [...customer.library.queueEpisodeIds];
                       [ids[index - 1], ids[index]] = [ids[index], ids[index - 1]];
-                      void update(ids);
+                      void update(ids, `up:${id}`);
                     }}
                   >
                     <BrandIcon name="up" />
-                  </button>
-                  <button
+                  </BusyButton>
+                  <BusyButton
+                    aria-busy={pendingAction === `down:${id}`}
                     className="icon-action"
                     aria-label="تأخير الحلقة في الانتظار"
                     disabled={busy || index === customer.library.queueEpisodeIds.length - 1}
                     onClick={() => {
                       const ids = [...customer.library.queueEpisodeIds];
                       [ids[index + 1], ids[index]] = [ids[index], ids[index + 1]];
-                      void update(ids);
+                      void update(ids, `down:${id}`);
                     }}
                   >
                     <BrandIcon name="down" />
-                  </button>
-                  <button
+                  </BusyButton>
+                  <BusyButton
+                    aria-busy={pendingAction === `remove:${id}`}
                     className="icon-action"
                     aria-label="إزالة من الانتظار"
                     disabled={busy}
                     onClick={() =>
-                      void update(customer.library.queueEpisodeIds.filter((value) => value !== id))
+                      void update(customer.library.queueEpisodeIds.filter((value) => value !== id), `remove:${id}`)
                     }
                   >
                     <BrandIcon name="close" />
-                  </button>
+                  </BusyButton>
                 </div>
               </li>
             ))}
@@ -1046,20 +1056,22 @@ function PlayerTools() {
               setMessage('تعذّر حفظ اللحظة. حاول مرة أخرى.');
             } finally {
               setBusy(false);
+      setPendingAction('');
             }
           }}
         >
           <p>
-            {moment?.episode.title} · <bdi>{formatPlaybackTime(moment?.seconds ?? 0)}</bdi>
+            {moment?.episode.title} <BrandIcon name="clock" className="metadata-icon" />{' '}
+            <bdi>{formatPlaybackTime(moment?.seconds ?? 0)}</bdi>
           </p>
           <label>
             ملاحظة (اختياري)
             <input value={note} maxLength={300} onChange={(event) => setNote(event.target.value)} />
           </label>
           {message && <p role="status">{message}</p>}
-          <button type="submit" disabled={busy}>
+          <BusyButton aria-busy={Boolean(busy)} type="submit" disabled={busy}>
             احفظ اللحظة
-          </button>
+          </BusyButton>
         </form>
       </dialog>
     </div>
