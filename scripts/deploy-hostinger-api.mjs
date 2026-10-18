@@ -45,7 +45,7 @@ if (phase === 'prepare') {
     await copyFile(join(root, 'scripts', file), join(source, file));
   await writeFile(
     join(source, 'server.js'),
-    `process.env.MUKHTALIF_RELEASE_SHA = ${JSON.stringify(sha)};\nrequire('./node.cjs');\n`,
+    `process.env.MUKHTALIF_RELEASE_SHA = ${JSON.stringify(sha)};\nprocess.env.LEARNING_SIMULATION_ENABLED ??= 'true';\nrequire('./node.cjs');\n`,
   );
   await writeFile(
     join(source, 'package.json'),
