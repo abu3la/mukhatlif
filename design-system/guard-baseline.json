@@ -1,0 +1,65 @@
+{
+  "apps/web/public/error-state.css": {
+    "font-family": 1,
+    "font-size": 4,
+    "font-weight": 2,
+    "line-height": 1,
+    "radius": 1,
+    "spacing": 9
+  },
+  "apps/web/src/app/about/about.module.css": {
+    "font-size": 5,
+    "line-height": 3,
+    "media-width": 3,
+    "radius": 1,
+    "spacing": 35
+  },
+  "apps/web/src/app/handoff.css": {
+    "font-size": 1,
+    "important": 2,
+    "line-height": 1,
+    "radius": 3,
+    "spacing": 48
+  },
+  "apps/web/src/app/listener.css": {
+    "font-size": 17,
+    "important": 3,
+    "line-height": 8,
+    "media-width": 5,
+    "radius": 5,
+    "spacing": 188
+  },
+  "apps/web/src/app/public-pages.css": {
+    "font-size": 19,
+    "important": 2,
+    "line-height": 10,
+    "media-width": 3,
+    "radius": 20,
+    "spacing": 140
+  },
+  "apps/web/src/components/customer.css": {
+    "font-size": 10,
+    "important": 2,
+    "line-height": 4,
+    "media-width": 2,
+    "radius": 8,
+    "spacing": 117
+  },
+  "apps/web/src/components/episode-video.module.css": {
+    "spacing": 1
+  },
+  "apps/web/src/components/player.module.css": {
+    "font-size": 1,
+    "line-height": 1,
+    "media-width": 3,
+    "radius": 2,
+    "spacing": 24
+  },
+  "apps/web/src/components/site-navigation.module.css": {
+    "font-size": 1,
+    "line-height": 1,
+    "media-width": 3,
+    "radius": 2,
+    "spacing": 24
+  }
+}

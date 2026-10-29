@@ -34,8 +34,8 @@
 .episodeTitle {
   display: block;
   color: var(--text);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-bold);
   line-height: 1.45;
   text-decoration: none;
   overflow-wrap: anywhere;
@@ -51,14 +51,14 @@
   display: block;
   overflow: hidden;
   color: var(--text-faint);
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: var(--mk-text-2xs);
+  line-height: var(--mk-leading-heading);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .error {
-  color: #ffaaa9;
+  color: var(--mk-broadcast-danger);
 }
 
 .transport {
@@ -82,13 +82,13 @@
   color: var(--text);
   background: transparent;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--mk-text-xs);
   font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition:
-    color 140ms ease,
-    background-color 140ms ease,
-    border-color 140ms ease;
+    color var(--mk-duration-fast) ease,
+    background-color var(--mk-duration-fast) ease,
+    border-color var(--mk-duration-fast) ease;
 }
 
 .button:hover,
@@ -120,7 +120,7 @@
   gap: 9px;
   inline-size: auto;
   padding-inline: 16px;
-  font-weight: 700;
+  font-weight: var(--mk-weight-bold);
 }
 
 .icon {
@@ -140,7 +140,7 @@
 .time {
   min-inline-size: 3.8ch;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--mk-text-2xs);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -163,7 +163,7 @@
   align-items: center;
   gap: 6px;
   color: var(--text-faint);
-  font-size: 12px;
+  font-size: var(--mk-text-2xs);
   white-space: nowrap;
   flex: none;
 }
@@ -176,7 +176,7 @@
   color: var(--text);
   background: var(--ink-lifted);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--mk-text-xs);
   font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
@@ -197,14 +197,14 @@
 }
 
 .inlineTitle {
-  font-size: 17px;
-  line-height: 1.5;
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-heading);
 }
 
 .inlineStatus {
   margin-block-start: 2px;
   color: var(--text-faint);
-  font-size: 13px;
+  font-size: var(--mk-text-xs);
 }
 
 .inlineControls {
@@ -294,9 +294,9 @@
 }
 .bar {
   min-block-size: var(--player-height);
-  background: #151845;
-  border-color: #2c3060;
-  color: #eaebf6;
+  background: var(--mk-broadcast-surface);
+  border-color: var(--mk-broadcast-line);
+  color: var(--mk-broadcast-ink);
 }
 .barInner {
   max-inline-size: none;
@@ -307,36 +307,36 @@
 }
 .episodeLink,
 .episodeTitle {
-  font-weight: 600;
-  font-size: 16px;
-  color: #eaebf6;
+  font-weight: var(--mk-weight-semibold);
+  font-size: var(--mk-text-base);
+  color: var(--mk-broadcast-ink);
 }
 .episodeLink:hover {
-  color: #38df82;
+  color: var(--mk-brand-green);
 }
 .showTitle,
 .status,
 .time {
-  color: #bfc3df;
+  color: var(--mk-broadcast-ink-muted);
 }
 .status {
   font-size: 11px;
 }
 .error {
-  color: #ffaaa9;
+  color: var(--mk-broadcast-danger);
 }
 .button,
 .playButton,
 .closeButton {
-  border-radius: 50%;
+  border-radius: var(--mk-radius-round);
   min-inline-size: 44px;
   min-block-size: 44px;
-  color: #eaebf6;
+  color: var(--mk-broadcast-ink);
 }
 .button:hover,
 .closeButton:hover {
-  background: #262b73;
-  color: #fff;
+  background: var(--mk-broadcast-hover);
+  color: var(--mk-broadcast-thumb);
 }
 .playButton {
   min-inline-size: 44px;
@@ -349,19 +349,19 @@
 }
 .bar .playButton,
 .inline .playButton {
-  background: #38df82;
-  color: #0d0f2e;
+  background: var(--mk-brand-green);
+  color: var(--mk-broadcast-ground);
 }
 .bar .playButton:hover,
 .inline .playButton:hover {
-  background: #5ce69a;
+  background: var(--mk-brand-green-hover);
 }
 :global([data-concept='third']) .playButton {
-  background: #38df82;
-  color: #0d0f2e;
+  background: var(--mk-brand-green);
+  color: var(--mk-broadcast-ground);
 }
 .labelButton {
-  border-radius: 999px;
+  border-radius: var(--mk-radius-pill);
   min-block-size: 52px;
   padding-inline: 26px;
 }
@@ -375,29 +375,29 @@
   block-size: 44px;
   flex: none;
   padding: 0;
-  background: #1d2154;
-  border: 1px solid #3a3f78;
-  font-weight: 500;
+  background: var(--mk-broadcast-raised);
+  border: 1px solid var(--mk-broadcast-line-strong);
+  font-weight: var(--mk-weight-medium);
 }
 .transport > .button:hover:not(:disabled),
 .tools > .button:hover:not(:disabled),
 .barInner > .closeButton:hover {
-  background: #262b73;
-  border-color: #4a5090;
-  color: #fff;
+  background: var(--mk-broadcast-hover);
+  border-color: var(--mk-broadcast-line-hover);
+  color: var(--mk-broadcast-thumb);
 }
 .bar .playButton {
   inline-size: 44px;
   block-size: 44px;
   padding: 0;
-  border: 1px solid #38df82;
+  border: 1px solid var(--mk-brand-green);
 }
 .bar .playButton:hover {
-  border-color: #5ce69a;
+  border-color: var(--mk-brand-green-hover);
 }
 .bar .range,
 .inline .range {
-  accent-color: #38df82;
+  accent-color: var(--mk-brand-green);
   min-height: 32px;
 }
 .range {
@@ -408,7 +408,7 @@
   inline-size: 52px;
   block-size: 44px;
   background: transparent;
-  color: #eaebf6;
+  color: var(--mk-broadcast-ink);
   border: 0;
   border-radius: 8px;
   min-width: 44px;
@@ -417,12 +417,12 @@
   text-align: center;
   text-align-last: center;
   line-height: 1;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-medium);
 }
 .rateSelect:hover:not(:disabled) {
-  background: #262b73;
-  color: #fff;
+  background: var(--mk-broadcast-hover);
+  color: var(--mk-broadcast-thumb);
 }
 .rateField > span {
   display: none;
@@ -443,7 +443,7 @@
   height: 18px;
   border: 2px solid currentColor;
   border-inline-end-color: transparent;
-  border-radius: 50%;
+  border-radius: var(--mk-radius-round);
   animation: player-spin 0.8s linear infinite;
 }
 @keyframes player-spin {
@@ -517,13 +517,13 @@
   }
   .bar .episodeLink,
   .bar .episodeTitle {
-    font-size: 14px;
+    font-size: var(--mk-text-sm);
   }
   .bar .tools .button {
     min-height: 44px;
   }
   .time {
-    font-size: 12px;
+    font-size: var(--mk-text-2xs);
   }
   .inlineControls {
     display: flex;
@@ -558,7 +558,7 @@
   grid-column: 2;
 }
 .bar :focus-visible {
-  outline: 2px solid #38df82;
+  outline: 2px solid var(--mk-brand-green);
   outline-offset: 3px;
 }
 .timeline {
@@ -575,27 +575,27 @@
   direction: rtl;
   height: 8px;
   min-height: 8px;
-  border-radius: 999px;
+  border-radius: var(--mk-radius-pill);
   outline-offset: 8px;
 }
 .range::-webkit-slider-thumb {
   appearance: none;
   width: 18px;
   height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  border: 3px solid #38df82;
+  border-radius: var(--mk-radius-round);
+  background: var(--mk-broadcast-thumb);
+  border: 3px solid var(--mk-brand-green);
 }
 .range::-moz-range-thumb {
   width: 12px;
   height: 12px;
-  border-radius: 50%;
-  background: #fff;
-  border: 3px solid #38df82;
+  border-radius: var(--mk-radius-round);
+  background: var(--mk-broadcast-thumb);
+  border: 3px solid var(--mk-brand-green);
 }
 .range::-webkit-slider-runnable-track {
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--mk-radius-pill);
 }
 .range::-webkit-slider-thumb {
   margin-top: -5px;
@@ -603,7 +603,7 @@
 .range::-moz-range-track {
   height: 8px;
   background: transparent;
-  border-radius: 999px;
+  border-radius: var(--mk-radius-pill);
 }
 
 /* Titles may wrap; reserve the dock's measured height rather than covering the page. */

@@ -7,3 +7,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+# Design system
+
+UI changes in this app follow `../../design-system/README.md`: tokens from
+`libs/design-tokens/src/web.ts` (`pnpm design:build`), the component recipes in
+`design-system/COMPONENTS.md`, and `pnpm design:check` before handoff.

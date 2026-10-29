@@ -44,14 +44,14 @@
   background: transparent;
   color: var(--fg);
   font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-medium);
+  line-height: var(--mk-leading-heading);
   white-space: nowrap;
   text-decoration: none;
   transition:
-    background-color 140ms ease,
-    color 140ms ease;
+    background-color var(--mk-duration-fast) ease,
+    color var(--mk-duration-fast) ease;
 }
 .navLink {
   padding-inline: 0;
@@ -63,7 +63,7 @@
 }
 .navLink[aria-current='page'],
 .menuLink[aria-current='page'] {
-  font-weight: 700;
+  font-weight: var(--mk-weight-bold);
 }
 .navLink:hover,
 .menuLink:hover {
@@ -104,7 +104,8 @@
   color: var(--fg);
 }
 .menuDialog::backdrop {
-  background: rgb(13 15 46 / 55%);
+  /* The fallback covers browsers whose ::backdrop does not inherit tokens. */
+  background: var(--mk-scrim-menu, rgb(13 15 46 / 55%));
 }
 .menuDialog[open] {
   animation: menu-settle 160ms ease-out;
@@ -119,8 +120,8 @@
 .menuHead h2 {
   margin: 0;
   font-size: clamp(22px, 3vw, 28px);
-  font-weight: 600;
-  line-height: 1.5;
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
 }
 .closeButton {
   display: grid;
@@ -130,7 +131,7 @@
   height: 44px;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 50%;
+  border-radius: var(--mk-radius-round);
   background: transparent;
   color: var(--fg);
 }
@@ -156,9 +157,9 @@
 .menuGroup h3 {
   margin: 0 0 12px;
   color: var(--muted);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-medium);
+  line-height: var(--mk-leading-heading);
 }
 .menuLink {
   display: flex;
@@ -166,7 +167,7 @@
   min-height: 44px;
   padding-block: 8px;
   color: var(--fg);
-  font-size: 17px;
+  font-size: var(--mk-text-lg);
   line-height: 1.65;
   text-decoration: none;
 }
@@ -179,7 +180,7 @@
   margin-top: 28px;
   border-radius: var(--radius);
   background: var(--surface);
-  font-size: 14px;
+  font-size: var(--mk-text-sm);
 }
 .themeControl svg {
   flex: none;
@@ -245,7 +246,7 @@
     gap: 28px 20px;
   }
   .menuLink {
-    font-size: 16px;
+    font-size: var(--mk-text-base);
   }
 }
 @media (max-width: 380px) {

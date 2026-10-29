@@ -617,7 +617,7 @@ function Timeline({ episode }: { episode: PlayerEpisode }) {
         aria-label="موضع التشغيل"
         aria-valuetext={`${formatPlaybackTime(position)} من ${formatPlaybackTime(duration)}`}
         style={{
-          background: `linear-gradient(to left, #38df82 ${duration ? (position / duration) * 100 : 0}%, #454b8a ${duration ? (position / duration) * 100 : 0}%)`,
+          background: `linear-gradient(to left, var(--mk-brand-green) ${duration ? (position / duration) * 100 : 0}%, var(--mk-broadcast-track) ${duration ? (position / duration) * 100 : 0}%)`,
         }}
         onChange={(event) => player.seek(Number(event.currentTarget.value))}
       />
