@@ -4,7 +4,7 @@
 
 The Hono API now owns learning. The separate Python LMS service and its URL/key/secret configuration were removed. Both deployment runtimes use the same TypeScript rules, Supabase repositories and private R2 storage adapter.
 
-- Supabase Auth UUIDs identify learners. Existing account provisioning and Studio administrator authorization remain mandatory.
+- Supabase Auth UUIDs identify learners. Existing account provisioning and the Studio Academy permissions (ADR 0008) remain mandatory.
 - Migration `0025_learning.sql` adds private courses, enrollments, assets and expiring media tickets. Browser database roles cannot read or mutate these tables or execute the mutation functions.
 - The catalogue exposes descriptions, curriculum titles and an optional trailer. It does not expose lesson bodies, private asset paths or quiz answers. Enrollment is required for the workspace and private media.
 - Simulated checkout creates one enrollment and order per course/customer. The database reads the current price while holding the course lock. No gateway, charge, payment card or payment webhook exists.

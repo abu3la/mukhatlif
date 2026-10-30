@@ -448,7 +448,7 @@ function toStudioRole(
     description: row.description,
     isSystem: row.is_system,
     isProtected: row.is_protected,
-    permissions: toPermissionIds(permissions),
+    permissions: row.is_protected ? [...PERMISSION_IDS] : toPermissionIds(permissions),
     memberCount,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -1607,6 +1607,9 @@ export function createSupabaseRepository(url: string, serviceRoleKey: string): R
       return toCreateRoleResult(data);
     },
     async resolveRolePermissions(role) {
+      // The protected role is complete by definition (ADR 0003), so its access
+      // never waits on stored rows when the permission vocabulary grows.
+      if (role === 'admin') return [...PERMISSION_IDS];
       const { data, error } = await db
         .from('role_permissions')
         .select('role, permission')

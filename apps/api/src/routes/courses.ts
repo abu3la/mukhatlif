@@ -2,7 +2,7 @@ import { MAX_COURSE_UPLOAD_BYTES, courseUploadLimit } from '@mukhtalif/types';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { z } from 'zod';
-import { requireAdmin, requireAuth, type AppEnv } from '../auth';
+import { requireAuth, requirePermission, type AppEnv } from '../auth';
 import { learningRequest, LearningError } from '../learning/service';
 
 import { serveLearningMedia } from '../learning/media';
@@ -34,7 +34,10 @@ customerCoursesRoute.use('*', requireAuth, async (c, next) => {
   if (!c.get('authEmail')) return c.json({ error: 'أكّد بريدك الإلكتروني أولًا.' }, 403);
   return next();
 });
-studioCoursesRoute.use('*', requireAdmin);
+// Reads need the view permission; every other method changes Academy content.
+studioCoursesRoute.use('*', (c, next) =>
+  requirePermission(c.req.method === 'GET' ? 'courses.view' : 'courses.manage')(c, next),
+);
 const id = z.string().regex(/^[a-zA-Z0-9_-]{1,140}$/);
 async function call(c: Context<AppEnv>, action: string, payload: unknown = {}) {
   const admin = action.startsWith('studio.');

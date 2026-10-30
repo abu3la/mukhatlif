@@ -261,6 +261,34 @@ describe('dynamic role pages', () => {
     expect(screen.getByRole('group', { name: 'الحلقات' })).toBeDisabled();
   });
 
+  it('grants the Academy on its own through the permission matrix', async () => {
+    const user = userEvent.setup();
+    const onUpdate = vi.fn(async (_roleId: string, permissions: readonly PermissionId[]) => ({
+      ...SEEDED_ROLES[1],
+      permissions: [...permissions],
+    }));
+    render(
+      <TestProviders onUpdate={onUpdate}>
+        <MemoryRouter initialEntries={['/roles/reviewer']}>
+          <Routes>
+            <Route path="/roles/:roleId" element={<RoleDetailsView />} />
+          </Routes>
+        </MemoryRouter>
+      </TestProviders>,
+    );
+
+    const academy = screen.getByRole('group', { name: 'أكاديمية مختلف' });
+    await user.click(within(academy).getByRole('radio', { name: 'إدارة' }));
+    await user.click(screen.getByRole('button', { name: 'حفظ الصلاحيات' }));
+    await waitFor(() =>
+      expect(onUpdate).toHaveBeenCalledWith('reviewer', [
+        'episodes.view',
+        'courses.view',
+        'courses.manage',
+      ]),
+    );
+  });
+
   it('shows a recoverable not-found state for an unknown role ID', () => {
     render(
       <TestProviders>

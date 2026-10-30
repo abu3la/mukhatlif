@@ -122,17 +122,3 @@ export function requirePermission(permission: PermissionId): MiddlewareHandler<A
     await next();
   };
 }
-
-export const requireAdmin: MiddlewareHandler<AppEnv> = async (c, next) => {
-  const member = c.get('studioMember');
-  if (!member) {
-    if (c.get('authUserId')) {
-      return c.json({ error: 'Studio membership is not provisioned' }, 403);
-    }
-    return c.json({ error: 'Authentication required' }, 401);
-  }
-  if (member.role !== 'admin') {
-    return c.json({ error: 'Admin access required', code: 'ADMIN_REQUIRED' }, 403);
-  }
-  await next();
-};

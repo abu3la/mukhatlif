@@ -4,7 +4,15 @@ import { COURSE_UPLOAD_LIMITS, courseUploadLimit } from '@mukhtalif/types';
 import { RichTextEditor } from '../articles/ui/rich-text-editor';
 import { richTextDocumentSchema } from '@mukhtalif/validation';
 import type { RichTextDocument } from '@mukhtalif/types';
-import { useCallback, useEffect, useState, useRef, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+  type ReactNode,
+} from 'react';
 import {
   CLIENT_SURFACE_HEADER,
   type CourseDefinition,
@@ -16,7 +24,7 @@ import {
   type CourseRosterEntry,
 } from '@mukhtalif/types';
 import type { AdminAuthGateway } from '@/data';
-import { useAdminAuth } from '@/application';
+import { canManagePage, useAdminAuth } from '@/application';
 import './courses.css';
 
 type Connection = { baseUrl: string; devUserId: string | null };
@@ -30,6 +38,8 @@ type Roster = CourseRosterEntry & {
     comments: string;
   }[];
 };
+/** False for a role that can view the Academy but not change it. */
+const CanManageCourses = createContext(true);
 const uid = () => crypto.randomUUID();
 const blank = (): CourseDefinition => ({
   id: uid(),
@@ -62,10 +72,11 @@ export function CoursesManagement({
   connection: Connection;
 }) {
   const { viewer } = useAdminAuth();
-  return viewer?.role === 'admin' ? (
-    <CourseManager key={viewer.id} authGateway={authGateway} connection={connection} />
-  ) : (
-    <p role="alert">إدارة الدورات متاحة للمدير فقط.</p>
+  if (!viewer) return null;
+  return (
+    <CanManageCourses.Provider value={canManagePage(viewer, 'courses')}>
+      <CourseManager key={viewer.id} authGateway={authGateway} connection={connection} />
+    </CanManageCourses.Provider>
   );
 }
 function CourseManager({
@@ -75,6 +86,7 @@ function CourseManager({
   authGateway: AdminAuthGateway;
   connection: Connection;
 }) {
+  const canManage = useContext(CanManageCourses);
   const request: Request = useCallback(
     async <T,>(path: string, body?: unknown): Promise<T> => {
       const token = authGateway.getAccessToken();
@@ -154,7 +166,10 @@ function CourseManager({
     <main className="studio-courses">
       <header>
         <h1>أكاديمية مختلف</h1>
-        <p>إدارة المحتوى والتسجيلات والتقييم. جميع عمليات الدفع هنا تجريبية.</p>
+        <p>
+          {canManage ? 'إدارة المحتوى والتسجيلات والتقييم.' : 'لديك صلاحية العرض فقط.'} جميع عمليات
+          الدفع هنا تجريبية.
+        </p>
       </header>
       {error && (
         <div role="alert">
@@ -189,18 +204,20 @@ function CourseManager({
             ))}
           </select>
         </label>
-        <button
-          disabled={busy}
-          onClick={() => {
-            setCourse(blank());
-            setPersisted(false);
-            setRoster([]);
-            setTab('content');
-            setSection('basics');
-          }}
-        >
-          دورة جديدة
-        </button>
+        {canManage && (
+          <button
+            disabled={busy}
+            onClick={() => {
+              setCourse(blank());
+              setPersisted(false);
+              setRoster([]);
+              setTab('content');
+              setSection('basics');
+            }}
+          >
+            دورة جديدة
+          </button>
+        )}
       </div>
       {loading && <p role="status">جار تحميل الدورات…</p>}
       {course && (
@@ -257,7 +274,7 @@ function CourseManager({
                 });
               }}
             >
-              <fieldset disabled={busy} className="studio-course-fields">
+              <fieldset disabled={busy || !canManage} className="studio-course-fields">
                 <EditorSection
                   id="basics"
                   title="معلومات الدورة"
@@ -307,7 +324,7 @@ function CourseManager({
                   onToggle={setSection}
                 >
                   <CourseTextEditor
-                    disabled={busy}
+                    disabled={busy || !canManage}
                     key={`${course.id}-description`}
                     title="وصف الدورة"
                     text={course.description}
@@ -317,7 +334,7 @@ function CourseManager({
                     }
                   />
                   <CourseTextEditor
-                    disabled={busy}
+                    disabled={busy || !canManage}
                     key={`${course.id}-overview`}
                     title="ماذا سيتعلم المتدرب؟"
                     text={course.overview ?? ''}
@@ -385,7 +402,7 @@ function CourseManager({
                         />
                       </Field>
                       <CourseTextEditor
-                        disabled={busy}
+                        disabled={busy || !canManage}
                         key={lesson.id}
                         title="محتوى الدرس"
                         text={lesson.body}
@@ -554,15 +571,17 @@ function CourseManager({
                     </Field>
                   </div>
                 </EditorSection>
-                <div className="studio-course-savebar">
-                  <span>
-                    {course.title || 'دورة جديدة'}
-                    <small>احفظ التغييرات قبل مغادرة الصفحة.</small>
-                  </span>
-                  <Button aria-busy={busy} type="submit" className="studio-course-save">
-                    {busy ? 'جار الحفظ…' : 'حفظ الدورة'}
-                  </Button>
-                </div>
+                {canManage && (
+                  <div className="studio-course-savebar">
+                    <span>
+                      {course.title || 'دورة جديدة'}
+                      <small>احفظ التغييرات قبل مغادرة الصفحة.</small>
+                    </span>
+                    <Button aria-busy={busy} type="submit" className="studio-course-save">
+                      {busy ? 'جار الحفظ…' : 'حفظ الدورة'}
+                    </Button>
+                  </div>
+                )}
               </fieldset>
             </form>
           ) : (
@@ -620,6 +639,7 @@ function EditorSection({
   onToggle: (id: string) => void;
   children: ReactNode;
 }) {
+  const canManage = useContext(CanManageCourses);
   return (
     <details className="studio-course-section" data-course-section={id} open={open}>
       <summary
@@ -633,7 +653,7 @@ function EditorSection({
           <small>{summary}</small>
         </span>
         <span className="studio-course-section-action" aria-hidden="true">
-          {open ? 'إغلاق' : 'تعديل'} <span>{open ? '−' : '+'}</span>
+          {open ? 'إغلاق' : canManage ? 'تعديل' : 'عرض'} <span>{open ? '−' : '+'}</span>
         </span>
       </summary>
       <div className="studio-course-section-body">{children}</div>
@@ -665,6 +685,7 @@ function AssetField({
   persisted: boolean;
   request: Request;
 }) {
+  const canManage = useContext(CanManageCourses);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [percent, setPercent] = useState(0);
@@ -680,7 +701,7 @@ function AssetField({
         ? 'مستند PDF'
         : 'مستند PDF، فيديو MP4 أو WebM، صوت MP3';
   const choose = (file?: File) => {
-    if (!file || busy || !persisted) return;
+    if (!file || busy || !persisted || !canManage) return;
     setError('');
     if (!accept.split(',').includes(`.${file.name.split('.').pop()?.toLowerCase()}`)) {
       setError(`اختر ملفًا بإحدى الصيغ المدعومة: ${formats}.`);
@@ -704,7 +725,7 @@ function AssetField({
   }, []);
   const upload = async () => {
     const file = selected;
-    if (!file || busy || !persisted) return;
+    if (!file || busy || !persisted || !canManage) return;
     setError('');
     setBusy(true);
     setPercent(0);
@@ -764,7 +785,9 @@ function AssetField({
               ? selected.name
               : value
                 ? uploadedName || 'الملف الحالي جاهز'
-                : 'اسحب الملف هنا'}
+                : canManage
+                  ? 'اسحب الملف هنا'
+                  : 'لا يوجد ملف'}
           </strong>
           <span>
             {selected
@@ -1105,6 +1128,7 @@ function Grade({
   request: Request;
   onSaved: () => void;
 }) {
+  const canManage = useContext(CanManageCourses);
   const [comments, setComments] = useState(submission.comments);
   const [status, setStatus] = useState(submission.status === 'Fail' ? 'Fail' : 'Pass');
   const [notice, setNotice] = useState('');
@@ -1133,19 +1157,25 @@ function Grade({
         {submission.answer.replace(/<br\s*\/?\s*>/gi, '\n').replace(/<[^>]*>/g, '')}
       </p>
       <Field title="التقييم">
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
+        <select disabled={!canManage} value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="Pass">مجتازة</option>
           <option value="Fail">تحتاج إلى تعديل</option>
         </select>
       </Field>
       <Field title="ملاحظات للمتعلم">
-        <textarea value={comments} onChange={(e) => setComments(e.target.value)} />
+        <textarea
+          disabled={!canManage}
+          value={comments}
+          onChange={(e) => setComments(e.target.value)}
+        />
       </Field>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
-      <Button aria-busy={busy} disabled={busy}>
-        {busy ? 'جار الحفظ…' : 'حفظ التقييم'}
-      </Button>
+      {canManage && (
+        <Button aria-busy={busy} disabled={busy}>
+          {busy ? 'جار الحفظ…' : 'حفظ التقييم'}
+        </Button>
+      )}
     </form>
   );
 }

@@ -295,6 +295,16 @@
   cursor: pointer;
   max-width: 100%;
 }
+/* Read-only roles read through these fields, so only the surface changes when disabled. */
+.studio-course-field input:disabled,
+.studio-course-field textarea:disabled,
+.studio-course-field select:disabled {
+  background: var(--canvas);
+  -webkit-text-fill-color: currentColor;
+  opacity: 1;
+  cursor: default;
+}
+
 .studio-courses select:focus-visible,
 .studio-course-field input:focus-visible,
 .studio-course-field textarea:focus-visible,

@@ -91,6 +91,14 @@ Source application commit: `1e353b8`. Deployment versions and backup receipt are
 `docs/LEARNING_DEVELOPMENT_RELEASE_20261017.md`. Payment remains simulated.
 No production or apex-domain changes were made or are authorized by this release.
 
+## Academy access is a page permission (2026-10-30)
+
+Studio Academy access is governed by `courses.view` and `courses.manage`, not the
+`admin` role name. See `docs/adr/0008-academy-page-permissions.md` before changing
+permissions: it records why migrations 0026 and 0027 seed no rows, and the rollback
+order. Never seed a new permission value into `role_permissions` ahead of the API
+release, because the running API rejects values it does not know.
+
 ## Authorized automatic production release (2026-09-08)
 
 The owner explicitly authorized publishing through GitHub automation to

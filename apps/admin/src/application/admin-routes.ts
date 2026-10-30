@@ -46,6 +46,7 @@ export const adminRoutePatterns = {
   articles: '/articles',
   articleNew: '/articles/new',
   articleDetails: '/articles/:articleId',
+  courses: '/courses',
   subscribers: '/subscribers',
   newsletter: '/newsletter',
   formSubmissions: '/requests',
@@ -77,6 +78,7 @@ export const adminPaths = {
   articleNew: adminRoutePatterns.articleNew,
   article: (articleId: ArticleId): `/articles/${string}` =>
     `/articles/${encodeURIComponent(articleId)}`,
+  courses: adminRoutePatterns.courses,
   subscribers: adminRoutePatterns.subscribers,
   newsletter: adminRoutePatterns.newsletter,
   formSubmissions: adminRoutePatterns.formSubmissions,
@@ -96,6 +98,7 @@ export const adminPagePaths = {
   shows: adminPaths.shows,
   guests: adminPaths.guests,
   articles: adminPaths.articles,
+  courses: adminPaths.courses,
   subscribers: adminPaths.subscribers,
   forms: adminPaths.formSubmissions,
   access: adminPaths.roles,

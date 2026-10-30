@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import app from '../index';
 import type { Env } from '../env';
+import { DEFAULT_ROLE_PERMISSIONS, type PermissionId } from '@mukhtalif/types';
 import { learningRequest } from './service';
 import type * as Service from './service';
 vi.mock('./service', async (original) => ({
@@ -36,6 +37,87 @@ function request(
     options.environment ?? env,
   );
 }
+describe('Academy page permissions', () => {
+  const studio = { surface: 'studio' };
+  const uploadStart = { filename: 'lesson.mp4', size: 1024 };
+  const statuses = async (user: string) => ({
+    read: (await request('/studio/courses', { ...studio, user })).status,
+    learners: (await request('/studio/courses/course-1/learners', { ...studio, user })).status,
+    save: (await request('/studio/courses', { ...studio, user, body: {} })).status,
+    upload: (
+      await request('/studio/courses/course-1/upload-start', { ...studio, user, body: uploadStart })
+    ).status,
+    grade: (
+      await request('/studio/courses/course-1/grade', {
+        ...studio,
+        user,
+        body: { submissionId: 'submission-1', status: 'Pass', comments: '' },
+      })
+    ).status,
+  });
+  async function grantEditor(extra: readonly PermissionId[]) {
+    const response = await app.request(
+      '/studio/permissions/editor',
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-mukhtalif-client': 'studio',
+          'x-dev-user': 'usr-admin-1',
+        },
+        body: JSON.stringify({ permissions: [...DEFAULT_ROLE_PERMISSIONS.editor, ...extra] }),
+      },
+      env,
+    );
+    expect(response.status).toBe(200);
+  }
+  afterEach(() => grantEditor([]));
+
+  it('keeps the Academy closed to a role without Academy permissions', async () => {
+    expect(await statuses('usr-editor-1')).toEqual({
+      read: 403,
+      learners: 403,
+      save: 403,
+      upload: 403,
+      grade: 403,
+    });
+    expect(upstream).not.toHaveBeenCalled();
+  });
+
+  it('lets a view permission read the Academy without changing anything', async () => {
+    await grantEditor(['courses.view']);
+    expect(await statuses('usr-editor-1')).toEqual({
+      read: 200,
+      learners: 200,
+      save: 403,
+      upload: 403,
+      grade: 403,
+    });
+  });
+
+  it('lets a manage permission upload and save, as the Studio actor', async () => {
+    await grantEditor(['courses.view', 'courses.manage']);
+    expect(await statuses('usr-editor-1')).toEqual({
+      read: 200,
+      learners: 200,
+      save: 200,
+      upload: 200,
+      grade: 200,
+    });
+    expect(upstream.mock.calls.at(-1)?.[3]).toMatchObject({ admin: true });
+  });
+
+  it('keeps full Academy access for the protected administrator', async () => {
+    expect(await statuses('usr-admin-1')).toEqual({
+      read: 200,
+      learners: 200,
+      save: 200,
+      upload: 200,
+      grade: 200,
+    });
+  });
+});
+
 describe('learning trust boundary', () => {
   it('denies anonymous access and learner access to Studio before accessing learning data', async () => {
     expect((await request('/app/courses/course-1')).status).toBe(401);

@@ -26,6 +26,17 @@ describe('admin permissions', () => {
     expect(firstViewablePage(permissions)).toBe('forms');
   });
 
+  it('lets an Academy-only role enter the Studio on the Academy page', () => {
+    const permissions = ['courses.view', 'courses.manage'] as const;
+
+    expect(hasStudioAccess(permissions)).toBe(true);
+    expect(canViewPage(permissions, 'courses')).toBe(true);
+    expect(canManagePage(permissions, 'courses')).toBe(true);
+    expect(firstViewablePage(permissions)).toBe('courses');
+    expect(canManagePage(['courses.view'], 'courses')).toBe(false);
+    expect(canViewPage(DEFAULT_ROLE_PERMISSIONS.editor, 'courses')).toBe(false);
+  });
+
   it('selects the first permitted page that the repository supports', () => {
     const permissions = ['guests.view', 'subscribers.view'] as const;
 

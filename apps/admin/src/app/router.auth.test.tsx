@@ -73,6 +73,7 @@ async function renderRoute(
 describe('admin auth routing', () => {
   afterEach(() => {
     cleanup();
+    vi.unstubAllGlobals();
     for (const { queryClient, router } of activeResources.splice(0)) {
       router.dispose();
       queryClient.clear();
@@ -457,6 +458,52 @@ describe('admin auth routing', () => {
     expect(router.state.location.pathname).toBe('/articles');
     expect(screen.getByRole('link', { name: 'المقالات' })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('link', { name: 'الحلقات' })).not.toBeInTheDocument();
+  });
+
+  it('lands an Academy-only role on the Academy with no other pages', async () => {
+    const fetchCourses = vi.fn(async () => Response.json([]));
+    vi.stubGlobal('fetch', fetchCourses);
+    const permissions = createDefaultRolePermissionMatrix();
+    permissions.editor = ['courses.view', 'courses.manage'];
+
+    const { router } = await renderRoute('/', 1, permissions);
+
+    expect(await screen.findByRole('heading', { name: 'أكاديمية مختلف' })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/courses');
+    const navigation = screen.getByRole('navigation', { name: 'أقسام الاستوديو' });
+    expect(within(navigation).getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'أكاديمية مختلف',
+    ]);
+    expect(within(navigation).getByRole('link')).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'الانتقال إلى أول صفحة متاحة' })).toHaveAttribute(
+      'href',
+      '/courses',
+    );
+    await waitFor(() => expect(fetchCourses).toHaveBeenCalled());
+  });
+
+  it('keeps the Academy out of reach of a role without its permission', async () => {
+    const fetchCourses = vi.fn(async () => Response.json([]));
+    vi.stubGlobal('fetch', fetchCourses);
+
+    await renderRoute('/courses', 1);
+
+    expect(
+      await screen.findByRole('heading', { name: 'لا تملك صلاحية عرض صفحة أكاديمية مختلف' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'أكاديمية مختلف' })).not.toBeInTheDocument();
+    expect(fetchCourses).not.toHaveBeenCalled();
+  });
+
+  it('shows the Academy first for an administrator and keeps overview as home', async () => {
+    await renderRoute('/', 0);
+
+    const navigation = await screen.findByRole('navigation', { name: 'أقسام الاستوديو' });
+    expect(within(navigation).getAllByRole('link')[0]).toHaveTextContent('أكاديمية مختلف');
+    expect(screen.getByRole('link', { name: 'الانتقال إلى أول صفحة متاحة' })).toHaveAttribute(
+      'href',
+      '/',
+    );
   });
 
   it('names a forbidden direct page and does not mount its data provider', async () => {

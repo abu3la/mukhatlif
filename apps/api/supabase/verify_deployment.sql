@@ -253,3 +253,19 @@ from information_schema.columns
 where table_schema = 'public'
   and table_name = 'newsletter_subscriptions'
   and column_name = 'provider_status';
+
+\echo '== 10. custom roles can hold the Academy permissions (0026, 0027) =='
+select
+  case when count(*) = 2 then 'ok' else 'MISSING' end as status,
+  'Academy permission enum values' as check,
+  count(*) as found,
+  2 as expected
+from pg_enum as value
+join pg_type as type_record on type_record.oid = value.enumtypid
+where type_record.typname = 'studio_permission'
+  and value.enumlabel in ('courses.view', 'courses.manage');
+
+select
+  case when public.valid_studio_permissions(array['courses.view', 'courses.manage'])
+    then 'ok' else 'REJECTED' end as status,
+  'role functions accept the Academy permissions' as check;

@@ -11,6 +11,7 @@ export const STUDIO_PAGE_LABELS = {
   shows: 'البرامج',
   guests: 'الضيوف',
   articles: 'المقالات',
+  courses: 'أكاديمية مختلف',
   subscribers: 'المشتركون',
   forms: 'طلبات الموقع',
   access: 'إدارة الوصول',

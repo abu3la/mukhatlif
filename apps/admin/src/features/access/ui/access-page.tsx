@@ -48,6 +48,11 @@ const PERMISSION_PAGES: readonly PermissionPageDefinition[] = [
     managePermission: 'articles.manage',
   },
   {
+    id: 'courses',
+    viewPermission: 'courses.view',
+    managePermission: 'courses.manage',
+  },
+  {
     id: 'subscribers',
     viewPermission: 'subscribers.view',
     managePermission: 'subscribers.manage',

@@ -125,7 +125,8 @@ export function createAdminRoutes(
           lazy: () => import('./routes/account.route'),
         },
         {
-          path: '/courses',
+          path: adminRoutePatterns.courses,
+          handle: { studioPage: 'courses' },
           element: <CoursesManagement authGateway={authGateway} connection={getAppConfig().api} />,
         },
         ...featureRoutes,

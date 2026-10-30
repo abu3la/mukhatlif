@@ -41,7 +41,7 @@ export async function learningRequest(
   const db = learningDb(env),
     p = input as Record<string, unknown>;
   if (action.startsWith('studio.') && !actor?.admin)
-    throw new LearningError(403, 'إدارة الدورات متاحة للمدير فقط.');
+    throw new LearningError(403, 'لا تملك صلاحية إدارة الدورات.');
   if (action === 'catalog' || action === 'studio.catalog') {
     const { data, error } = await db
       .from('learning_courses')

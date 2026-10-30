@@ -1,6 +1,13 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { adminPaths, canViewPage, STUDIO_PAGE_LABELS, useAdminAuth } from '@/application';
+import {
+  adminPagePaths,
+  adminPaths,
+  canViewPage,
+  firstViewablePage,
+  STUDIO_PAGE_LABELS,
+  useAdminAuth,
+} from '@/application';
 import type { AdminRepositoryCapabilities } from '@/data';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { Button } from '@/shared/ui/primitives';
@@ -15,6 +22,12 @@ interface StudioNavItem {
 }
 
 const NAV_ITEMS: readonly StudioNavItem[] = [
+  {
+    href: adminPaths.courses,
+    page: 'courses',
+    label: STUDIO_PAGE_LABELS.courses,
+    match: (path: string) => path.startsWith(adminPaths.courses),
+  },
   {
     href: adminPaths.overview,
     page: 'overview',
@@ -106,7 +119,8 @@ export function StudioShell({
   const visibleItems = NAV_ITEMS.filter(
     (item) => canViewPage(viewer, item.page) && isStudioPageAvailable(item.page, capabilities),
   );
-  const homePath = visibleItems[0]?.href ?? adminPaths.overview;
+  const homePage = firstViewablePage(viewer, (page) => isStudioPageAvailable(page, capabilities));
+  const homePath = homePage ? adminPagePaths[homePage] : adminPaths.overview;
   const website = publicWebsite(
     window.location.hostname,
     import.meta.env.VITE_PRODUCTION_WEB_TARGET,
@@ -155,16 +169,6 @@ export function StudioShell({
           id="studio-navigation-panel"
         >
           <nav className="studio-nav" aria-label="أقسام الاستوديو">
-            {viewer.role === 'admin' && (
-              <Link
-                to="/courses"
-                className={`studio-nav__item ${pathname === '/courses' ? 'studio-nav__item--active' : ''}`}
-                aria-current={pathname === '/courses' ? 'page' : undefined}
-                onClick={() => setIsNavigationOpen(false)}
-              >
-                أكاديمية مختلف
-              </Link>
-            )}
             {visibleItems.map((item) => {
               const active = item.match(pathname);
               return (
