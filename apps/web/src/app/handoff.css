@@ -25,48 +25,38 @@
 }
 :root {
   color-scheme: light;
-  --bg: #fff;
-  --fg: #171a56;
-  --surface: #f4f5fa;
-  --muted: #505568;
-  --border: #c7c9d7;
-  --radius: 6px;
-  --space: clamp(20px, 4.5vw, 78px);
-  --content-card: #e8ecf8;
+  /*
+   * Page-level aliases. Every value comes from tokens.css, which is generated
+   * from libs/design-tokens/src/web.ts; the tokens switch with the appearance,
+   * so these names need no dark-mode copy. New code uses --mk-* directly.
+   */
+  --bg: var(--mk-page);
+  --fg: var(--mk-ink);
+  --surface: var(--mk-surface);
+  --muted: var(--mk-ink-muted);
+  --border: var(--mk-border);
+  --radius: var(--mk-radius-card);
+  --space: var(--mk-gutter);
+  --content-card: var(--mk-card);
   --page: var(--bg);
   --ink: var(--fg);
-  --ink-hover: #383c75;
-  --surface-hover: #e9edf7;
+  --ink-hover: var(--mk-ink-hover);
+  --surface-hover: var(--mk-surface-hover);
   --secondary: var(--muted);
   --line: var(--border);
-  --line-soft: #e1e3ed;
+  --line-soft: var(--mk-border-soft);
   --radius-card: var(--radius);
-  --radius-input: 8px;
+  --radius-input: var(--mk-radius-control);
   --gutter: var(--space);
-  --font: Mukhtalif, system-ui, sans-serif;
-  --measure: 1500px;
-  --accent: #171a56;
-  --action-ink: #fff;
-  --success: #14713e;
-  --danger: #c22f2d;
+  --font: var(--mk-font);
+  --measure: var(--mk-measure);
+  --action-ink: var(--mk-on-ink);
+  --success: var(--mk-success);
+  --danger: var(--mk-danger);
   --player-height: 94px;
 }
 :root[data-concept='third'] {
   color-scheme: dark;
-  --bg: #1a1b19;
-  --surface: #272925;
-  --fg: #f5f6f3;
-  --muted: #b8c0b7;
-  --border: #60675c;
-  --radius: 12px;
-  --space: clamp(20px, 5.5vw, 90px);
-  --content-card: #2c302a;
-  --surface-hover: #353a32;
-  --ink-hover: #dce3d7;
-  --line-soft: #41473e;
-  --action-ink: #1a1b19;
-  --success: #38df82;
-  --danger: #ff7775;
 }
 html,
 body {
@@ -77,7 +67,7 @@ h1,
 h2,
 h3 {
   letter-spacing: 0;
-  line-height: 1.5;
+  line-height: var(--mk-leading-heading);
 }
 button,
 input,
@@ -132,14 +122,14 @@ button:disabled {
   gap: clamp(14px, 1.4vw, 24px);
   flex: 1;
   justify-content: center;
-  font-size: 14px;
+  font-size: var(--mk-text-sm);
   white-space: nowrap;
 }
 .site-header__nav-link {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
-  font-weight: 500;
+  font-weight: var(--mk-weight-medium);
 }
 .site-header__actions {
   gap: 10px;
@@ -169,7 +159,7 @@ button:disabled {
   flex: none;
 }
 .theme-control {
-  font-size: 13px;
+  font-size: var(--mk-text-xs);
 }
 .theme-control svg {
   width: 20px;
@@ -177,7 +167,7 @@ button:disabled {
   flex: none;
 }
 .nav-library {
-  font-size: 14px;
+  font-size: var(--mk-text-sm);
   white-space: nowrap;
 }
 .nav-library svg {
@@ -195,19 +185,14 @@ button:disabled {
   display: none;
 }
 .site-footer {
-  --footer-background: #171a56;
-  --footer-ink: #fff;
-  --footer-secondary: #c7c9df;
+  --footer-background: var(--mk-footer);
+  --footer-ink: var(--mk-footer-ink);
+  --footer-secondary: var(--mk-footer-muted);
   background: var(--footer-background);
   color: var(--footer-ink);
   border: 0;
   padding-block: 40px 0;
   margin-block-start: 32px;
-}
-[data-concept='third'] .site-footer {
-  --footer-background: #10120f;
-  --footer-ink: #f5f6f3;
-  --footer-secondary: #b8c0b7;
 }
 .site-footer .brand-logo--light {
   display: none;
@@ -232,12 +217,12 @@ button:disabled {
 }
 .site-footer__tagline {
   color: var(--footer-ink);
-  font-size: 15px;
+  font-size: var(--mk-text-md);
   margin: 0;
 }
 .site-footer__email {
   color: var(--footer-ink);
-  font-size: 14px;
+  font-size: var(--mk-text-sm);
 }
 .site-footer__group {
   display: grid;
@@ -249,7 +234,7 @@ button:disabled {
   align-items: center;
   min-height: 36px;
   width: fit-content;
-  font-size: 14px;
+  font-size: var(--mk-text-sm);
   color: var(--footer-ink);
 }
 .site-footer a:hover {
@@ -258,7 +243,7 @@ button:disabled {
 .site-footer__copyright {
   border: 0;
   color: var(--footer-secondary);
-  font-size: 12px;
+  font-size: var(--mk-text-2xs);
   margin: 0;
   padding-block: 20px;
 }
@@ -277,8 +262,8 @@ button:disabled {
 }
 .show-card__caption {
   display: block;
-  font-size: 17px;
-  font-weight: 500;
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-medium);
   margin-block-start: 14px;
 }
 .show-card__mark {
@@ -310,17 +295,17 @@ button:disabled {
 }
 .handoff-episode-card__meta {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--mk-text-xs);
 }
 .handoff-episode-card h3 {
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1.6;
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
 }
 .handoff-episode-card__description {
   color: var(--muted);
-  font-size: 14px;
-  line-height: 1.8;
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-body);
 }
 .handoff-episode-card__actions {
   display: flex;
@@ -347,7 +332,7 @@ button:disabled {
   align-items: center;
   gap: 8px;
   width: 100%;
-  font-size: 12px;
+  font-size: var(--mk-text-2xs);
   color: var(--muted);
 }
 .episode-progress progress {
@@ -364,7 +349,7 @@ button:disabled {
   border: 0;
 }
 .article-card__title {
-  line-height: 1.6;
+  line-height: var(--mk-leading-ui);
 }
 .weekly-episodes__track {
   grid-auto-columns: clamp(280px, 28vw, 365px);
@@ -403,7 +388,8 @@ button:disabled {
   border-radius: 16px;
 }
 .customer-dialog::backdrop {
-  background: rgb(0 0 0 / 0.5);
+  /* The fallback covers browsers whose ::backdrop does not inherit tokens. */
+  background: var(--mk-scrim, rgb(0 0 0 / 0.5));
 }
 .customer-dialog__head {
   display: flex;
@@ -413,7 +399,7 @@ button:disabled {
   margin-block-end: 20px;
 }
 .customer-dialog h2 {
-  font-size: 24px;
+  font-size: var(--mk-text-3xl);
 }
 .customer-dialog label {
   display: grid;
@@ -437,22 +423,22 @@ button:disabled {
   min-height: 48px;
   padding: 10px 24px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--mk-radius-pill);
   background: var(--fg);
   color: var(--bg);
-  font-weight: 600;
+  font-weight: var(--mk-weight-semibold);
 }
 .customer-dialog form {
   display: grid;
   gap: 16px;
 }
 .action-message {
-  font-size: 13px;
+  font-size: var(--mk-text-xs);
   color: var(--muted);
 }
 .action-error {
   color: var(--danger);
-  font-size: 13px;
+  font-size: var(--mk-text-xs);
 }
 .queue-list {
   display: grid;
@@ -483,7 +469,7 @@ button:disabled {
   opacity: 0.3;
 }
 [data-concept='third'] .episode-progress progress {
-  accent-color: #38df82;
+  accent-color: var(--mk-brand-green);
 }
 @media (min-width: 1920px) {
   .site-header__inner {
@@ -496,7 +482,7 @@ button:disabled {
   }
   .site-header__nav {
     gap: 14px;
-    font-size: 13px;
+    font-size: var(--mk-text-xs);
   }
   .site-search {
     display: none;
@@ -538,7 +524,7 @@ button:disabled {
     display: flex;
   }
   .site-header__nav-link {
-    font-size: 16px;
+    font-size: var(--mk-text-base);
   }
   .site-search {
     display: inline-flex;
@@ -564,7 +550,7 @@ button:disabled {
   }
   .nav-library {
     padding: 8px;
-    font-size: 13px;
+    font-size: var(--mk-text-xs);
   }
   .nav-library svg {
     display: none;
@@ -611,8 +597,8 @@ button:disabled {
 }
 .handoff-episode-card__description {
   color: var(--muted);
-  font-size: 14px;
-  line-height: 1.8;
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-body);
   margin-block: 6px 18px;
   display: -webkit-box;
   -webkit-line-clamp: 2;

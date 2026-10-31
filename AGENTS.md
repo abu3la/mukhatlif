@@ -11,6 +11,28 @@ Production migration 0024 has been applied after a fresh private database/Auth
 and roles backup; the existing content/user fingerprints are unchanged. Do not
 copy development data or rerun the migration. See `docs/PRODUCTION_AUTO_RELEASE.md`.
 
+## Design system for UI changes (2026-10-29)
+
+Every change to how `apps/web` looks goes through `design-system/README.md`,
+for Codex, Claude Code and people alike. Read it, then the relevant
+`TOKENS.md`, `COMPONENTS.md` and `PATTERNS.md` entries, before editing UI; walk
+`design-system/DESIGN_LAW.md` before handoff.
+
+- Token values live only in `libs/design-tokens/src/web.ts`. Run
+  `pnpm design:build` after editing it; never edit the generated
+  `apps/web/src/app/tokens.css` or the TOKENS.md tables by hand.
+- No hex/rgb/named colours, new font families, shadows, hover movement or
+  ad-hoc type, radius and spacing values in new CSS; use `--mk-*` tokens or the
+  legacy alias the surrounding code uses. Reuse the component recipe instead of
+  restyling it at a call site.
+- Classify the change (token value, component recipe, new pattern). A new
+  pattern, token or type step needs the owner's decision first; record decisions
+  in `design-system/DECISIONS.md`.
+- `pnpm design:check` must pass (it also runs in CI). Check changed screens in
+  both appearances at desktop and 390px. `/design-system` shows every token and
+  live component under `next dev` and on the development Worker only; staging
+  and the live site show the not-found page so customers never reach it.
+
 # Mukhtalif deployment architecture
 
 This file is the operational source of truth for every agent working in this

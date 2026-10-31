@@ -48,6 +48,9 @@ jobs:
       - name: Lint workspaces
         run: pnpm lint
 
+      - name: Check web design system
+        run: pnpm design:check
+
       - name: Type-check workspaces
         run: pnpm type-check
 

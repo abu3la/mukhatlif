@@ -1,12 +1,13 @@
 'use client';
 import { useSyncExternalStore } from 'react';
+import { webThemeColor } from '@mukhtalif/design-tokens';
 import styles from './site-navigation.module.css';
 const KEY = 'mukhtalif-appearance';
 function applyAppearance(next: 'first' | 'third') {
   document.documentElement.dataset.concept = next;
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute('content', next === 'third' ? '#1a1b19' : '#ffffff');
+    ?.setAttribute('content', next === 'third' ? webThemeColor.dark : webThemeColor.light);
 }
 function current() {
   return document.documentElement.dataset.concept === 'third';
