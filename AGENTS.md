@@ -30,7 +30,8 @@ for Codex, Claude Code and people alike. Read it, then the relevant
   in `design-system/DECISIONS.md`.
 - `pnpm design:check` must pass (it also runs in CI). Check changed screens in
   both appearances at desktop and 390px. `/design-system` shows every token and
-  live component locally and on non-indexed deployments.
+  live component under `next dev` and on the development Worker only; staging
+  and the live site show the not-found page so customers never reach it.
 
 # Mukhtalif deployment architecture
 

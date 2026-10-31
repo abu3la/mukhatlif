@@ -1,9 +1,16 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { absoluteUrl, apiOrigin, isSearchIndexingEnabled, publicWebUrl } from './config';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  absoluteUrl,
+  apiOrigin,
+  isDesignSystemPageEnabled,
+  isSearchIndexingEnabled,
+  publicWebUrl,
+} from './config';
 
 const original = { ...process.env };
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   process.env = { ...original };
 });
 
@@ -55,5 +62,31 @@ describe('publicWebUrl', () => {
 
     process.env.PUBLIC_WEB_URL = 'https://mukhtalif.net';
     expect(isSearchIndexingEnabled()).toBe(true);
+  });
+});
+
+describe('isDesignSystemPageEnabled', () => {
+  it('stays closed on every customer-facing or unknown production host', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+
+    process.env.PUBLIC_WEB_URL = 'https://staging.mukhtalif.net';
+    expect(isDesignSystemPageEnabled()).toBe(false);
+
+    process.env.PUBLIC_WEB_URL = 'https://mukhtalif.net';
+    expect(isDesignSystemPageEnabled()).toBe(false);
+
+    // A server missing the variable falls back to localhost, which must not open it.
+    delete process.env.PUBLIC_WEB_URL;
+    expect(isDesignSystemPageEnabled()).toBe(false);
+  });
+
+  it('opens on the development Worker and under next dev', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    process.env.PUBLIC_WEB_URL = 'https://web.mukhtalif-development.workers.dev';
+    expect(isDesignSystemPageEnabled()).toBe(true);
+
+    vi.stubEnv('NODE_ENV', 'development');
+    process.env.PUBLIC_WEB_URL = 'https://staging.mukhtalif.net';
+    expect(isDesignSystemPageEnabled()).toBe(true);
   });
 });

@@ -42,6 +42,17 @@ export function isSearchIndexingEnabled(): boolean {
   return publicWebUrl() === 'https://mukhtalif.net';
 }
 
+/**
+ * The design system reference is internal. It opens only under `next dev` and on
+ * the development Worker, so staging, the live site and any new host stay closed.
+ */
+export function isDesignSystemPageEnabled(): boolean {
+  return (
+    process.env.NODE_ENV === 'development' ||
+    publicWebUrl() === 'https://web.mukhtalif-development.workers.dev'
+  );
+}
+
 export function absoluteUrl(path: string): string {
   return new URL(path, `${publicWebUrl()}/`).toString();
 }

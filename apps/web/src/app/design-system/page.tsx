@@ -22,13 +22,14 @@ import { ShareButton } from '@/components/public-content-controls';
 import { CardSkeletonGrid, EmptyState, ErrorState, RowSkeletonList } from '@/components/states';
 import { ThemeControl } from '@/components/theme-control';
 import { listArticles, listEpisodes, listShows } from '@/lib/api';
-import { isSearchIndexingEnabled } from '@/lib/config';
+import { isDesignSystemPageEnabled } from '@/lib/config';
 import styles from './design-system.module.css';
 
-export const metadata: Metadata = {
-  title: 'نظام التصميم',
-  robots: { index: false, follow: false },
-};
+export function generateMetadata(): Metadata {
+  // Closed here too, or the not-found page would keep this page's title.
+  if (!isDesignSystemPageEnabled()) notFound();
+  return { title: 'نظام التصميم', robots: { index: false, follow: false } };
+}
 
 const kebab = (key: string) => key.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 
@@ -100,8 +101,8 @@ export default async function DesignSystemPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  // A working reference for the team; the indexed public site never serves it.
-  if (isSearchIndexingEnabled()) notFound();
+  // A working reference for the team; customers never reach it.
+  if (!isDesignSystemPageEnabled()) notFound();
   const params = await searchParams;
   const demo = typeof params.demo === 'string' ? params.demo : 'all';
   const page = parsePage(params.page);

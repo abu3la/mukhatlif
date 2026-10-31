@@ -53,6 +53,10 @@ Format: `D-nn · date · decision · why / source`.
   imported), the unused `IBM Plex Sans Arabic` `@font-face` rules and the
   overridden `:root` values in `listener.css` were deleted. Nothing rendered
   changed.
+- **D-14 · 2026-10-31 · Internal reference page.** `/design-system` opens only
+  under `next dev` and on the development Worker. Staging, the live site and any
+  unknown host show the not-found page, with no page content or title. Source:
+  owner request that customers never reach it.
 
 ## Open questions for the owner
 
