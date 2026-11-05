@@ -16,6 +16,12 @@ interface StudioNavItem {
 
 const NAV_ITEMS: readonly StudioNavItem[] = [
   {
+    href: '/forms',
+    page: 'forms',
+    label: 'النماذج والتسجيلات',
+    match: (path) => path === '/forms',
+  },
+  {
     href: adminPaths.overview,
     page: 'overview',
     label: STUDIO_PAGE_LABELS.overview,
