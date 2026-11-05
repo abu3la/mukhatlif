@@ -217,3 +217,13 @@ export type {
   CustomerLibraryDocument,
   CustomerLibrary,
 } from './customer';
+
+export type * from './learning';
+
+export {
+  COURSE_UPLOAD_LIMITS,
+  MAX_COURSE_UPLOAD_BYTES,
+  courseUploadLimit,
+} from './learning-upload';
+
+export * from './registration';

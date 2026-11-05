@@ -1,0 +1,28 @@
+.file-transfer {
+  color: var(--fg, inherit);
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  border-radius: 14px;
+  padding: 20px;
+  margin-block: 16px;
+  inline-size: 100%;
+  box-sizing: border-box;
+  text-align: start;
+}
+.file-transfer__heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.file-transfer__identity { display: grid; gap: 6px; min-inline-size: 0; }
+.file-transfer__identity strong { font-size: 15px; font-weight: 700; }
+.file-transfer__filename { font-size: 13px; overflow-wrap: anywhere; }
+.file-transfer__counter { display: flex; align-items: baseline; gap: 4px; flex-shrink: 0; font-variant-numeric: tabular-nums; direction: ltr; }
+.file-transfer__counter > span { font-size: 36px; font-weight: 700; line-height: 1.25; }
+.file-transfer__counter > small { font-size: 16px; }
+.file-transfer .file-transfer__track { display: block; appearance: none; border: 0; border-radius: 8px; overflow: hidden; inline-size: 100%; block-size: 8px; margin-block: 16px 12px; background: color-mix(in srgb, currentColor 13%, transparent); color: inherit; }
+.file-transfer__track::-webkit-progress-bar { background: color-mix(in srgb, currentColor 13%, transparent); border-radius: 8px; }
+.file-transfer__track::-webkit-progress-value { background: currentColor; border-radius: 8px; }
+.file-transfer__track::-moz-progress-bar { background: currentColor; border-radius: 8px; }
+.file-transfer__details { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; line-height: 1.6; }
+.file-transfer__details > :last-child { white-space: nowrap; }
+@media (max-width: 480px) {
+  .file-transfer { padding: 16px; }
+  .file-transfer__heading { gap: 16px; }
+  .file-transfer__counter > span { font-size: 30px; }
+}

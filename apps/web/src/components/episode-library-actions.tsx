@@ -1,4 +1,6 @@
 'use client';
+
+import { BusyButton } from './busy-button';
 import { useRef, useState } from 'react';
 import { useCustomer } from './customer-provider';
 import { usePlayer, type PlayerEpisode } from './player';
@@ -18,13 +20,15 @@ export function EpisodeLibraryActions({
   const dialog = useRef<HTMLDialogElement>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pendingAction, setPendingAction] = useState('');
   const [playlist, setPlaylist] = useState('');
   const [newName, setNewName] = useState('');
   const saved = customer.library.savedEpisodeIds.includes(episode.id);
   const queued = customer.library.queueEpisodeIds.includes(episode.id);
-  const run = async (action: () => Promise<unknown>, success: string) => {
+  const run = async (action: () => Promise<unknown>, success: string, key: string) => {
     if (!customer.requireAccount()) return;
     setBusy(true);
+    setPendingAction(key);
     setMessage('');
     try {
       await action();
@@ -33,11 +37,13 @@ export function EpisodeLibraryActions({
       setMessage('تعذّر الحفظ. حاول مرة أخرى.');
     } finally {
       setBusy(false);
+      setPendingAction('');
     }
   };
   return (
     <div className="episode-library-actions">
-      <button
+      <BusyButton loadingMode="replace"
+        aria-busy={pendingAction === 'save'}
         type="button"
         className="icon-action"
         disabled={busy}
@@ -47,12 +53,14 @@ export function EpisodeLibraryActions({
           void run(
             () => customer.toggleSaved('episode', episode.id),
             saved ? 'أُزيلت من المحفوظات.' : 'حُفظت الحلقة.',
+            'save',
           )
         }
       >
         <BrandIcon name={saved ? 'saved' : 'save'} />
-      </button>
-      <button
+      </BusyButton>
+      <BusyButton loadingMode="replace"
+        aria-busy={pendingAction === 'queue'}
         type="button"
         className="icon-action"
         disabled={busy || queued}
@@ -61,11 +69,12 @@ export function EpisodeLibraryActions({
           void run(
             () => customer.updateQueue([...customer.library.queueEpisodeIds, episode.id]),
             'أُضيفت إلى الانتظار.',
+            'queue',
           )
         }
       >
         <BrandIcon name="queue" />
-      </button>
+      </BusyButton>
       {!compact && (
         <>
           <button
@@ -79,18 +88,19 @@ export function EpisodeLibraryActions({
             <BrandIcon name="plus" />
           </button>
           {player.episode?.id === episode.id && (
-            <button
+            <BusyButton loadingMode="replace" aria-busy={pendingAction === 'moment'} disabled={busy}
               className="icon-action"
               aria-label="احفظ اللحظة"
               onClick={() =>
                 void run(
                   () => customer.addBookmark(episode.id, Math.floor(player.currentTime)),
                   `حُفظت اللحظة عند ${formatPlaybackTime(player.currentTime)}.`,
+                  'moment',
                 )
               }
             >
               <BrandIcon name="saved" />
-            </button>
+            </BusyButton>
           )}
         </>
       )}
@@ -121,7 +131,7 @@ export function EpisodeLibraryActions({
                   episodeIds: [...new Set([...selected.episodeIds, episode.id])],
                 });
                 dialog.current?.close();
-              }, 'أُضيفت الحلقة إلى القائمة.');
+              }, 'أُضيفت الحلقة إلى القائمة.', 'add');
             }}
           >
             <label>
@@ -139,9 +149,9 @@ export function EpisodeLibraryActions({
                 ))}
               </select>
             </label>
-            <button type="submit" disabled={busy}>
+            <BusyButton loadingMode="replace" aria-busy={pendingAction === 'add'} type="submit" disabled={busy}>
               أضف الحلقة
-            </button>
+            </BusyButton>
           </form>
         ) : (
           <p>اجمع الحلقات التي تهمك في قائمة جديدة.</p>
@@ -163,7 +173,7 @@ export function EpisodeLibraryActions({
               });
               setNewName('');
               dialog.current?.close();
-            }, 'أنشأنا القائمة وأضفنا الحلقة.');
+            }, 'أنشأنا القائمة وأضفنا الحلقة.', 'create');
           }}
         >
           <label>
@@ -175,9 +185,9 @@ export function EpisodeLibraryActions({
               maxLength={100}
             />
           </label>
-          <button type="submit" disabled={busy}>
+          <BusyButton loadingMode="replace" aria-busy={pendingAction === 'create'} type="submit" disabled={busy}>
             أنشئ القائمة وأضف الحلقة
-          </button>
+          </BusyButton>
         </form>
         {message && <p role="status">{message}</p>}
       </dialog>

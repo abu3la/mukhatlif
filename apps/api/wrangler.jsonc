@@ -13,6 +13,8 @@
     // The dev identity header is gated on APP_ENV=development *and* this flag.
     // It remains disabled on the remotely deployed development Worker.
     "ALLOW_DEV_AUTH": "false",
+    // Enrollment is explicitly simulated; no payment provider is connected.
+    "LEARNING_SIMULATION_ENABLED": "true",
     // Studio uses authenticated browser calls. Public request forms post
     // anonymously from the Web origin. A wildcard is rejected.
     "CORS_ALLOWED_ORIGINS": "https://studio.mukhtalif-development.workers.dev,https://web.mukhtalif-development.workers.dev",

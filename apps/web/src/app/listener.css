@@ -2706,3 +2706,36 @@ h3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.metadata-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.12em;
+  margin-inline: 0.5em;
+  flex-shrink: 0;
+}
+.metadata-item {
+  margin-inline-start: 0.75em;
+}
+.loading-action-preview { margin-block: 2rem; }
+.loading-action-preview > div { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.loading-action-preview button { width: auto; min-inline-size: 150px; }
+
+/* Keep public forms, account controls and library menus on one accessible native primitive. */
+@supports (appearance: base-select) {
+  select, select::picker(select) { appearance: base-select; }
+  select::picker(select) {
+    color: var(--fg);
+    background: var(--surface, white);
+    border: 1px solid color-mix(in srgb, var(--fg) 14%, var(--surface, white));
+    border-radius: 12px;
+    padding: 0.4rem;
+    margin-block: 6px;
+    max-height: min(320px, 60vh);
+    box-shadow: 0 4px 10px #24214712;
+  }
+  select option { padding: 0.7rem 0.85rem; border-radius: 7px; gap: 0.75rem; }
+  select option:checked { background: color-mix(in srgb, var(--fg) 8%, var(--surface, white)); font-weight: 700; }
+  select option:hover, select option:focus { background: color-mix(in srgb, var(--fg) 5%, var(--surface, white)); }
+}

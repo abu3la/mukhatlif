@@ -151,3 +151,5 @@ export {
   customerLibraryDocumentSchema,
 } from './customer';
 export type { ProvisionCustomerInput, UpdateCustomerProfileInput } from './customer';
+
+export * from './registration';

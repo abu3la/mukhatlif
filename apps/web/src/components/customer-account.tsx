@@ -1,5 +1,7 @@
 'use client';
 
+import { BusyButton } from './busy-button';
+
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -30,14 +32,17 @@ function AccountRow({
   value,
   onClick,
   danger = false,
+  busy = false,
 }: {
   label: string;
   value?: string;
   onClick: () => void;
   danger?: boolean;
+  busy?: boolean;
 }) {
   return (
-    <button
+    <BusyButton
+      aria-busy={busy}
       type="button"
       className={`customer-account-row${danger ? ' customer-danger-row' : ''}`}
       onClick={onClick}
@@ -45,7 +50,7 @@ function AccountRow({
       <span>{label}</span>
       <bdi className="customer-account-value">{value}</bdi>
       <CustomerIcon name="back" />
-    </button>
+    </BusyButton>
   );
 }
 
@@ -98,7 +103,7 @@ function AccountContent() {
               <h2>{profile.displayName}</h2>
               <p>
                 <bdi>{customer.user?.email || profile.email}</bdi>
-                {googleLinked && ' · Google'}
+                {googleLinked && <span className="metadata-item">Google</span>}
               </p>
             </div>
           </div>
@@ -131,7 +136,8 @@ function AccountContent() {
         <section className="customer-account-card customer-account-rows">
           <h2>الحساب</h2>
           <AccountRow
-            label={busy ? 'جارٍ تسجيل الخروج…' : 'تسجيل الخروج'}
+            busy={busy}
+            label={busy ? 'جار تسجيل الخروج…' : 'تسجيل الخروج'}
             onClick={() => void signOut()}
           />
           <AccountRow
@@ -428,16 +434,17 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
             {message}
           </p>
         )}
-        <button
+        <BusyButton
+          aria-busy={Boolean(busy)}
           className={`customer-primary${edit === 'clear' ? ' customer-destructive' : ''}`}
           disabled={busy}
         >
           {busy
             ? edit === 'email' && pendingEmail
               ? emailSignInRequired
-                ? 'جارٍ تسجيل الخروج…'
-                : 'جارٍ التحقق…'
-              : 'جارٍ الحفظ…'
+                ? 'جار تسجيل الخروج…'
+                : 'جار التحقق…'
+              : 'جار الحفظ…'
             : edit === 'clear'
               ? 'امسح المكتبة'
               : edit === 'email'
@@ -449,7 +456,7 @@ function AccountEditDialog({ edit, onClose }: { edit: AccountEdit; onClose: () =
                 : edit === 'password' && !passwordChallenge
                   ? 'أرسل رمز التأكيد'
                   : 'احفظ'}
-        </button>
+        </BusyButton>
         {edit === 'email' && pendingEmail ? (
           <button
             type="button"

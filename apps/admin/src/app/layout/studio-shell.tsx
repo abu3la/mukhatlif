@@ -16,6 +16,12 @@ interface StudioNavItem {
 
 const NAV_ITEMS: readonly StudioNavItem[] = [
   {
+    href: '/forms',
+    page: 'forms',
+    label: 'النماذج والتسجيلات',
+    match: (path) => path === '/forms',
+  },
+  {
     href: adminPaths.overview,
     page: 'overview',
     label: STUDIO_PAGE_LABELS.overview,
@@ -155,6 +161,16 @@ export function StudioShell({
           id="studio-navigation-panel"
         >
           <nav className="studio-nav" aria-label="أقسام الاستوديو">
+            {viewer.role === 'admin' && (
+              <Link
+                to="/courses"
+                className={`studio-nav__item ${pathname === '/courses' ? 'studio-nav__item--active' : ''}`}
+                aria-current={pathname === '/courses' ? 'page' : undefined}
+                onClick={() => setIsNavigationOpen(false)}
+              >
+                أكاديمية مختلف
+              </Link>
+            )}
             {visibleItems.map((item) => {
               const active = item.match(pathname);
               return (

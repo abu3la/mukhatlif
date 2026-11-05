@@ -1,5 +1,7 @@
 'use client';
 
+import { BusyButton } from './busy-button';
+
 import { useId, useState, type FormEvent } from 'react';
 import {
   buildNewsletterSubscriptionPayload,
@@ -140,13 +142,14 @@ export function NewsletterSignup({ apiOrigin }: NewsletterSignupProps) {
             </p>
           ) : null}
 
-          <button
+          <BusyButton
+            aria-busy={state.status === 'submitting'}
             className="newsletter-signup__submit"
             type="submit"
             disabled={state.status === 'submitting'}
           >
-            {state.status === 'submitting' ? 'جارٍ الاشتراك…' : 'اشترك'}
-          </button>
+            {state.status === 'submitting' ? 'جار الاشتراك…' : 'اشترك'}
+          </BusyButton>
           {state.status === 'error' ? (
             <p className="newsletter-signup__feedback" role="alert">
               {state.message}

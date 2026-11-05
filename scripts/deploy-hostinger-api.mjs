@@ -45,7 +45,7 @@ if (phase === 'prepare') {
     await copyFile(join(root, 'scripts', file), join(source, file));
   await writeFile(
     join(source, 'server.js'),
-    `process.env.MUKHTALIF_RELEASE_SHA = ${JSON.stringify(sha)};\nrequire('./node.cjs');\n`,
+    `process.env.MUKHTALIF_RELEASE_SHA = ${JSON.stringify(sha)};\nprocess.env.LEARNING_SIMULATION_ENABLED ??= 'true';\nrequire('./node.cjs');\n`,
   );
   await writeFile(
     join(source, 'package.json'),
@@ -223,7 +223,13 @@ if (phase === 'verify') {
         });
         if (!health.ok || (await health.json()).ready !== true)
           throw Error('Customer schema is not ready');
-        for (const path of ['/app/account', '/app/library']) {
+        const learning = await fetch(`https://${target}/health/learning-schema`, {
+          signal: AbortSignal.timeout(30000),
+          redirect: 'error',
+        });
+        if (!learning.ok || (await learning.json()).ready !== true)
+          throw Error('Learning schema is not ready');
+        for (const path of ['/app/account', '/app/library', '/app/courses']) {
           const response = await fetch(`https://${target}${path}`, {
             signal: AbortSignal.timeout(30000),
             redirect: 'error',
@@ -238,7 +244,7 @@ if (phase === 'verify') {
           passedAt: new Date().toISOString(),
         });
         console.log(
-          'Verified API source commit, customer schema and unauthenticated access rejection.',
+          'Verified API source commit, customer and learning schemas, and unauthenticated access rejection.',
         );
         break;
       } catch (error) {

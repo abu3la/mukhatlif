@@ -1,5 +1,7 @@
 'use client';
 
+import { BusyButton } from './busy-button';
+
 import { ContentSkeleton } from './content-skeleton';
 
 import Link from 'next/link';
@@ -163,9 +165,14 @@ export function EpisodeMoments({
                 {error}
               </p>
             ) : null}
-            <button type="submit" className="customer-primary" disabled={busy}>
-              {busy ? 'جارٍ الحفظ…' : dialog.kind === 'delete' ? 'احذف اللحظة' : 'احفظ'}
-            </button>
+            <BusyButton
+              aria-busy={Boolean(busy)}
+              type="submit"
+              className="customer-primary"
+              disabled={busy}
+            >
+              {busy ? 'جار الحفظ…' : dialog.kind === 'delete' ? 'احذف اللحظة' : 'احفظ'}
+            </BusyButton>
           </form>
         </CustomerDialog>
       ) : null}
