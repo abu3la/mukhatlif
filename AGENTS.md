@@ -68,7 +68,7 @@ Mukhtalif design take precedence over generic design defaults below.
   Hide empty file tabs. Gate lessons, assessments and certificates correctly.
 - Keep the player title readable, speed control compact, controls recognizable;
   omit redundant “قيد التشغيل” text. Put library beside icon-only search, show its
-  icon on mobile, and keep partnerships/sponsorship discoverable in the header.
+  icon on mobile, and place the partnerships/sponsorship button inside the menu immediately above appearance settings, using its existing filled style. Do not duplicate it in the header.
 - Authentication email copy must match the actual confirmation-link flow. Use
   Arabic and the official logo in email templates with legible dark-mode treatment.
 - Verify changed controls with actual clicks, keyboard behavior, loading/error

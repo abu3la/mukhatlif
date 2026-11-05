@@ -26,7 +26,6 @@ const MENU_GROUPS = [
       { href: '/mission', label: 'قضيتنا' },
       { href: '/services', label: 'الإنتاج' },
       { href: '/work', label: 'أعمالنا' },
-      { href: '/sponsor', label: 'الشراكات والرعايات' },
       { href: '/suggest', label: 'اقترح ضيفًا' },
       { href: '/join-us', label: 'انضم إلينا' },
     ],
@@ -90,9 +89,6 @@ export function SiteNavigation() {
         ))}
       </nav>
       <div className={styles.actions}>
-        <Link className={styles.sponsor} href="/sponsor">
-          الشراكات والرعايات
-        </Link>
         <Link
           className={styles.search}
           href="/search"
@@ -179,6 +175,9 @@ export function SiteNavigation() {
             </nav>
           ))}
         </div>
+        <Link className={styles.menuSponsor} href="/sponsor" onClick={closeMenu}>
+          الشراكات والرعايات
+        </Link>
         <div className={styles.menuSettings}>
           <span>مظهر الموقع</span>
           <ThemeControl />

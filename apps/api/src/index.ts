@@ -1,3 +1,4 @@
+import { publicRegistrationRoute, studioRegistrationRoute } from './routes/registration';
 import { learningHealthRoute } from './learning/health';
 import { publicCoursesRoute, customerCoursesRoute, studioCoursesRoute } from './routes/courses';
 import { Hono } from 'hono';
@@ -206,5 +207,8 @@ app.route('/studio/subscriptions', subscriptionsRoute);
 app.route('/courses', publicCoursesRoute);
 app.route('/app/courses', customerCoursesRoute);
 app.route('/studio/courses', studioCoursesRoute);
+
+app.route('/registration', publicRegistrationRoute);
+app.route('/studio/registration', studioRegistrationRoute);
 
 export default app;
