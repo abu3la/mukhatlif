@@ -13,8 +13,9 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-    U+2000-206F, U+20AC, U+2212, U+2215;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC,
+    U+2212, U+2215;
 }
 
 @font-face {
@@ -32,8 +33,9 @@
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-    U+2000-206F, U+20AC, U+2212, U+2215;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC,
+    U+2212, U+2215;
 }
 
 @font-face {
@@ -51,32 +53,90 @@
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-    U+2000-206F, U+20AC, U+2212, U+2215;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC,
+    U+2212, U+2215;
 }
 
+/*
+ * Legacy names used across the feature stylesheets. Each is an alias of a
+ * generated --st-* token (00-tokens.css); change values in
+ * libs/design-tokens/src/studio.ts, never here.
+ */
 :root {
-  --ink: #171a56;
-  --ink-hover: #262b73;
-  --ink-soft: #4a4e7c;
-  --muted: #6d7195;
-  --muted-reference: #888cb0;
-  --line: #d9dcea;
-  --field-line: #858aaa;
-  --sunken: #e9ebf4;
-  --canvas: #f3f4f9;
-  --surface: #ffffff;
-  --green: #1fa85d;
-  --green-ink: #14713e;
-  --scheduled: #3d4fb5;
-  --archived: #5c5f80;
-  --warning: #d08a2e;
-  --danger: #c22f2d;
-  --radius-card: 14px;
-  --radius-panel: 12px;
-  --radius-control: 8px;
-  --radius-pill: 999px;
-  --font: 'IBM Plex Sans Arabic', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ink: var(--st-ink);
+  --ink-hover: var(--st-ink-hover);
+  --ink-soft: var(--st-ink-soft);
+  --muted: var(--st-muted);
+  --muted-reference: var(--st-faint);
+  --line: var(--st-line);
+  --field-line: var(--st-field-line);
+  --sunken: var(--st-sunken);
+  --canvas: var(--st-canvas);
+  --surface: var(--st-surface);
+  --green: var(--st-success);
+  --green-ink: var(--st-success-ink);
+  --scheduled: var(--st-episodes-tone);
+  --archived: var(--st-access-tone);
+  --warning: var(--st-warning);
+  --danger: var(--st-danger);
+  --radius-card: var(--st-radius-card);
+  --radius-panel: var(--st-radius-panel);
+  --radius-control: var(--st-radius-control);
+  --radius-pill: var(--st-radius-pill);
+  --font: var(--st-font);
+}
+
+/*
+ * Domain hues (STUDIO.md). An element with data-domain, or any element inside
+ * one, reads --domain-tint / --domain-tone / --domain-ink.
+ */
+[data-domain='episodes'] {
+  --domain-tint: var(--st-episodes-tint);
+  --domain-tone: var(--st-episodes-tone);
+  --domain-ink: var(--st-episodes-ink);
+}
+
+[data-domain='shows'] {
+  --domain-tint: var(--st-shows-tint);
+  --domain-tone: var(--st-shows-tone);
+  --domain-ink: var(--st-shows-ink);
+}
+
+[data-domain='guests'] {
+  --domain-tint: var(--st-guests-tint);
+  --domain-tone: var(--st-guests-tone);
+  --domain-ink: var(--st-guests-ink);
+}
+
+[data-domain='articles'] {
+  --domain-tint: var(--st-articles-tint);
+  --domain-tone: var(--st-articles-tone);
+  --domain-ink: var(--st-articles-ink);
+}
+
+[data-domain='academy'] {
+  --domain-tint: var(--st-academy-tint);
+  --domain-tone: var(--st-academy-tone);
+  --domain-ink: var(--st-academy-ink);
+}
+
+[data-domain='audience'] {
+  --domain-tint: var(--st-audience-tint);
+  --domain-tone: var(--st-audience-tone);
+  --domain-ink: var(--st-audience-ink);
+}
+
+[data-domain='forms'] {
+  --domain-tint: var(--st-forms-tint);
+  --domain-tone: var(--st-forms-tone);
+  --domain-ink: var(--st-forms-ink);
+}
+
+[data-domain='access'] {
+  --domain-tint: var(--st-access-tint);
+  --domain-tone: var(--st-access-tone);
+  --domain-ink: var(--st-access-ink);
 }
 
 * {
@@ -85,7 +145,7 @@
 
 html {
   min-inline-size: 320px;
-  background: var(--canvas);
+  background: var(--st-canvas);
   direction: rtl;
 }
 
@@ -93,11 +153,11 @@ body {
   min-inline-size: 320px;
   min-height: 100vh;
   margin: 0;
-  background: var(--canvas);
-  color: var(--ink);
-  font-family: var(--font);
-  font-size: 15px;
-  line-height: 1.6;
+  background: var(--st-canvas);
+  color: var(--st-ink);
+  font-family: var(--st-font);
+  font-size: var(--st-text-md);
+  line-height: var(--st-leading-body);
   text-rendering: optimizeLegibility;
 }
 
@@ -106,22 +166,22 @@ body {
   align-content: center;
   justify-items: center;
   min-block-size: 100vh;
-  padding: 48px;
-  color: var(--ink);
-  background: var(--canvas);
+  padding: var(--st-space-48);
+  color: var(--st-ink);
+  background: var(--st-canvas);
   text-align: center;
 }
 
 .app-state h1 {
-  margin-block-end: 8px;
-  font-size: 24px;
-  line-height: 1.4;
+  margin-block-end: var(--st-space-8);
+  font-size: var(--st-text-3xl);
+  line-height: var(--st-leading-heading);
 }
 
 .app-state p {
   max-inline-size: 560px;
-  margin-block-end: 20px;
-  color: var(--ink-soft);
+  margin-block-end: var(--st-space-20);
+  color: var(--st-ink-soft);
 }
 
 button,
@@ -144,7 +204,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--green);
+  outline: 2px solid var(--st-focus);
   outline-offset: 2px;
 }
 

@@ -125,6 +125,11 @@ for Codex, Claude Code and people alike. Read it, then the relevant
   both appearances at desktop and 390px. `/design-system` shows every token and
   live component under `next dev` and on the development Worker only; staging
   and the live site show the not-found page so customers never reach it.
+- The Studio (`apps/admin`) is governed the same way through
+  `design-system/STUDIO.md`: tokens in `libs/design-tokens/src/studio.ts`
+  (`--st-*`), generated `apps/admin/src/app/styles/00-tokens.css`, one hue per
+  domain used tonally, buttons always ink, 44px targets. Run the Studio locally
+  with `VITE_ADMIN_DATA_SOURCE=fixture` to check screens without Supabase.
 
 # Mukhtalif deployment architecture
 

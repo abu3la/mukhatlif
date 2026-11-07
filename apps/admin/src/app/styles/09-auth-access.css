@@ -152,30 +152,45 @@
 
 .studio-sign-out {
   inline-size: 100%;
-  margin-block-start: 8px;
-  border-radius: var(--radius-control);
+  margin-block-start: var(--st-space-8);
+  border-radius: var(--st-radius-control);
 }
 
 .studio-account-link {
   display: flex;
   align-items: center;
-  min-block-size: 38px;
-  margin-block-start: 8px;
-  padding: 7px 12px;
-  color: var(--ink-soft);
-  border-radius: var(--radius-control);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.45;
+  gap: var(--st-space-12);
+  min-block-size: 44px;
+  margin-block-start: var(--st-space-8);
+  padding: var(--st-space-8) var(--st-space-12);
+  color: var(--st-ink-soft);
+  border-radius: var(--st-radius-control);
+  font-size: var(--st-text-xs);
+  font-weight: var(--st-weight-medium);
+  line-height: var(--st-leading-ui);
   transition:
-    background-color 140ms ease,
-    color 140ms ease;
+    background-color var(--st-duration-fast) ease,
+    color var(--st-duration-fast) ease;
 }
 
-.studio-account-link:hover,
-.studio-account-link--active {
-  background: var(--sunken);
-  color: var(--ink);
+.studio-account-link::before {
+  flex: none;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: calc(var(--st-radius-control) / 4);
+  background: var(--st-access-tone);
+  content: '';
+}
+
+.studio-account-link:hover {
+  background: var(--st-sunken);
+  color: var(--st-ink);
+}
+
+.studio-account-link--active,
+.studio-account-link--active:hover {
+  background: var(--st-access-tint);
+  color: var(--st-access-ink);
 }
 
 .account-security {

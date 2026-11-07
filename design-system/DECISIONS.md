@@ -95,6 +95,31 @@ Format: `D-nn · date · decision · why / source`.
   request-form fields show their hover, focus and invalid borders; the footer
   folds to two columns up to 820px. The articles index uses the shared page
   head. The Academy catalogue reports a failed load in Arabic.
+- **D-21 · 2026-11-07 · The Studio joins the system.** `apps/admin` gets its
+  own token source (`libs/design-tokens/src/studio.ts`, `--st-*`), a generated
+  sheet (`00-tokens.css`) imported first, legacy aliases (`--ink`, `--canvas` …)
+  pointing at the tokens, and the same guard and ratchet baseline. Its 1,000-odd
+  existing hard-coded values were recorded as debt rather than converted
+  (Q-13), except in the shell, shared-controls and base sheets, which were
+  converted while being redesigned. Reference: [STUDIO.md](STUDIO.md). Source:
+  the owner's request to establish a design system for the dashboard.
+- **D-22 · 2026-11-07 · One hue per Studio domain.** The owner asked for more
+  colour in the dashboard. It arrives as eight domain hues (episodes indigo,
+  programmes teal, guests terracotta, articles wine, academy green, audience
+  moss, requests ochre, access slate) used tonally: a tint behind, a dark ink
+  on it, a mid tone for the mark. They sign the sidebar, page heads, overview
+  cards, filter rails and status chips; buttons stay ink; the canvas is tinted
+  toward the brand indigo (`#eceef7`) so cards need only a self-coloured edge.
+  Status chips moved from solid fills with white text to tint-and-ink pairs.
+  `muted` darkened to `#5f6389` so metadata passes 4.5:1 on the canvas.
+- **D-23 · 2026-11-07 · Studio UX.** The sidebar is grouped (المحتوى, الجمهور,
+  الإدارة) with the overview first and each item signed by its domain mark;
+  the overview shows six linked count cards and a «يحتاج متابعة» list of
+  scheduled episodes and drafts beside the latest published episodes; list rows
+  light up edge to edge on hover; every control (buttons, nav, filter rail,
+  breadcrumb, switch, text links) reaches 44px; disabled is a solid tonal step;
+  focus rings are ink, not green (D-04); metadata is spaced, not dotted (the
+  owner's standing rule). The avatar is ink with an on-ink initial.
 
 ## Open questions for the owner
 
@@ -144,3 +169,11 @@ replying with the option, then record it above.
   who chose the dark appearance on a light device sees a white page there.
   Option: mirror the choice into a cookie the route can read, or accept the
   difference on those pages.
+- **Q-12 · Studio dark appearance.** The Studio has one appearance. Option:
+  add a dark set of `--st-*` values and the menu switch the public site uses,
+  or keep the dashboard light.
+- **Q-13 · Studio legacy debt.** The feature sheets `04` to `12`,
+  `courses.css`, `registration.css` and `upload-progress.css` carry about a
+  thousand hard-coded values recorded in `guard-baseline.json` (D-21). Option:
+  convert one sheet at a time, proving each screen with before/after
+  screenshots.

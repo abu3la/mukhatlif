@@ -121,31 +121,49 @@
   line-height: 1.65;
 }
 
+/* A 44px hit area around a 28px track. */
 .switch {
   position: relative;
   inline-size: 44px;
-  block-size: 28px;
+  block-size: 44px;
   flex: none;
   padding: 0;
-  background: var(--line);
+  background: transparent;
   border: 0;
   border-radius: var(--radius-pill);
   cursor: pointer;
-  transition: background-color 140ms ease;
 }
 
-.switch--on {
+.switch::before {
+  position: absolute;
+  inset-block: 8px;
+  inset-inline: 0;
+  background: var(--line);
+  border-radius: var(--radius-pill);
+  transition: background-color 140ms ease;
+  content: '';
+}
+
+.switch--on::before {
   background: var(--green);
 }
 
 .switch:disabled {
-  opacity: 0.48;
-  cursor: default;
+  cursor: not-allowed;
+}
+
+.switch:disabled::before {
+  background: var(--st-sunken);
+}
+
+.switch--on:disabled::before {
+  background: color-mix(in srgb, var(--st-success) 45%, var(--st-surface));
 }
 
 .switch__knob {
   position: absolute;
-  inset-block-start: 5px;
+  z-index: 1;
+  inset-block-start: 13px;
   inset-inline-start: 5px;
   inline-size: 18px;
   block-size: 18px;

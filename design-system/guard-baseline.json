@@ -1,4 +1,109 @@
 {
+  "apps/admin/src/app/styles/04-episode-editor.css": {
+    "font-size": 15,
+    "font-weight": 5,
+    "line-height": 6,
+    "radius": 6,
+    "raw-color": 1,
+    "spacing": 36
+  },
+  "apps/admin/src/app/styles/05-content-tables.css": {
+    "font-family": 1,
+    "font-size": 14,
+    "font-weight": 3,
+    "line-height": 7,
+    "media-width": 1,
+    "radius": 1,
+    "spacing": 29
+  },
+  "apps/admin/src/app/styles/06-guests.css": {
+    "font-size": 11,
+    "font-weight": 3,
+    "line-height": 4,
+    "media-width": 2,
+    "radius": 2,
+    "spacing": 34
+  },
+  "apps/admin/src/app/styles/07-subscribers-content.css": {
+    "font-size": 6,
+    "font-weight": 3,
+    "media-width": 2,
+    "raw-color": 2,
+    "spacing": 15
+  },
+  "apps/admin/src/app/styles/08-utilities-responsive.css": {
+    "font-size": 4,
+    "important": 4,
+    "media-width": 5,
+    "spacing": 22
+  },
+  "apps/admin/src/app/styles/09-auth-access.css": {
+    "font-size": 36,
+    "font-weight": 16,
+    "line-height": 17,
+    "media-width": 2,
+    "radius": 1,
+    "spacing": 99
+  },
+  "apps/admin/src/app/styles/10-article-publisher.css": {
+    "font-family": 1,
+    "font-size": 74,
+    "font-weight": 13,
+    "important": 1,
+    "line-height": 28,
+    "media-width": 2,
+    "radius": 11,
+    "raw-color": 7,
+    "shadow": 4,
+    "spacing": 157
+  },
+  "apps/admin/src/app/styles/11-form-submissions.css": {
+    "font-size": 12,
+    "font-weight": 4,
+    "line-height": 2,
+    "media-width": 2,
+    "radius": 2,
+    "raw-color": 8,
+    "spacing": 28
+  },
+  "apps/admin/src/app/styles/12-newsletter.css": {
+    "font-size": 4,
+    "font-weight": 3,
+    "line-height": 2,
+    "media-width": 2,
+    "spacing": 10
+  },
+  "apps/admin/src/data/fixture-admin-repository.ts": {
+    "raw-color": 5
+  },
+  "apps/admin/src/features/courses/courses.css": {
+    "font-size": 14,
+    "font-weight": 6,
+    "line-height": 1,
+    "media-width": 2,
+    "radius": 14,
+    "raw-color": 44,
+    "shadow": 1,
+    "spacing": 1
+  },
+  "apps/admin/src/features/registration/registration.css": {
+    "font-size": 2,
+    "font-weight": 5,
+    "important": 1,
+    "line-height": 1,
+    "media-width": 1,
+    "radius": 6,
+    "raw-color": 16,
+    "spacing": 27
+  },
+  "apps/admin/src/shared/ui/upload-progress.css": {
+    "font-size": 6,
+    "font-weight": 2,
+    "line-height": 2,
+    "media-width": 1,
+    "radius": 5,
+    "spacing": 9
+  },
   "apps/web/public/error-state.css": {
     "font-family": 1,
     "font-size": 4,
