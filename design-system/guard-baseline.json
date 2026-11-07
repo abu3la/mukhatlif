@@ -23,11 +23,14 @@
   },
   "apps/web/src/app/listener.css": {
     "font-size": 17,
+    "font-weight": 1,
     "important": 3,
     "line-height": 8,
     "media-width": 5,
-    "radius": 5,
-    "spacing": 188
+    "radius": 7,
+    "raw-color": 1,
+    "shadow": 1,
+    "spacing": 189
   },
   "apps/web/src/app/public-pages.css": {
     "font-size": 19,
@@ -36,6 +39,21 @@
     "media-width": 3,
     "radius": 20,
     "spacing": 140
+  },
+  "apps/web/src/components/busy-button.css": {
+    "radius": 1
+  },
+  "apps/web/src/components/courses/courses.css": {
+    "font-family": 1,
+    "font-size": 32,
+    "font-weight": 11,
+    "important": 1,
+    "line-height": 17,
+    "media-width": 11,
+    "radius": 43,
+    "raw-color": 19,
+    "shadow": 1,
+    "spacing": 2
   },
   "apps/web/src/components/customer.css": {
     "font-size": 10,
@@ -55,11 +73,29 @@
     "radius": 2,
     "spacing": 24
   },
+  "apps/web/src/components/registration/registration.css": {
+    "font-size": 2,
+    "font-weight": 4,
+    "important": 2,
+    "line-height": 3,
+    "radius": 3,
+    "raw-color": 7,
+    "spacing": 14
+  },
   "apps/web/src/components/site-navigation.module.css": {
-    "font-size": 1,
+    "font-size": 2,
+    "font-weight": 1,
     "line-height": 1,
     "media-width": 3,
     "radius": 2,
-    "spacing": 24
+    "spacing": 25
+  },
+  "apps/web/src/components/upload-progress.css": {
+    "font-size": 6,
+    "font-weight": 2,
+    "line-height": 2,
+    "media-width": 1,
+    "radius": 5,
+    "spacing": 9
   }
 }

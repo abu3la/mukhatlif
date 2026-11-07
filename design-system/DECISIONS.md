@@ -58,6 +58,14 @@ Format: `D-nn · date · decision · why / source`.
   unknown host show the not-found page, with no page content or title. Source:
   owner request that customers never reach it.
 
+- **D-15 · 2026-11-07 · Academy and forms CSS recorded as debt.** `dev` gained
+  the Academy (courses), registration-form, upload-progress and busy-button
+  styles after this system was branched, so the guard had never seen them. On
+  merge their hard-coded values were recorded in `guard-baseline.json` (954
+  tracked values, up from 746) instead of converted, because converting them
+  changes what renders on screens nobody had checked. Source: the owner's merge
+  request; the conversion is Q-10.
+
 ## Open questions for the owner
 
 These are inconsistencies found while building the system. Each is a visible
@@ -94,3 +102,9 @@ replying with the option, then record it above.
 - **Q-07 · Studio and native.** `apps/admin` and the native app use the older
   palette in `libs/design-tokens/src/color.ts`. Option: bring them under this
   system as separate adapters.
+- **Q-10 · Academy and forms outside the system.** `courses.css`,
+  `registration.css`, `upload-progress.css` and `busy-button.css` carry 27 raw
+  colours, two shadows, three `!important`s, a font-family of their own, twelve
+  off-canonical breakpoints and their own type, radius and spacing values.
+  Option: bring them under the tokens one file at a time, proving each screen
+  with `style-snapshot.js` in both appearances.
