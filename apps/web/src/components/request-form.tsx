@@ -1,5 +1,9 @@
 'use client';
 
+import { UploadProgress } from './upload-progress';
+import { BusyButton } from './busy-button';
+import { uploadWithProgress } from './upload-with-progress';
+
 import Link from 'next/link';
 import {
   cloneElement,
@@ -535,6 +539,7 @@ export function RequestForm({
   const prefix = useId().replaceAll(':', '');
   const [selectedType, setSelectedType] = useState<PublicRequestType>(type);
   const [state, setState] = useState<SubmissionState>({ status: 'idle' });
+  const [transfer, setTransfer] = useState<{ filename: string; bytes: number; percent: number } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const uploads = useRef(
     new Map<File, { email: string; kind: 'cv' | 'portfolio'; token: string; expiresAt: string }>(),
@@ -636,17 +641,19 @@ export function RequestForm({
             attachmentTokens.push(saved.token);
             continue;
           }
-          setState({ status: 'submitting', message: `جارٍ رفع ${label}…` });
+          setState({ status: 'submitting', message: 'جار الإرسال' });
+          setTransfer({ filename: file.name, bytes: file.size, percent: 0 });
           const uploadBody = new FormData();
           uploadBody.set('file', file);
           uploadBody.set('email', email);
           uploadBody.set('kind', kind);
           uploadBody.set('privacyAccepted', 'true');
-          const upload = await fetch(`${apiOrigin.replace(/\/$/, '')}/forms/careers/attachments`, {
-            method: 'POST',
-            headers: { accept: 'application/json', [CLIENT_SURFACE_HEADER]: 'web' },
-            body: uploadBody,
-          });
+          const upload = await uploadWithProgress(
+            `${apiOrigin.replace(/\/$/, '')}/forms/careers/attachments`,
+            uploadBody,
+            (percent) => setTransfer({ filename: file.name, bytes: file.size, percent }),
+          );
+          setTransfer(null);
           if (!upload.ok) {
             setState({
               status: 'error',
@@ -823,14 +830,16 @@ export function RequestForm({
         ) : null}
       </fieldset>
 
+      {state.status === 'submitting' && transfer && <UploadProgress {...transfer} />}
       <div className="request-form__footer">
-        <button
+        <BusyButton
+          aria-busy={state.status === 'submitting'}
           className="request-form__submit"
           type="submit"
           disabled={state.status === 'submitting'}
         >
-          {state.status === 'submitting' ? state.message || 'جارٍ الإرسال' : 'إرسال الطلب'}
-        </button>
+          {state.status === 'submitting' ? state.message || 'جار الإرسال' : 'إرسال الطلب'}
+        </BusyButton>
         <p className="request-form__feedback" aria-live="polite">
           {state.status === 'error' ? state.message : ''}
         </p>

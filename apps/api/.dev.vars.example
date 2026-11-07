@@ -45,3 +45,6 @@ FORM_NOTIFICATION_RECIPIENTS_JSON='{"sponsorship":["aaahashmi95@gmail.com"],"par
 # Required with Supabase and in every deployed environment. Generate a random
 # secret of at least 32 bytes and store it as a Worker secret.
 FORM_RATE_LIMIT_SECRET=""
+
+# Course enrollment remains a simulation; no payment provider is called.
+LEARNING_SIMULATION_ENABLED="true"

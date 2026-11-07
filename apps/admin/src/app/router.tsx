@@ -1,3 +1,6 @@
+import { RegistrationManager } from '@/features/registration/page';
+import { getAppConfig } from './config/app-config';
+import { CoursesManagement } from '@/features/courses/courses-page';
 import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { adminRouteIds, adminRoutePatterns } from '@/application';
 import type { AdminAuthGateway, AdminRepository } from '@/data';
@@ -121,6 +124,16 @@ export function createAdminRoutes(
           id: adminRouteIds.account,
           path: adminRoutePatterns.account,
           lazy: () => import('./routes/account.route'),
+        },
+        {
+          path: '/forms',
+          element: (
+            <RegistrationManager authGateway={authGateway} connection={getAppConfig().api} />
+          ),
+        },
+        {
+          path: '/courses',
+          element: <CoursesManagement authGateway={authGateway} connection={getAppConfig().api} />,
         },
         ...featureRoutes,
         ...(repository.capabilities['guest-management'] ? guestRoutes : []),

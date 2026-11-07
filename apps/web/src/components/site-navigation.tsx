@@ -12,12 +12,13 @@ const NAVIGATION = [
   { href: '/episodes', label: 'الحلقات' },
   { href: '/guests', label: 'الضيوف' },
   { href: '/articles', label: 'قراءات من مختلف' },
+  { href: '/courses', label: 'أكاديمية مختلف' },
   { href: '/about', label: 'من نحن' },
   { href: '/services', label: 'الإنتاج' },
 ] as const;
 
 const MENU_GROUPS = [
-  { title: 'اكتشف مختلف', links: NAVIGATION.slice(0, 5) },
+  { title: 'اكتشف مختلف', links: NAVIGATION.slice(0, 6) },
   {
     title: 'عن مختلف',
     links: [
@@ -25,7 +26,6 @@ const MENU_GROUPS = [
       { href: '/mission', label: 'قضيتنا' },
       { href: '/services', label: 'الإنتاج' },
       { href: '/work', label: 'أعمالنا' },
-      { href: '/sponsor', label: 'الشراكات والرعايات' },
       { href: '/suggest', label: 'اقترح ضيفًا' },
       { href: '/join-us', label: 'انضم إلينا' },
     ],
@@ -35,6 +35,7 @@ const MENU_GROUPS = [
     links: [
       { href: '/account', label: 'حسابي' },
       { href: '/library', label: 'مكتبتي' },
+      { href: '/library/courses', label: 'دوراتي' },
       { href: '/library?tab=playlists', label: 'قوائم التشغيل' },
       { href: '/search', label: 'بحث' },
     ],
@@ -88,9 +89,6 @@ export function SiteNavigation() {
         ))}
       </nav>
       <div className={styles.actions}>
-        <Link className={styles.sponsor} href="/sponsor">
-          الشراكات والرعايات
-        </Link>
         <Link
           className={styles.search}
           href="/search"
@@ -177,6 +175,9 @@ export function SiteNavigation() {
             </nav>
           ))}
         </div>
+        <Link className={styles.menuSponsor} href="/sponsor" onClick={closeMenu}>
+          الشراكات والرعايات
+        </Link>
         <div className={styles.menuSettings}>
           <span>مظهر الموقع</span>
           <ThemeControl />

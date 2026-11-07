@@ -20,6 +20,7 @@ export interface HostingerRuntime {
 }
 
 const ENV_KEYS = [
+  'LEARNING_SIMULATION_ENABLED',
   'APP_ENV',
   'DEPLOYMENT_PLATFORM',
   'ALLOW_DEV_AUTH',

@@ -224,14 +224,15 @@ export function AccountSecurityView() {
               >
                 {'حفظ كلمة المرور'}
               </Button>
-              <button
+              <Button
+                aria-busy={auth.isSubmitting}
                 className="account-security__resend"
                 type="button"
                 disabled={auth.isSubmitting}
                 onClick={() => void requestVerificationCode()}
               >
                 إرسال رمز جديد
-              </button>
+              </Button>
             </div>
           </form>
         )}
