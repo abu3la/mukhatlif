@@ -41,8 +41,8 @@
 
 .title {
   color: var(--night-text);
-  font-size: 20px;
-  font-weight: 500;
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-medium);
 }
 
 .statement {
@@ -50,7 +50,7 @@
   margin-block-start: 22px;
   color: var(--night-text);
   font-size: clamp(36px, 5vw, 58px);
-  font-weight: 700;
+  font-weight: var(--mk-weight-bold);
   line-height: 1.24;
   letter-spacing: -0.02em;
   text-wrap: balance;
@@ -60,8 +60,8 @@
   max-width: 58ch;
   margin-block-start: 20px;
   color: var(--night-muted);
-  font-size: 16px;
-  line-height: 1.9;
+  font-size: var(--mk-text-base);
+  line-height: var(--mk-leading-reading);
   text-wrap: pretty;
 }
 
@@ -75,7 +75,7 @@
 
 .platformsLabel {
   color: var(--night-muted);
-  font-size: 13px;
+  font-size: var(--mk-text-xs);
 }
 
 .platformLink {
@@ -87,8 +87,8 @@
   color: var(--night-text);
   border: 1px solid var(--night-line);
   border-radius: var(--radius-pill);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-medium);
 }
 
 .platformLink:hover {
@@ -113,7 +113,7 @@
   flex: none;
   color: var(--night-text);
   font-size: clamp(84px, 11vw, 144px);
-  font-weight: 700;
+  font-weight: var(--mk-weight-bold);
   line-height: 0.9;
   letter-spacing: 0;
   white-space: nowrap;
@@ -123,7 +123,7 @@
   max-width: 42ch;
   margin-block-end: 4px;
   color: var(--night-muted);
-  font-size: 15px;
+  font-size: var(--mk-text-md);
   line-height: 1.85;
   text-wrap: pretty;
 }
@@ -141,7 +141,7 @@
 .sectionTitle {
   color: var(--ink);
   font-size: clamp(24px, 3vw, 32px);
-  font-weight: 700;
+  font-weight: var(--mk-weight-bold);
 }
 
 .sectionLink {
@@ -150,8 +150,8 @@
   display: inline-flex;
   align-items: center;
   color: var(--secondary);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-medium);
 }
 
 .sectionLink:hover {
@@ -162,7 +162,7 @@
   max-width: 60ch;
   margin-block-start: 8px;
   color: var(--secondary);
-  line-height: 1.8;
+  line-height: var(--mk-leading-body);
   text-wrap: pretty;
 }
 
@@ -192,20 +192,20 @@
 .presenterName {
   min-width: 0;
   color: var(--ink);
-  font-weight: 700;
+  font-weight: var(--mk-weight-bold);
 }
 
 .presenterShow {
   min-width: 0;
   color: var(--secondary);
-  font-size: 14px;
+  font-size: var(--mk-text-sm);
 }
 
 .presenterLink,
 .comingSoon {
   justify-self: end;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-medium);
   white-space: nowrap;
 }
 
@@ -245,12 +245,12 @@
 
 .teamName {
   color: var(--ink);
-  font-weight: 700;
+  font-weight: var(--mk-weight-bold);
 }
 
 .teamRole {
   color: var(--secondary);
-  font-size: 14px;
+  font-size: var(--mk-text-sm);
 }
 
 @media (max-width: 800px) {
@@ -307,7 +307,7 @@
   }
 
   .sectionTitle {
-    font-size: 24px;
+    font-size: var(--mk-text-3xl);
   }
 
   .presenterList {

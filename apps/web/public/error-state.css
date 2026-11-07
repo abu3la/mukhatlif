@@ -12,10 +12,12 @@
 }
 :root {
   color-scheme: light;
-  --bg: #fff;
+  /* mk:light:start */
+  --bg: #ffffff;
   --fg: #171a56;
   --muted: #505568;
   --surface: #f4f5fa;
+  /* mk:light:end */
   --space: clamp(24px, 4.8vw, 78px);
 }
 * {
@@ -108,10 +110,12 @@ a:focus-visible {
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
+    /* mk:dark:start */
     --bg: #1a1b19;
     --fg: #f5f6f3;
     --muted: #b8c0b7;
     --surface: #272925;
+    /* mk:dark:end */
   }
   .error-brand .error-logo-light {
     display: none;

@@ -8,5 +8,5 @@
   border: 0;
   border-radius: var(--radius-card);
   min-block-size: 200px;
-  background: #111;
+  background: var(--mk-video-letterbox);
 }
