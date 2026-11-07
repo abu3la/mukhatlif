@@ -19,7 +19,7 @@
     "important": 2,
     "line-height": 1,
     "radius": 3,
-    "spacing": 48
+    "spacing": 47
   },
   "apps/web/src/app/listener.css": {
     "font-size": 17,
@@ -30,15 +30,15 @@
     "radius": 7,
     "raw-color": 1,
     "shadow": 1,
-    "spacing": 189
+    "spacing": 188
   },
   "apps/web/src/app/public-pages.css": {
     "font-size": 19,
     "important": 2,
     "line-height": 10,
     "media-width": 3,
-    "radius": 20,
-    "spacing": 140
+    "radius": 18,
+    "spacing": 138
   },
   "apps/web/src/components/busy-button.css": {
     "radius": 1
@@ -46,22 +46,22 @@
   "apps/web/src/components/courses/courses.css": {
     "font-family": 1,
     "font-size": 32,
-    "font-weight": 11,
+    "font-weight": 10,
     "important": 1,
     "line-height": 17,
     "media-width": 11,
-    "radius": 43,
+    "radius": 41,
     "raw-color": 19,
     "shadow": 1,
     "spacing": 2
   },
   "apps/web/src/components/customer.css": {
-    "font-size": 10,
+    "font-size": 9,
     "important": 2,
     "line-height": 4,
     "media-width": 2,
-    "radius": 8,
-    "spacing": 117
+    "radius": 7,
+    "spacing": 116
   },
   "apps/web/src/components/episode-video.module.css": {
     "spacing": 1
@@ -83,12 +83,11 @@
     "spacing": 14
   },
   "apps/web/src/components/site-navigation.module.css": {
-    "font-size": 2,
-    "font-weight": 1,
+    "font-size": 1,
     "line-height": 1,
     "media-width": 3,
     "radius": 2,
-    "spacing": 25
+    "spacing": 24
   },
   "apps/web/src/components/upload-progress.css": {
     "font-size": 6,

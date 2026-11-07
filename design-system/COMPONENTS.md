@@ -36,10 +36,14 @@ Rules:
   meanwhile; reuse the pending treatment the component already has.
 - Minimum target 44 × 44 for everything clickable.
 
-Legacy (do not copy): `.customer-dialog button[type='submit']` / `.dialog-primary`,
-`.request-form__submit`, `.newsletter-signup__submit`, `.guest-search__submit`,
-`.action`, `.pager__link` and the header `.sponsor` are seven more filled
-primary recipes with different heights, weights and radii.
+Legacy class names still in the markup (`.customer-dialog button[type='submit']`,
+`.dialog-primary`, `.request-form__submit`, `.newsletter-signup__submit`,
+`.guest-search__submit`, `.action`, `.course-button`, the menu's sponsor link)
+all render as the `.public-primary` pill since D-16; `.pager__link` is the same
+pill at 44px. New markup uses `.public-primary` or `.customer-primary` directly.
+
+Disabled: every filled action shows a solid tonal step (10% ink fill, 70% ink
+label, `cursor: not-allowed`), owned by `public-pages.css`. Nothing fades.
 
 ## Selection
 
@@ -117,14 +121,10 @@ decision.
 Found by a full source audit of the cascade on 2026-10-29. Each is a visible
 change, so each needs the owner's choice (DECISIONS.md Q-05).
 
-1. **Nine filled primary recipes.** Heights 52 / 48 / 46 / 44 / none; radius
-   pill, 8px or card radius; weight 500 / 600 / 700; label colour on-ink or
-   `surface`; hover tonal mix, opacity, border-only or `ink-hover`; disabled
-   none, 45% or 55%. Proposal: keep `.public-primary` / `.customer-primary`
-   (52px pill, semibold) as the one recipe, with a 44px compact size.
-2. **Two text buttons side by side.** `.public-text-action` is 14px with a 6px
-   radius; `.customer-text-button` is 16px with no radius. They sit together in
-   the article reading controls.
+1. ~~Nine filled primary recipes.~~ Resolved by D-16: one pill recipe, one
+   disabled state, a 44px compact size for the pager.
+2. ~~Two text buttons side by side.~~ Resolved by D-16: both are 14px with the
+   control radius.
 3. **Five icon-button recipes** (square or circle, transparent or filled, icon
    16 to 22px) and two icon sets (filled `BrandIcon`, stroked `CustomerIcon`).
 4. **Seven field recipes.** Height 44 to 54, radius 6 / 8 / 10 / card,
@@ -142,33 +142,23 @@ change, so each needs the owner's choice (DECISIONS.md Q-05).
    `.customer-library-tabs` text).
 9. **Page heads** use nine different h1 sizes, three weights and four line
    heights; `/articles` does not use `.public-page-head`.
-10. **Focus rings:** 3px ink offset 4 on some controls, 3px `currentColor`
-    elsewhere, which on filled buttons is the light label colour.
+10. ~~Focus rings.~~ Resolved by D-16: 3px ink inside the header and main;
+    the footer and the player keep their green rings on their ink floors.
 
 ## Known defects from the audit
 
-Source analysis shows these declared states never apply because a later rule
-wins. They are recorded, not yet fixed or visually confirmed; fixing them
-restores intended behaviour (level 0) but changes what renders, so confirm
-before shipping.
+Source analysis on 2026-10-29 found ten declared states that never applied
+because a later rule won. Nine were fixed on 2026-11-07 (D-16, D-20) with the
+fixes placed at the end of the cascade in `public-pages.css`: the dialog
+password padding, dialog error and message colours, the required asterisk,
+dialog phone padding and title size, request-form and home-newsletter hover,
+focus and invalid borders, the filter-tab hover, the footer's two-column fold
+up to 820px, and the moments button (now `.customer-text-button`). The dialog
+fixes were verified by specificity, not on screen, because the account dialogs
+need a signed-in listener.
 
-1. In the account password dialog the field loses its 56px end padding
-   (`handoff.css` `.customer-dialog input` wins), so typed text can run under
-   the show/hide button.
-2. Inside dialogs, in light mode, `.customer-error` and `.customer-message`
-   render muted (`.customer-dialog p` wins).
-3. Inside dialogs, the required-field asterisk wraps onto its own line
-   (`.customer-dialog label { display: grid }`).
-4. Dialog mobile padding (22px) and mobile title size (21px) never apply.
-5. Request-form inputs lose their hover and focus border colours.
-6. The home newsletter inputs lose hover, focus and invalid borders, so an
-   invalid email gets no border change; its submit loses its hover fill.
-7. `.public-filter-tabs` links have no hover state.
-8. Between 601 and 820px the footer's responsive columns are overridden.
-9. In dark mode the episode-card play button hovers to `ink-hover`, not the
-   green hover used on the dock.
-10. `.customer-secondary` (episode moments) has no CSS at all and renders as a
-    browser-default button.
+One remains, as a question (Q-08): in dark mode the episode-card play button
+hovers to `ink-hover`, not the green hover used on the dock.
 
 ## Dead code
 

@@ -66,6 +66,36 @@ Format: `D-nn · date · decision · why / source`.
   changes what renders on screens nobody had checked. Source: the owner's merge
   request; the conversion is Q-10.
 
+- **D-16 · 2026-11-07 · One filled action, one disabled state.** Every filled
+  primary action renders as the `.public-primary` pill (52px, semibold,
+  tonal hover) whatever class the markup still carries: request-form and
+  guest-search submits, the newsletter submit, `.action`, dialog submits, the
+  follow button, the Academy `.course-button` and the menu's sponsor link. The
+  pager keeps the pill at 44px. Disabled is a solid tonal step (10% ink fill,
+  70% ink label), never a faded button. Text actions share one size (14px,
+  control radius). Focus rings inside the header and main are 3px ink. Source:
+  the owner's request to fix the site's buttons everywhere; resolves Q-05
+  items 1, 2 and 10 and Q-08 items 1 to 8 and 10.
+- **D-17 · 2026-11-07 · The guest hero is tonal.** `/guests` opened with a
+  broadcast-indigo panel on which the light-mode lede was unreadable (2.5:1),
+  and which collided with the warm dark page. It now sits on `surface` with
+  ink text, like every other section; the portrait placeholder uses `card`.
+  Source: DESIGN_LAW, no colour seams outside the footer and the player.
+- **D-18 · 2026-11-07 · «حصري» is not green.** The exclusive label on
+  programme and episode cards used the green ink (2.9:1 on the dark page).
+  It is muted ink now; green stays with playback. Source: D-04.
+- **D-19 · 2026-11-07 · Legacy error pages stay script-free.** The static 404
+  and 503 pages for old URLs cannot read the stored appearance without a
+  script, and their test requires that they carry none, so they keep following
+  the device colour scheme. Their primary action hovers tonally like every
+  other. Matching the stored choice is Q-11.
+- **D-20 · 2026-11-07 · Touch targets and hovers.** "See all" links, footer
+  links and the footer email, the pager, the account form link and the guest
+  breadcrumb reach 44px; filter tabs, the home newsletter fields and the
+  request-form fields show their hover, focus and invalid borders; the footer
+  folds to two columns up to 820px. The articles index uses the shared page
+  head. The Academy catalogue reports a failed load in Arabic.
+
 ## Open questions for the owner
 
 These are inconsistencies found while building the system. Each is a visible
@@ -85,17 +115,18 @@ replying with the option, then record it above.
 - **Q-04 · Too many breakpoints.** Besides the five canonical widths the CSS
   uses 380, 400, 430, 520, 620, 700, 721, 760, 800, 900, 1100 and 1400px.
   Option: move each to the nearest canonical width, checking each screen.
-- **Q-05 · Duplicate action recipes.** Several classes implement the primary
-  action with slightly different height, padding and weight (see
-  [COMPONENTS.md](COMPONENTS.md#duplicates-to-resolve)). Option: one primary
-  action recipe with documented sizes.
+- **Q-05 · Duplicate recipes.** The filled actions, text actions and focus
+  rings converged in D-16. Icon buttons, fields, dialog shells, card
+  containers, the two `GuestCard` recipes, the two tab patterns and the page
+  heads still differ (see [COMPONENTS.md](COMPONENTS.md#duplicates-to-resolve)).
+  Option: converge them one role at a time.
 - **Q-06 · Raw radii.** 4, 6, 9, 12, 14 and 18px radii remain beside the
   radius tokens. Option: map each to card, control, media or dialog.
-- **Q-08 · Ten silent cascade defects.** States that are declared but never
-  apply, such as the password text running under the show/hide button in the
-  account dialog and the home newsletter showing no invalid border (full list
-  in [COMPONENTS.md](COMPONENTS.md#known-defects-from-the-audit)). Option: fix
-  them as conformance fixes, checking each screen.
+- **Q-08 · One cascade defect left.** Nine of the ten silenced states were
+  restored in D-16 and D-20. In the dark appearance the episode-card play
+  button still hovers to `ink-hover` rather than the dock's green; it is a
+  tonal hover on a light control and may be intended. Option: keep it, or
+  make it green to match the dock.
 - **Q-09 · Dead CSS and components.** Unused rules and components listed in
   [COMPONENTS.md](COMPONENTS.md#dead-code). Option: delete them in one change,
   proven unchanged with `style-snapshot.js`.
@@ -108,3 +139,8 @@ replying with the option, then record it above.
   off-canonical breakpoints and their own type, radius and spacing values.
   Option: bring them under the tokens one file at a time, proving each screen
   with `style-snapshot.js` in both appearances.
+- **Q-11 · Legacy error pages and the stored appearance.** The static 404 and
+  503 pages for old URLs follow the device colour scheme (D-19), so a visitor
+  who chose the dark appearance on a light device sees a white page there.
+  Option: mirror the choice into a cookie the route can read, or accept the
+  difference on those pages.

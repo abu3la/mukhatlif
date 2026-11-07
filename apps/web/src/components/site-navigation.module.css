@@ -276,13 +276,13 @@
   justify-content: center;
   min-height: 44px;
   margin-top: 24px;
-  padding: 8px 16px;
-  border-radius: var(--radius);
+  padding: var(--mk-space-8) var(--mk-space-20);
+  border-radius: var(--mk-radius-pill);
   background: var(--fg);
   color: var(--bg);
   font: inherit;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-medium);
   text-decoration: none;
 }
 .menuSponsor:hover {

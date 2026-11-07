@@ -74,7 +74,7 @@ export function EpisodeMoments({
         </h2>
         <button
           type="button"
-          className="customer-secondary"
+          className="customer-text-button"
           disabled={customer.loading}
           onClick={() => open({ kind: 'save', seconds: position.seconds })}
         >

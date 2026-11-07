@@ -99,7 +99,7 @@ a:focus-visible {
   font-weight: 600;
 }
 .error-primary:hover {
-  opacity: 0.86;
+  background: color-mix(in srgb, var(--fg) 84%, var(--bg));
 }
 .error-search {
   padding: 12px 4px;

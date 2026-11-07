@@ -215,12 +215,20 @@ button:disabled {
   justify-items: start;
   gap: 16px;
 }
+.site-footer__brand > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
 .site-footer__tagline {
   color: var(--footer-ink);
   font-size: var(--mk-text-md);
   margin: 0;
 }
 .site-footer__email {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--footer-ink);
   font-size: var(--mk-text-sm);
 }
@@ -232,7 +240,7 @@ button:disabled {
 .site-footer__group a {
   display: flex;
   align-items: center;
-  min-height: 36px;
+  min-height: 44px;
   width: fit-content;
   font-size: var(--mk-text-sm);
   color: var(--footer-ink);
@@ -420,13 +428,19 @@ button:disabled {
 }
 .customer-dialog button[type='submit'],
 .dialog-primary {
-  min-height: 48px;
-  padding: 10px 24px;
+  min-height: 52px;
+  padding: var(--mk-space-12) var(--mk-space-24);
   border: 0;
   border-radius: var(--mk-radius-pill);
   background: var(--fg);
   color: var(--bg);
   font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+}
+.customer-dialog button[type='submit']:hover,
+.dialog-primary:hover {
+  background: color-mix(in srgb, var(--fg) 84%, var(--bg));
+  color: var(--bg);
 }
 .customer-dialog form {
   display: grid;

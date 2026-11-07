@@ -30,7 +30,7 @@ button[data-loading-mode='replace'] > .action-loading-indicator { position: abso
 button[data-unavailable='true']:disabled,
 button[data-unavailable='true']:disabled:hover {
   background: color-mix(in srgb, var(--fg, #1d1a4c) 10%, var(--bg, white));
-  color: color-mix(in srgb, var(--fg, #1d1a4c) 58%, var(--bg, white));
+  color: color-mix(in srgb, var(--fg, #1d1a4c) 70%, var(--bg, white));
   border-color: transparent;
   opacity: 1;
   cursor: not-allowed;

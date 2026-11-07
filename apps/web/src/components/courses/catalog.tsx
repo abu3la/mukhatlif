@@ -43,7 +43,11 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
         if (!controller.signal.aborted) setCourses(rows);
       }
     })().catch((e) => {
-      if (!controller.signal.aborted) setError(e.message);
+      if (!controller.signal.aborted) {
+        // A browser-level failure ("Failed to fetch") has no Arabic message of its own.
+        const message = e instanceof Error && /[\u0600-\u06ff]/.test(e.message) ? e.message : '';
+        setError(message || 'تعذّر تحميل الدورات. تحقّق من الاتصال ثم حاول مجددًا.');
+      }
     });
     return () => controller.abort();
   }, [api, mine, user, retry]);

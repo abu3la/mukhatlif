@@ -171,6 +171,9 @@ h3 {
   inset-block-start: 12px;
   inset-inline-start: 12px;
   z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: 8px 14px;
   color: var(--surface);
   background: var(--ink);
@@ -316,6 +319,12 @@ h3 {
   margin-block-end: 20px;
 }
 
+.content-section__header > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
 .content-section__title,
 .section__title {
   color: var(--ink);
@@ -330,6 +339,9 @@ h3 {
 
 .content-section__more,
 .section__more {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--secondary);
   font-size: var(--mk-text-xs);
   font-weight: var(--mk-weight-medium);
@@ -794,7 +806,7 @@ h3 {
 .episode-row__premium,
 .badge--premium {
   margin-inline-start: 8px;
-  color: var(--green-dark);
+  color: var(--muted);
   font-size: var(--mk-text-2xs);
   font-weight: var(--mk-weight-medium);
   white-space: nowrap;
@@ -1537,7 +1549,8 @@ h3 {
 }
 
 .pager__link {
-  padding: 7px 18px;
+  min-height: 44px;
+  padding: var(--mk-space-8) var(--mk-space-20);
 }
 
 .pager__status {
@@ -2105,8 +2118,8 @@ h3 {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 40px;
-  color: var(--night-text);
-  background: var(--night);
+  color: var(--ink);
+  background: var(--surface);
   border: 1px solid var(--night-line);
   border-radius: var(--radius-card);
 }
@@ -2116,7 +2129,7 @@ h3 {
 }
 
 .guest-library__title {
-  color: var(--night-text);
+  color: var(--ink);
   font-size: clamp(42px, 7vw, 76px);
   font-weight: var(--mk-weight-bold);
   letter-spacing: -0.035em;
@@ -2125,14 +2138,14 @@ h3 {
 .guest-library__lede {
   max-width: 30ch;
   margin-block-start: 12px;
-  color: var(--night-muted);
+  color: var(--secondary);
   font-size: clamp(17px, 2.3vw, 22px);
 }
 
 .guest-library__count {
   min-width: 160px;
   padding: 16px 18px;
-  background: var(--night-raised);
+  background: var(--page);
   border-radius: var(--radius-input);
 }
 
@@ -2142,14 +2155,14 @@ h3 {
 }
 
 .guest-library__count strong {
-  color: var(--night-text);
+  color: var(--ink);
   font-size: var(--mk-text-2xl);
   line-height: var(--mk-leading-tight);
 }
 
 .guest-library__count span {
   margin-block-start: 4px;
-  color: var(--night-muted);
+  color: var(--secondary);
   font-size: var(--mk-text-xs);
 }
 
@@ -2265,8 +2278,8 @@ h3 {
 .guest-portrait--fallback {
   display: grid;
   place-items: center;
-  color: var(--night-text);
-  background: var(--night-raised);
+  color: var(--ink);
+  background: var(--mk-card);
   font-size: 42px;
   font-weight: var(--mk-weight-bold);
 }
@@ -2318,7 +2331,7 @@ h3 {
 
 .guest-profile__breadcrumb a {
   display: inline-flex;
-  min-height: 40px;
+  min-height: 44px;
   align-items: center;
 }
 
