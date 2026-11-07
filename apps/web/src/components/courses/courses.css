@@ -60,13 +60,21 @@
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  min-height: 46px;
-  padding: 0.65rem 1.2rem;
+  min-height: 52px;
+  padding: var(--mk-space-12) var(--mk-space-24);
   color: var(--bg);
   background: var(--fg);
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--mk-radius-pill);
+  line-height: var(--mk-leading-ui);
   text-decoration: none;
+  transition:
+    background-color var(--mk-duration-base) ease,
+    color var(--mk-duration-base) ease;
+}
+.course-button:hover {
+  background: color-mix(in srgb, var(--fg) 84%, var(--bg));
+  color: var(--bg);
 }
 .course-list {
   display: grid;
@@ -408,17 +416,17 @@
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
-  font-weight: 600;
+  font-weight: var(--mk-weight-semibold);
 }
 .course-view-nav button,
 .course-step-nav button,
 .course-video-status .course-control {
   background: var(--surface);
   color: var(--fg);
-  border: 1px solid color-mix(in srgb, var(--fg) 26%, var(--surface));
-  border-radius: 8px;
+  border: 0;
+  border-radius: var(--mk-radius-pill);
   min-height: 44px;
-  padding: 0.65rem 1rem;
+  padding: var(--mk-space-8) var(--mk-space-20);
   text-decoration: none;
 }
 .course-view-nav button[aria-current] {

@@ -42,7 +42,7 @@
   color: var(--bg);
   border: 1px solid var(--fg);
   border-radius: var(--mk-radius-pill);
-  padding: 12px 26px;
+  padding: var(--mk-space-12) var(--mk-space-24);
   min-height: 52px;
   font-weight: var(--mk-weight-semibold);
   line-height: var(--mk-leading-ui);
@@ -54,8 +54,10 @@
 .customer-text-button {
   background: none;
   border: 0;
+  border-radius: var(--mk-radius-control);
   color: var(--fg);
   padding: 8px 10px;
+  font-size: var(--mk-text-sm);
 }
 .customer-text-button:hover {
   background: color-mix(in srgb, var(--fg) 6%, transparent);
@@ -307,7 +309,7 @@
 .customer-form-link {
   font-size: var(--mk-text-sm);
   color: var(--muted);
-  min-height: 30px;
+  min-height: 44px;
   display: flex;
   align-items: center;
 }
@@ -446,7 +448,7 @@
   margin-bottom: 24px;
 }
 .customer-dialog-head h2 {
-  font-size: 23px;
+  font-size: var(--mk-text-3xl);
   line-height: var(--mk-leading-ui);
   font-weight: var(--mk-weight-medium);
   margin: 0;
@@ -805,7 +807,6 @@
 }
 .customer-follow {
   min-width: 148px;
-  border-radius: 8px;
 }
 .customer-follow[aria-pressed='true'] {
   background: var(--content-card, var(--surface));

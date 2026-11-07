@@ -21,9 +21,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--mk-space-12);
   min-height: 52px;
-  padding: 12px 26px;
+  padding: var(--mk-space-12) var(--mk-space-24);
   border: 0;
   border-radius: var(--mk-radius-pill);
   color: var(--bg);
@@ -55,7 +55,7 @@
   font: inherit;
   font-size: var(--mk-text-sm);
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--mk-radius-control);
 }
 .public-text-action:hover {
   background: color-mix(in srgb, var(--fg) 6%, transparent);
@@ -68,12 +68,93 @@
   margin-bottom: 12px;
   font-size: var(--mk-text-sm);
 }
+/* One focus ring in ink on every control the page owns. On the ink floors the
+   footer and player keep their own rings. */
+.site-header :focus-visible,
+.site-main :focus-visible {
+  outline: 3px solid var(--fg);
+  outline-offset: 3px;
+}
+.site-main .mukhtalif-player-inline :focus-visible {
+  outline-color: var(--mk-brand-green);
+}
 .public-primary:focus-visible,
 .public-text-action:focus-visible,
 .public-filter-tabs a:focus-visible,
 .public-rail-controls button:focus-visible {
   outline: 3px solid var(--fg);
   outline-offset: 4px;
+}
+/* Every filled primary action is the one pill recipe (DECISIONS D-16); the older
+   classes stay in the markup but render as .public-primary. */
+.request-form__submit,
+.request-form__success button,
+.public-request-layout .request-form__submit,
+.public-request-layout .request-form__success button,
+.guest-search__submit,
+.action,
+.newsletter-signup__submit,
+.public-home .newsletter-signup__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mk-space-12);
+  min-height: 52px;
+  padding: var(--mk-space-12) var(--mk-space-24);
+  border: 0;
+  border-radius: var(--mk-radius-pill);
+  color: var(--bg);
+  background: var(--fg);
+  font: inherit;
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+  cursor: pointer;
+  text-decoration: none;
+  opacity: 1;
+  transition:
+    background-color var(--mk-duration-base) ease,
+    color var(--mk-duration-base) ease;
+}
+.request-form__submit:hover,
+.request-form__success button:hover,
+.public-request-layout .request-form__submit:hover,
+.public-request-layout .request-form__success button:hover,
+.guest-search__submit:hover,
+.action:hover,
+.newsletter-signup__submit:hover,
+.public-home .newsletter-signup__submit:hover {
+  background: color-mix(in srgb, var(--fg) 84%, var(--bg));
+  color: var(--bg);
+  border-color: transparent;
+  opacity: 1;
+}
+/* The pager keeps the pill at the compact 44px size. */
+.pager__link {
+  color: var(--bg);
+  background: var(--fg);
+  border: 0;
+}
+.pager__link:hover {
+  background: color-mix(in srgb, var(--fg) 84%, var(--bg));
+  color: var(--bg);
+}
+/* Disabled is a solid tonal step, never a faded button. */
+.public-primary:disabled,
+.customer-primary:disabled,
+.customer-page .customer-primary:disabled,
+.customer-dialog .customer-primary:disabled,
+.customer-dialog button[type='submit']:disabled,
+.request-form__submit:disabled,
+.public-request-layout .request-form__submit:disabled,
+.guest-search__submit:disabled,
+.newsletter-signup__submit:disabled,
+.public-home .newsletter-signup__submit:disabled,
+.course-button:disabled {
+  background: color-mix(in srgb, var(--fg) 10%, var(--bg));
+  color: color-mix(in srgb, var(--fg) 70%, var(--bg));
+  border-color: transparent;
+  opacity: 1;
+  cursor: not-allowed;
 }
 .public-home {
   padding-block: 0;
@@ -311,7 +392,16 @@
   background: var(--bg);
   color: var(--fg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--mk-radius-control);
+}
+.public-home .newsletter-signup__fields input:hover {
+  border-color: var(--muted);
+}
+.public-home .newsletter-signup__fields input:focus-visible {
+  border-color: var(--fg);
+}
+.public-home .newsletter-signup__fields input[aria-invalid='true'] {
+  border-color: var(--danger);
 }
 .public-home .newsletter-signup__submit {
   background: var(--fg);
@@ -377,7 +467,11 @@
   background: var(--surface);
   color: var(--fg);
 }
-.public-filter-tabs a[aria-current='page'] {
+.public-filter-tabs a:hover {
+  background: var(--surface-hover);
+}
+.public-filter-tabs a[aria-current='page'],
+.public-filter-tabs a[aria-current='page']:hover {
   color: var(--bg);
   background: var(--fg);
 }
@@ -952,6 +1046,39 @@ html[data-concept='third'] .public-listening img {
     font-size: var(--mk-text-base);
   }
 }
+/* Account dialogs: states that a later rule used to silence (DECISIONS D-16). */
+.customer-dialog .customer-field label {
+  display: block;
+}
+.customer-dialog .customer-password input {
+  /* Room for the 44px show/hide control and its 8px inset. */
+  padding-inline-end: calc(var(--mk-space-48) + var(--mk-space-8));
+}
+.customer-dialog p.customer-error,
+.customer-dialog .customer-field-error {
+  color: var(--mk-danger-text);
+}
+.customer-dialog p.customer-message {
+  color: var(--fg);
+}
+/* The footer folds to two columns between the phone and tablet widths. */
+@media (max-width: 820px) {
+  .site-footer__grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--mk-space-32);
+  }
+  .site-footer__brand {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 600px) {
+  .customer-dialog {
+    padding: var(--mk-space-20);
+  }
+  .customer-dialog-head h2 {
+    font-size: var(--mk-text-2xl);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .public-primary {
     transition: none;
@@ -1018,7 +1145,17 @@ html[data-concept='third'] .public-listening img {
 .public-request-layout .request-form__field select {
   min-height: 50px;
 }
-.public-request-layout .request-form__field [aria-invalid='true'] {
+.public-request-layout .request-form__field input:hover,
+.public-request-layout .request-form__field textarea:hover,
+.public-request-layout .request-form__field select:hover {
+  border-color: var(--muted);
+}
+.public-request-layout .request-form__field input:focus-visible,
+.public-request-layout .request-form__field textarea:focus-visible,
+.public-request-layout .request-form__field select:focus-visible {
+  border-color: var(--fg);
+}
+.public-request-layout .request-form__field :is(input, textarea, select)[aria-invalid='true'] {
   border-color: var(--danger);
 }
 .public-request-layout .request-form__choice label {
@@ -1032,23 +1169,6 @@ html[data-concept='third'] .public-listening img {
 .public-request-layout .request-form__consent {
   font-size: var(--mk-text-sm);
   color: var(--muted);
-}
-.public-request-layout .request-form__submit,
-.public-request-layout .request-form__success button {
-  background: var(--fg);
-  color: var(--bg);
-  border: 0;
-  border-radius: var(--mk-radius-pill);
-  min-height: 48px;
-}
-.public-request-layout .request-form__submit:hover,
-.public-request-layout .request-form__success button:hover {
-  background: var(--fg);
-  color: var(--bg);
-  opacity: 0.86;
-}
-.public-request-layout .request-form__submit:disabled {
-  opacity: 0.55;
 }
 .public-production {
   background: var(--surface);

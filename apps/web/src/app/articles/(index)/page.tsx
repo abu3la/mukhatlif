@@ -38,9 +38,9 @@ export default async function ArticlesPage({
 
   return (
     <div className="shell articles-index public-page">
-      <header className="articles-index__header">
-        <h1 className="articles-index__title">قراءات من مختلف</h1>
-        <p className="articles-index__intro">مساحة للرأي والتأمل في معنى العمل.</p>
+      <header className="public-page-head">
+        <h1>قراءات من مختلف</h1>
+        <p>مساحة للرأي والتأمل في معنى العمل.</p>
       </header>
       <form action="/articles" className="public-filters public-filters--search" role="search">
         <label>
