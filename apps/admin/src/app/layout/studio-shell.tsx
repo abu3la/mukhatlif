@@ -2,77 +2,119 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { adminPaths, canViewPage, STUDIO_PAGE_LABELS, useAdminAuth } from '@/application';
 import type { AdminRepositoryCapabilities } from '@/data';
+import type { StudioDomain } from '@mukhtalif/design-tokens';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { Button } from '@/shared/ui/primitives';
 import type { AdminViewer, StudioPageId } from '@/lib';
 import { publicWebsite } from '../config/public-website';
 
+type NavGroupId = 'content' | 'audience' | 'management';
+
 interface StudioNavItem {
   readonly href: string;
   readonly page: StudioPageId;
   readonly label: string;
+  readonly group: NavGroupId;
+  /** The hue that signs the item, its page head and its counts (STUDIO.md). */
+  readonly domain?: StudioDomain;
+  /** Only the admin role sees the item, beyond the page permission. */
+  readonly adminOnly?: boolean;
   readonly match: (path: string) => boolean;
 }
 
+const NAV_GROUPS: readonly { id: NavGroupId; label: string }[] = [
+  { id: 'content', label: 'المحتوى' },
+  { id: 'audience', label: 'الجمهور' },
+  { id: 'management', label: 'الإدارة' },
+];
+
 const NAV_ITEMS: readonly StudioNavItem[] = [
-  {
-    href: '/forms',
-    page: 'forms',
-    label: 'النماذج والتسجيلات',
-    match: (path) => path === '/forms',
-  },
   {
     href: adminPaths.overview,
     page: 'overview',
     label: STUDIO_PAGE_LABELS.overview,
+    group: 'content',
     match: (path: string) => path === '/',
   },
   {
     href: adminPaths.episodes,
     page: 'episodes',
     label: STUDIO_PAGE_LABELS.episodes,
+    group: 'content',
+    domain: 'episodes',
     match: (path: string) => path.startsWith(adminPaths.episodes),
   },
   {
     href: adminPaths.shows,
     page: 'shows',
     label: STUDIO_PAGE_LABELS.shows,
+    group: 'content',
+    domain: 'shows',
     match: (path: string) => path.startsWith(adminPaths.shows),
   },
   {
     href: adminPaths.guests,
     page: 'guests',
     label: STUDIO_PAGE_LABELS.guests,
+    group: 'content',
+    domain: 'guests',
     match: (path: string) => path.startsWith(adminPaths.guests),
   },
   {
     href: adminPaths.articles,
     page: 'articles',
     label: STUDIO_PAGE_LABELS.articles,
+    group: 'content',
+    domain: 'articles',
     match: (path: string) => path.startsWith(adminPaths.articles),
+  },
+  {
+    href: '/courses',
+    page: 'overview',
+    label: 'أكاديمية مختلف',
+    group: 'content',
+    domain: 'academy',
+    adminOnly: true,
+    match: (path: string) => path === '/courses',
   },
   {
     href: adminPaths.subscribers,
     page: 'subscribers',
     label: STUDIO_PAGE_LABELS.subscribers,
+    group: 'audience',
+    domain: 'audience',
     match: (path: string) => path.startsWith(adminPaths.subscribers),
   },
   {
     href: adminPaths.newsletter,
     page: 'subscribers',
     label: 'النشرة البريدية',
+    group: 'audience',
+    domain: 'audience',
     match: (path: string) => path.startsWith(adminPaths.newsletter),
   },
   {
     href: adminPaths.formSubmissions,
     page: 'forms',
     label: STUDIO_PAGE_LABELS.forms,
+    group: 'audience',
+    domain: 'forms',
     match: (path: string) => path.startsWith(adminPaths.formSubmissions),
+  },
+  {
+    href: '/forms',
+    page: 'forms',
+    label: 'النماذج والتسجيلات',
+    group: 'audience',
+    domain: 'forms',
+    match: (path) => path === '/forms',
   },
   {
     href: adminPaths.roles,
     page: 'access',
     label: 'الأدوار والصلاحيات',
+    group: 'management',
+    domain: 'access',
     match: (path: string) =>
       path === adminPaths.roles ||
       path.startsWith(`${adminPaths.roles}/`) ||
@@ -82,10 +124,18 @@ const NAV_ITEMS: readonly StudioNavItem[] = [
     href: adminPaths.studioMembers,
     page: 'access',
     label: 'حسابات الاستوديو',
+    group: 'management',
+    domain: 'access',
     match: (path: string) =>
       path === adminPaths.studioMembers || path.startsWith(`${adminPaths.studioMembers}/`),
   },
 ];
+
+/** The domain of the current page, for the page head's mark. */
+export function studioDomainForPath(pathname: string): StudioDomain | undefined {
+  if (pathname === adminPaths.account) return 'access';
+  return NAV_ITEMS.find((item) => item.match(pathname))?.domain;
+}
 
 export function isStudioPageAvailable(
   page: StudioPageId,
@@ -110,9 +160,13 @@ export function StudioShell({
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const [signOutError, setSignOutError] = useState('');
   const visibleItems = NAV_ITEMS.filter(
-    (item) => canViewPage(viewer, item.page) && isStudioPageAvailable(item.page, capabilities),
+    (item) =>
+      (!item.adminOnly || viewer.role === 'admin') &&
+      canViewPage(viewer, item.page) &&
+      isStudioPageAvailable(item.page, capabilities),
   );
   const homePath = visibleItems[0]?.href ?? adminPaths.overview;
+  const domain = studioDomainForPath(pathname);
   const website = publicWebsite(
     window.location.hostname,
     import.meta.env.VITE_PRODUCTION_WEB_TARGET,
@@ -161,28 +215,30 @@ export function StudioShell({
           id="studio-navigation-panel"
         >
           <nav className="studio-nav" aria-label="أقسام الاستوديو">
-            {viewer.role === 'admin' && (
-              <Link
-                to="/courses"
-                className={`studio-nav__item ${pathname === '/courses' ? 'studio-nav__item--active' : ''}`}
-                aria-current={pathname === '/courses' ? 'page' : undefined}
-                onClick={() => setIsNavigationOpen(false)}
-              >
-                أكاديمية مختلف
-              </Link>
-            )}
-            {visibleItems.map((item) => {
-              const active = item.match(pathname);
+            {NAV_GROUPS.map((group) => {
+              const items = visibleItems.filter((item) => item.group === group.id);
+              if (items.length === 0) return null;
               return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={`studio-nav__item ${active ? 'studio-nav__item--active' : ''}`}
-                  aria-current={active ? 'page' : undefined}
-                  onClick={() => setIsNavigationOpen(false)}
-                >
-                  {item.label}
-                </Link>
+                <div className="studio-nav__group" key={group.id}>
+                  <p className="studio-nav__heading" aria-hidden="true">
+                    {group.label}
+                  </p>
+                  {items.map((item) => {
+                    const active = item.match(pathname);
+                    return (
+                      <Link
+                        key={item.href}
+                        to={item.href}
+                        className={`studio-nav__item ${active ? 'studio-nav__item--active' : ''}`}
+                        aria-current={active ? 'page' : undefined}
+                        data-domain={item.domain}
+                        onClick={() => setIsNavigationOpen(false)}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
               );
             })}
           </nav>
@@ -225,7 +281,7 @@ export function StudioShell({
         </div>
       </aside>
 
-      <main className="studio-main">
+      <main className="studio-main" data-domain={domain}>
         <div className="studio-main__inner">{children}</div>
       </main>
     </div>

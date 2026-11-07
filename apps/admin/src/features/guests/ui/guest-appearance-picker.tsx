@@ -92,12 +92,15 @@ export function GuestAppearancePicker({
             <div className="picker-row" key={episode.id}>
               <div className="row-copy">
                 <p className="row-copy__title">{episode.title}</p>
-                <p className="row-copy__meta">
-                  {show?.name} · حلقة{' '}
-                  {episode.episodeNumber == null
-                    ? 'غير مرقمة'
-                    : formatArabicInteger(episode.episodeNumber)}{' '}
-                  · {formatEpisodeTimeline(episode)}
+                <p className="row-copy__meta row-copy__meta--parts">
+                  <span>{show?.name}</span>
+                  <span>
+                    حلقة{' '}
+                    {episode.episodeNumber == null
+                      ? 'غير مرقمة'
+                      : formatArabicInteger(episode.episodeNumber)}
+                  </span>
+                  <span>{formatEpisodeTimeline(episode)}</span>
                 </p>
               </div>
               <StatusBadge status={episode.status} />

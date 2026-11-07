@@ -8,9 +8,11 @@ It is written for people and for coding agents alike. Claude Code and Codex
 both reach it through the repository's `AGENTS.md`; there are no
 agent-specific copies.
 
-**Scope.** The public site and listener account pages in `apps/web`. The
-Studio (`apps/admin`) and the native app keep their own palette in
-`libs/design-tokens/src/color.ts` and are not governed here yet.
+**Scope.** The public site and listener account pages in `apps/web`, and,
+since D-21, the Studio dashboard in `apps/admin` through
+[STUDIO.md](STUDIO.md) (its own `--st-*` tokens, the same guard). The native
+app keeps its own palette in `libs/design-tokens/src/color.ts` and is not
+governed here yet.
 
 ## بالعربي: كيف تطلب تعديلاً على التصميم
 
@@ -37,19 +39,21 @@ Studio (`apps/admin`) and the native app keep their own palette in
 
 ## Files
 
-| File                                                                    | What it holds                                                                                                |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| [TOKENS.md](TOKENS.md)                                                  | Every token with its light and dark value, role and Arabic name; the legacy alias map. Tables are generated. |
-| [COMPONENTS.md](COMPONENTS.md)                                          | Each UI role (actions, fields, cards, states …), the exact class or component that owns it, and its states.  |
-| [PATTERNS.md](PATTERNS.md)                                              | Page structure, layout, RTL, responsive widths, loading and empty states, motion, imagery.                   |
-| [DESIGN_LAW.md](DESIGN_LAW.md)                                          | The quality bar: what this brand never ships, and the final pre-handoff check.                               |
-| [DECISIONS.md](DECISIONS.md)                                            | Dated design decisions, and open questions that need the owner.                                              |
-| [guard-baseline.json](guard-baseline.json)                              | Generated. Hard-coded values still tracked per file.                                                         |
-| [style-snapshot.js](style-snapshot.js)                                  | Browser tool that proves a refactor changed nothing on screen.                                               |
-| [`libs/design-tokens/src/web.ts`](../libs/design-tokens/src/web.ts)     | **The token source.** The only place token values are edited.                                                |
-| [`apps/web/src/app/tokens.css`](../apps/web/src/app/tokens.css)         | Generated CSS custom properties. Never edit by hand.                                                         |
-| [`apps/web/src/app/design-system/`](../apps/web/src/app/design-system/) | The live reference page at `/design-system`.                                                                 |
-| [`scripts/design-system.ts`](../scripts/design-system.ts)               | The build and guard tooling.                                                                                 |
+| File                                                                      | What it holds                                                                                                |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| [TOKENS.md](TOKENS.md)                                                    | Every token with its light and dark value, role and Arabic name; the legacy alias map. Tables are generated. |
+| [COMPONENTS.md](COMPONENTS.md)                                            | Each UI role (actions, fields, cards, states …), the exact class or component that owns it, and its states.  |
+| [PATTERNS.md](PATTERNS.md)                                                | Page structure, layout, RTL, responsive widths, loading and empty states, motion, imagery.                   |
+| [DESIGN_LAW.md](DESIGN_LAW.md)                                            | The quality bar: what this brand never ships, and the final pre-handoff check.                               |
+| [DECISIONS.md](DECISIONS.md)                                              | Dated design decisions, and open questions that need the owner.                                              |
+| [STUDIO.md](STUDIO.md)                                                    | The Studio dashboard: its domain hues, component recipes and generated token tables.                         |
+| [guard-baseline.json](guard-baseline.json)                                | Generated. Hard-coded values still tracked per file.                                                         |
+| [style-snapshot.js](style-snapshot.js)                                    | Browser tool that proves a refactor changed nothing on screen.                                               |
+| [`libs/design-tokens/src/web.ts`](../libs/design-tokens/src/web.ts)       | **The token source.** The only place token values are edited.                                                |
+| [`libs/design-tokens/src/studio.ts`](../libs/design-tokens/src/studio.ts) | The Studio token source (`--st-*`), generated into `apps/admin/src/app/styles/00-tokens.css`.                |
+| [`apps/web/src/app/tokens.css`](../apps/web/src/app/tokens.css)           | Generated CSS custom properties. Never edit by hand.                                                         |
+| [`apps/web/src/app/design-system/`](../apps/web/src/app/design-system/)   | The live reference page at `/design-system`.                                                                 |
+| [`scripts/design-system.ts`](../scripts/design-system.ts)                 | The build and guard tooling.                                                                                 |
 
 ## Rules for every UI change in `apps/web`
 
@@ -89,8 +93,8 @@ knows everything that will move.
 ## Commands
 
 ```bash
-pnpm design:build     # regenerate tokens.css, the error-page palette and TOKENS.md tables
-pnpm design:check     # fail on drift, unknown --mk-* names, or new hard-coded values
+pnpm design:build     # regenerate tokens.css (web and Studio), the error-page palette and the token tables
+pnpm design:check     # fail on drift, unknown --mk-* / --st-* names, or new hard-coded values
 pnpm design:baseline  # re-record tracked debt (only after it went down, or with owner approval)
 ```
 

@@ -122,33 +122,6 @@ body .demo-account-panel__credentials bdi {
     grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
     gap: 4px;
   }
-
-  .switch {
-    block-size: 44px;
-    background: transparent;
-  }
-
-  .switch::before {
-    position: absolute;
-    inset-block: 8px;
-    inset-inline: 0;
-    background: var(--line);
-    border-radius: var(--radius-pill);
-    content: '';
-  }
-
-  .switch--on {
-    background: transparent;
-  }
-
-  .switch--on::before {
-    background: var(--green);
-  }
-
-  .switch__knob {
-    inset-block-start: 13px;
-    z-index: 1;
-  }
 }
 
 @media (max-width: 620px) {
@@ -207,7 +180,7 @@ body .demo-account-panel__credentials bdi {
   }
 
   .list-body {
-    padding-inline: 18px;
+    --row-inset: var(--st-space-20);
   }
 
   .episode-row,
