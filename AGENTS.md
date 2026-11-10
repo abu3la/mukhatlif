@@ -68,7 +68,7 @@ Mukhtalif design take precedence over generic design defaults below.
   Hide empty file tabs. Gate lessons, assessments and certificates correctly.
 - Keep the player title readable, speed control compact, controls recognizable;
   omit redundant “قيد التشغيل” text. Put library beside icon-only search, show its
-  icon on mobile, and keep partnerships/sponsorship discoverable in the header.
+  icon on mobile, and place the partnerships/sponsorship button inside the menu immediately above appearance settings, using its existing filled style. Do not duplicate it in the header.
 - Authentication email copy must match the actual confirmation-link flow. Use
   Arabic and the official logo in email templates with legible dark-mode treatment.
 - Verify changed controls with actual clicks, keyboard behavior, loading/error
@@ -103,6 +103,33 @@ pin the same main source and retain the existing production environment guards.
 Production migration 0024 has been applied after a fresh private database/Auth
 and roles backup; the existing content/user fingerprints are unchanged. Do not
 copy development data or rerun the migration. See `docs/PRODUCTION_AUTO_RELEASE.md`.
+
+## Design system for UI changes (2026-10-29)
+
+Every change to how `apps/web` looks goes through `design-system/README.md`,
+for Codex, Claude Code and people alike. Read it, then the relevant
+`TOKENS.md`, `COMPONENTS.md` and `PATTERNS.md` entries, before editing UI; walk
+`design-system/DESIGN_LAW.md` before handoff.
+
+- Token values live only in `libs/design-tokens/src/web.ts`. Run
+  `pnpm design:build` after editing it; never edit the generated
+  `apps/web/src/app/tokens.css` or the TOKENS.md tables by hand.
+- No hex/rgb/named colours, new font families, shadows, hover movement or
+  ad-hoc type, radius and spacing values in new CSS; use `--mk-*` tokens or the
+  legacy alias the surrounding code uses. Reuse the component recipe instead of
+  restyling it at a call site.
+- Classify the change (token value, component recipe, new pattern). A new
+  pattern, token or type step needs the owner's decision first; record decisions
+  in `design-system/DECISIONS.md`.
+- `pnpm design:check` must pass (it also runs in CI). Check changed screens in
+  both appearances at desktop and 390px. `/design-system` shows every token and
+  live component under `next dev` and on the development Worker only; staging
+  and the live site show the not-found page so customers never reach it.
+- The Studio (`apps/admin`) is governed the same way through
+  `design-system/STUDIO.md`: tokens in `libs/design-tokens/src/studio.ts`
+  (`--st-*`), generated `apps/admin/src/app/styles/00-tokens.css`, one hue per
+  domain used tonally, buttons always ink, 44px targets. Run the Studio locally
+  with `VITE_ADMIN_DATA_SOURCE=fixture` to check screens without Supabase.
 
 # Mukhtalif deployment architecture
 

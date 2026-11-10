@@ -1,0 +1,227 @@
+.form-builder {
+  max-width: 1200px;
+  margin-inline: auto;
+  padding: 24px;
+}
+.form-builder-heading,
+.form-builder-actions,
+.form-builder-tabs,
+.form-builder-save {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.form-builder-heading h1 {
+  font-size: 1.8rem;
+}
+.form-builder p {
+  line-height: 1.8;
+}
+.form-builder-actions {
+  justify-content: flex-start;
+}
+.form-builder .button__content,
+.form-builder a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.form-builder label {
+  display: grid;
+  gap: 9px;
+  margin-block: 18px;
+  font-weight: 600;
+}
+.form-builder input:not([type='checkbox']),
+.form-builder textarea,
+.form-builder select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 46px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #aaa4bd;
+  background: var(--color-surface, #fff);
+  color: inherit;
+  font: inherit;
+}
+.form-builder textarea {
+  resize: vertical;
+}
+.form-builder-picker {
+  max-width: 540px;
+}
+.form-builder-tabs {
+  justify-content: flex-start;
+  margin-block: 24px;
+  gap: 8px;
+}
+.form-builder-tabs [aria-current='page'] {
+  background: #29224f;
+  color: white;
+}
+.form-builder-workspace {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+.form-builder-workspace.with-preview {
+  grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.8fr);
+}
+.form-builder-panel,
+.form-builder-preview,
+.form-builder-empty {
+  border: 0;
+  border-radius: 18px;
+  padding: 24px;
+  background: var(--color-surface, #fff);
+  min-width: 0;
+}
+.form-builder-panel {
+  margin: 0;
+}
+.form-builder-question {
+  background: #f6f4fa;
+  border-radius: 14px;
+  margin-block: 12px;
+  overflow-wrap: anywhere;
+}
+.form-builder-question-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  padding: 18px;
+  border: 0;
+  border-radius: 14px;
+  text-align: start;
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  background: none;
+  cursor: pointer;
+}
+.form-builder-question-title[aria-expanded='true'] {
+  background: #eae5f3;
+}
+.form-builder-question-body {
+  padding: 6px 20px 20px;
+}
+.form-builder-check {
+  display: flex !important;
+  align-items: center;
+}
+.form-builder-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: #29224f;
+}
+.form-builder-preview {
+  position: sticky;
+  top: 20px;
+  background: #f2eef7;
+}
+.form-builder-preview > div {
+  margin-block: 20px;
+}
+.form-builder-preview h3 {
+  font-size: 1.4rem;
+}
+.form-builder-description {
+  white-space: pre-wrap;
+}
+.form-builder-save {
+  position: sticky;
+  bottom: 14px;
+  margin-top: 24px;
+  padding: 18px 24px;
+  border-radius: 16px;
+  background: #27214b;
+  color: #fff;
+}
+.form-builder-save p {
+  margin: 4px 0 0;
+}
+.form-builder-save .button--primary {
+  background: #fff;
+  color: #27214b;
+}
+.form-builder-error {
+  color: #9b273f;
+}
+.form-builder-search {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+.form-builder-search label {
+  margin: 0;
+}
+.form-builder-roster details {
+  padding: 18px;
+  background: #f6f4fa;
+  border-radius: 14px;
+  margin-block: 12px;
+}
+.form-builder-roster summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.form-builder-roster time {
+  font-weight: 400;
+  display: inline-block;
+  margin-inline: 16px;
+}
+.form-builder-roster dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.form-builder-roster dd {
+  margin: 8px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.form-builder-roster dt {
+  font-weight: 700;
+}
+.form-builder :focus-visible {
+  outline: 3px solid #7a6ba6;
+  outline-offset: 3px;
+}
+.form-builder .button:disabled:not([aria-busy='true']) {
+  background: #ebe8ee;
+  color: #77717f;
+}
+.form-builder .button__spinner {
+  width: 18px;
+  height: 18px;
+}
+.form-builder-panel[disabled] {
+  opacity: 0.75;
+}
+@media (max-width: 800px) {
+  .form-builder {
+    padding: 14px;
+  }
+  .form-builder-workspace.with-preview {
+    grid-template-columns: 1fr;
+  }
+  .form-builder-preview {
+    position: static;
+  }
+  .form-builder-panel {
+    padding: 18px;
+  }
+  .form-builder-roster dl {
+    grid-template-columns: 1fr;
+  }
+  .form-builder-save {
+    bottom: 8px;
+    padding: 16px;
+  }
+}

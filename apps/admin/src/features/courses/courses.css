@@ -10,7 +10,7 @@
   line-height: 1.8;
 }
 .studio-courses button {
-  min-height: 42px;
+  min-height: 44px;
   padding: 0.5rem 1rem;
   font: inherit;
   cursor: pointer;
@@ -399,9 +399,15 @@
   gap: 0.75rem;
   margin-top: 0.75rem;
 }
-.studio-courses .course-upload-actions button:first-child {
-  background: #242147;
-  color: white;
+/* The upload action is the one filled button in the area; the selector outranks
+   the generic quiet-button rule above (which carries two :not() classes). */
+.studio-courses .course-upload-actions .button:first-child,
+.studio-courses .course-upload-actions .button:first-child:not(:disabled):hover {
+  background: var(--st-ink);
+  color: var(--st-on-ink);
+}
+.studio-courses .course-upload-actions .button:first-child:not(:disabled):hover {
+  background: var(--st-ink-hover);
 }
 .course-asset progress {
   display: block;
@@ -441,4 +447,113 @@
   .studio-courses-toolbar {
     padding: 1rem;
   }
+}
+
+/* Upload feedback and the save-error band (STUDIO.md tokens). */
+.course-upload-area--dragging {
+  outline: 2px dashed var(--st-ink);
+  outline-offset: 2px;
+}
+.course-asset > p[role='status'] {
+  color: var(--st-success-ink);
+}
+.course-asset-link > p {
+  margin: var(--st-space-4) 0 var(--st-space-8);
+  color: var(--st-muted);
+  font-size: var(--st-text-xs);
+  line-height: var(--st-leading-reading);
+}
+.studio-course-field-hint {
+  color: var(--st-muted);
+  font-size: var(--st-text-2xs);
+  line-height: var(--st-leading-ui);
+}
+.studio-course-error {
+  padding: var(--st-space-12) var(--st-space-16);
+  border-radius: var(--st-radius-panel);
+  background: var(--st-danger-tint);
+  color: var(--st-danger-ink);
+}
+.studio-course-error p + p {
+  margin-block-start: var(--st-space-4);
+  color: var(--st-ink-soft);
+  font-size: var(--st-text-xs);
+}
+
+/* Lesson length as hours, minutes and seconds. */
+.studio-course-duration {
+  min-inline-size: 0;
+  margin: var(--st-space-12) 0;
+  padding: 0;
+  border: 0;
+}
+.studio-course-duration legend {
+  margin-block-end: var(--st-space-8);
+  padding: 0;
+}
+.studio-course-duration-parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--st-space-12);
+}
+.studio-course-duration-parts label {
+  display: flex;
+  align-items: center;
+  gap: var(--st-space-8);
+}
+.studio-course-duration-parts input {
+  inline-size: 88px;
+  min-block-size: 44px;
+  padding: var(--st-space-8) var(--st-space-12);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: inherit;
+  background: var(--st-surface);
+  border: 1px solid var(--st-field-line);
+  border-radius: var(--st-radius-control);
+}
+.studio-course-duration-parts input:hover {
+  border-color: var(--st-ink-soft);
+}
+.studio-course-duration-parts input:invalid {
+  border-color: var(--st-danger);
+}
+.studio-course-duration-parts span {
+  color: var(--st-ink-soft);
+  font-size: var(--st-text-xs);
+}
+.studio-course-duration .studio-course-field-hint {
+  display: block;
+  margin-block-start: var(--st-space-8);
+}
+.studio-course-lesson-duration {
+  margin-inline-start: var(--st-space-12);
+  color: var(--st-muted);
+  font-size: var(--st-text-xs);
+  font-weight: var(--st-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The uploaded or chosen file, playable in its slot. */
+.course-asset-preview {
+  margin: var(--st-space-12) 0 0;
+}
+.course-asset-preview figcaption {
+  margin-block-end: var(--st-space-8);
+  color: var(--st-muted);
+  font-size: var(--st-text-xs);
+}
+.course-asset-preview video {
+  display: block;
+  inline-size: 100%;
+  max-inline-size: 640px;
+  aspect-ratio: 16 / 9;
+  background: var(--st-ink);
+  border-radius: var(--st-radius-panel);
+}
+.course-asset-preview audio {
+  display: block;
+  inline-size: 100%;
+  max-inline-size: 640px;
 }

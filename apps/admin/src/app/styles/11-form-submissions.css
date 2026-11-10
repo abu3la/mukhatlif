@@ -55,38 +55,38 @@
   align-items: center;
   justify-content: center;
   min-block-size: 28px;
-  padding: 4px 9px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.4;
+  padding: var(--st-space-4) var(--st-space-12);
+  border-radius: var(--st-radius-chip);
+  font-size: var(--st-text-2xs);
+  font-weight: var(--st-weight-medium);
+  line-height: var(--st-leading-ui);
   white-space: nowrap;
 }
 
 .request-status--new {
-  background: #dcefe5;
-  color: #12613a;
+  background: var(--st-success-tint);
+  color: var(--st-success-ink);
 }
 
 .request-status--in_review {
-  background: #e3e5f2;
-  color: var(--ink);
+  background: var(--st-episodes-tint);
+  color: var(--st-episodes-ink);
 }
 
 .request-status--contacted {
-  background: #f4ead9;
-  color: #714b16;
+  background: var(--st-warning-tint);
+  color: var(--st-warning-ink);
 }
 
 .request-status--resolved {
-  background: var(--ink);
-  color: var(--surface);
+  background: var(--st-ink);
+  color: var(--st-on-ink);
 }
 
 .request-status--rejected,
 .request-status--spam {
-  background: #f3dfdf;
-  color: #862522;
+  background: var(--st-danger-tint);
+  color: var(--st-danger-ink);
 }
 
 .submission-pagination {

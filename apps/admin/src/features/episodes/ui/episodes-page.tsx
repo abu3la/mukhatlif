@@ -221,12 +221,15 @@ export function EpisodesView() {
                         {episode.title}
                       </Link>
                       {episode.premium ? <PremiumMark /> : null}
-                      <p className="row-copy__meta">
-                        {show?.name ?? 'برنامج غير محدد'} · حلقة{' '}
-                        {episode.episodeNumber == null
-                          ? 'غير مرقمة'
-                          : formatArabicInteger(episode.episodeNumber)}{' '}
-                        · {formatEpisodeTimeline(episode)}
+                      <p className="row-copy__meta row-copy__meta--parts">
+                        <span>{show?.name ?? 'برنامج غير محدد'}</span>
+                        <span>
+                          حلقة{' '}
+                          {episode.episodeNumber == null
+                            ? 'غير مرقمة'
+                            : formatArabicInteger(episode.episodeNumber)}
+                        </span>
+                        <span>{formatEpisodeTimeline(episode)}</span>
                       </p>
                       {rowOperation?.error ? (
                         <p className="notice notice--error" id={errorId} role="alert">

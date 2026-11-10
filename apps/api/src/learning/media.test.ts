@@ -13,6 +13,10 @@ vi.mock('./service', () => ({
   } }),
   checkDb: (error: unknown) => { if (error) throw error; },
 }));
+const member = vi.hoisted(() => ({ current: null as unknown }));
+vi.mock('../repo', () => ({
+  getRepository: () => ({ getStudioMemberByAuthId: async () => member.current }),
+}));
 const file = '/private/files/video';
 const get = vi.fn(async () => ({ body: new Uint8Array([1, 2, 3, 4]) }));
 const app = new Hono<AppEnv>();
@@ -22,6 +26,7 @@ const env = { MEDIA: { head: async () => ({ size: 4 }), get } } as unknown as En
 const request = (headers: Record<string, string> = {}) => app.request('/media/11111111-1111-4111-8111-111111111111', { headers }, env);
 beforeEach(() => {
   get.mockClear();
+  member.current = null;
   db.tables = {
     learning_media_tickets: { course_id: 'course', file, user_id: 'learner' },
     learning_courses: { definition: { id: 'course', published: true, resources: [], lessons: [
@@ -62,4 +67,30 @@ it('does not block an authorized worksheet download', async () => {
   const result = await request({ 'Sec-Fetch-Dest': 'document' });
   expect(result.status).toBe(200);
   expect(result.headers.get('Content-Disposition')).toContain('attachment');
+});
+
+it('lets an active administrator preview a file of an unpublished course', async () => {
+  db.tables.learning_media_tickets = { course_id: 'course', file: `studio-preview:${file}`, user_id: 'admin' };
+  db.tables.learning_courses = { definition: { id: 'course', published: false, resources: [], lessons: [] } };
+  db.tables.learning_enrollments = null;
+  member.current = { status: 'active', role: 'admin' };
+  const result = await request({ 'Sec-Fetch-Dest': 'video', Range: 'bytes=0-1' });
+  expect(result.status).toBe(206);
+  expect(result.headers.get('Cache-Control')).toBe('private, no-store');
+});
+it('rechecks the administrator on every preview request', async () => {
+  db.tables.learning_media_tickets = { course_id: 'course', file: `studio-preview:${file}`, user_id: 'admin' };
+  member.current = { status: 'active', role: 'editor' };
+  expect((await request({ 'Sec-Fetch-Dest': 'video' })).status).toBe(403);
+  member.current = { status: 'suspended', role: 'admin' };
+  expect((await request({ 'Sec-Fetch-Dest': 'video' })).status).toBe(403);
+  member.current = null;
+  expect((await request({ 'Sec-Fetch-Dest': 'video' })).status).toBe(403);
+  expect(get).not.toHaveBeenCalled();
+});
+it('does not let a preview ticket open a video by direct navigation', async () => {
+  db.tables.learning_media_tickets = { course_id: 'course', file: `studio-preview:${file}`, user_id: 'admin' };
+  member.current = { status: 'active', role: 'admin' };
+  expect((await request({ 'Sec-Fetch-Dest': 'document' })).status).toBe(403);
+  expect(get).not.toHaveBeenCalled();
 });

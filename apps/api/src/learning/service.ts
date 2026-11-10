@@ -100,6 +100,10 @@ export async function learningRequest(
     const { upload } = await import('./uploads');
     return upload(env, c.id, action, p, actor!);
   }
+  if (action === 'studio.preview') {
+    const { studioPreviewLink } = await import('./media');
+    return studioPreviewLink(env, origin, c.id, String(p.file), actor!.id);
+  }
   if (action === 'trailer') {
     if (!c.trailer) throw new LearningError(404, 'لا يوجد مقطع تعريفي لهذه الدورة.');
     const { assetLink } = await import('./media');

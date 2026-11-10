@@ -51,6 +51,40 @@ const state = (): State => ({
   _reported: {},
 });
 describe('native learning rules', () => {
+  it('names the lesson whose video has no duration instead of a generic retry', () => {
+    const input = {
+      id: 'course',
+      title: 'دورة',
+      description: '',
+      category: '',
+      skill: '',
+      level: '',
+      instructor: '',
+      price: 0,
+      published: false,
+      resources: [],
+      lessons: [
+        {
+          id: 'video-lesson',
+          title: 'الورشة',
+          body: '',
+          video: '/private/files/abc.mp4',
+          durationSeconds: 0,
+          resources: [],
+        },
+      ],
+    };
+    expect(() => definition(input)).toThrowError(/مدة الفيديو.*«الورشة»/);
+    expect(() =>
+      definition({ ...input, lessons: [{ ...input.lessons[0], title: '' }] }),
+    ).toThrowError(/اسم الدرس رقم 1/);
+    expect(() =>
+      definition({
+        ...input,
+        lessons: [{ ...input.lessons[0], durationSeconds: 30, video: 'https://x.test/a.mp4' }],
+      }),
+    ).toThrowError(/مسار الملف غير صالح/);
+  });
   it('hides private lessons and answers', () => {
     const c = course();
     expect(summary(c)).not.toHaveProperty('lessons');

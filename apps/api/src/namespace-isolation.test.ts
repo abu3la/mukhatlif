@@ -97,6 +97,7 @@ describe('route table', () => {
       'POST /forms/careers/attachments',
       'POST /forms/:type',
       'POST /newsletter/subscriptions',
+      'POST /registration/:id',
     ]);
   });
 });
@@ -185,8 +186,9 @@ describe('public namespace', () => {
       const response = await request(route);
       // 404 is a legitimate answer for a placeholder identifier; 401 and 403
       // are not, because nothing here may require a caller.
-      const allowedStatuses =
-        route.path.startsWith('/courses') || route.path === '/health/learning-schema'
+      const allowedStatuses = route.path.startsWith('/registration/')
+        ? [422] // Invalid UUIDs are rejected before any database access.
+        : route.path.startsWith('/courses') || route.path === '/health/learning-schema'
           ? [503] // The isolated namespace test has no learning database configured.
           : route.path === '/forms/careers/attachments'
             ? [415]

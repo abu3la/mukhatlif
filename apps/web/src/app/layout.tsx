@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { webThemeColor } from '@mukhtalif/design-tokens';
 import Script from 'next/script';
 import { PlayerProvider } from '@/components/player';
 import { SiteFooter, SiteHeader } from '@/components/site-chrome';
@@ -6,6 +7,7 @@ import { isSearchIndexingEnabled, publicWebUrl } from '@/lib/config';
 import { connection } from 'next/server';
 import { CustomerProvider } from '@/components/customer-provider';
 import { customerConfig } from '@/lib/customer-config';
+import './tokens.css';
 import './listener.css';
 import './handoff.css';
 import './public-pages.css';
@@ -29,7 +31,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#ffffff',
+  themeColor: webThemeColor.light,
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -41,7 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Script
           id="mukhtalif-appearance"
           strategy="beforeInteractive"
-        >{`var t='first';try{if(localStorage.getItem('mukhtalif-appearance')==='third')t='third'}catch(e){}document.documentElement.dataset.concept=t;var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='third'?'#1a1b19':'#ffffff')`}</Script>
+        >{`var t='first';try{if(localStorage.getItem('mukhtalif-appearance')==='third')t='third'}catch(e){}document.documentElement.dataset.concept=t;var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='third'?'${webThemeColor.dark}':'${webThemeColor.light}')`}</Script>
       </head>
       <body>
         <a className="skip-link" href="#main">

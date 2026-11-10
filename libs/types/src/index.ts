@@ -225,3 +225,5 @@ export {
   MAX_COURSE_UPLOAD_BYTES,
   courseUploadLimit,
 } from './learning-upload';
+
+export * from './registration';

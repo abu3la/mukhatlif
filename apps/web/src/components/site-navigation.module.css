@@ -28,7 +28,6 @@
   gap: 8px;
 }
 .navLink,
-.sponsor,
 .search,
 .library,
 .menuToggle,
@@ -44,14 +43,14 @@
   background: transparent;
   color: var(--fg);
   font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-medium);
+  line-height: var(--mk-leading-heading);
   white-space: nowrap;
   text-decoration: none;
   transition:
-    background-color 140ms ease,
-    color 140ms ease;
+    background-color var(--mk-duration-fast) ease,
+    color var(--mk-duration-fast) ease;
 }
 .navLink {
   padding-inline: 0;
@@ -63,20 +62,11 @@
 }
 .navLink[aria-current='page'],
 .menuLink[aria-current='page'] {
-  font-weight: 700;
+  font-weight: var(--mk-weight-bold);
 }
 .navLink:hover,
 .menuLink:hover {
   color: var(--ink-hover);
-}
-.sponsor {
-  padding-inline: 16px;
-  background: var(--fg);
-  color: var(--bg);
-}
-.sponsor:hover {
-  background: var(--ink-hover);
-  color: var(--bg);
 }
 .search:hover,
 .library:hover,
@@ -104,7 +94,8 @@
   color: var(--fg);
 }
 .menuDialog::backdrop {
-  background: rgb(13 15 46 / 55%);
+  /* The fallback covers browsers whose ::backdrop does not inherit tokens. */
+  background: var(--mk-scrim-menu, rgb(13 15 46 / 55%));
 }
 .menuDialog[open] {
   animation: menu-settle 160ms ease-out;
@@ -119,8 +110,8 @@
 .menuHead h2 {
   margin: 0;
   font-size: clamp(22px, 3vw, 28px);
-  font-weight: 600;
-  line-height: 1.5;
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
 }
 .closeButton {
   display: grid;
@@ -130,7 +121,7 @@
   height: 44px;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 50%;
+  border-radius: var(--mk-radius-round);
   background: transparent;
   color: var(--fg);
 }
@@ -156,9 +147,9 @@
 .menuGroup h3 {
   margin: 0 0 12px;
   color: var(--muted);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-medium);
+  line-height: var(--mk-leading-heading);
 }
 .menuLink {
   display: flex;
@@ -166,7 +157,7 @@
   min-height: 44px;
   padding-block: 8px;
   color: var(--fg);
-  font-size: 17px;
+  font-size: var(--mk-text-lg);
   line-height: 1.65;
   text-decoration: none;
 }
@@ -179,7 +170,7 @@
   margin-top: 28px;
   border-radius: var(--radius);
   background: var(--surface);
-  font-size: 14px;
+  font-size: var(--mk-text-sm);
 }
 .themeControl svg {
   flex: none;
@@ -206,7 +197,7 @@
 @media (max-width: 760px) {
   .headerInner {
     grid-template-columns: minmax(0, 1fr) auto auto auto;
-    grid-template-areas: 'brand search library menu' 'sponsor sponsor sponsor sponsor';
+    grid-template-areas: 'brand search library menu';
     gap: 8px 6px;
     padding-block: 12px;
   }
@@ -223,9 +214,6 @@
     grid-area: menu;
     width: 44px;
     min-width: 44px;
-  }
-  .sponsor {
-    grid-area: sponsor;
   }
   .library {
     grid-area: library;
@@ -245,7 +233,7 @@
     gap: 28px 20px;
   }
   .menuLink {
-    font-size: 16px;
+    font-size: var(--mk-text-base);
   }
 }
 @media (max-width: 380px) {
@@ -274,11 +262,30 @@
     animation: none;
   }
   .navLink,
-  .sponsor,
   .search,
   .library,
   .menuToggle,
   .themeControl {
     transition: none;
   }
+}
+
+.menuSponsor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 24px;
+  padding: var(--mk-space-8) var(--mk-space-20);
+  border-radius: var(--mk-radius-pill);
+  background: var(--fg);
+  color: var(--bg);
+  font: inherit;
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-medium);
+  text-decoration: none;
+}
+.menuSponsor:hover {
+  background: var(--ink-hover);
+  color: var(--bg);
 }

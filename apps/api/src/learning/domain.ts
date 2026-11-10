@@ -58,7 +58,10 @@ const lesson = z
     quiz: quiz.optional(),
     assignment: assignment.optional(),
   })
-  .refine((l) => !l.video || l.durationSeconds > 0);
+  .refine((l) => !l.video || l.durationSeconds > 0, {
+    path: ['durationSeconds'],
+    message: 'video-duration',
+  });
 const schema = z.object({
   id: identifier,
   title,
@@ -79,8 +82,41 @@ const schema = z.object({
   quiz: quiz.optional(),
   assignment: assignment.optional(),
 });
+/**
+ * Turns the first validation issue into a sentence the Studio can show, so an
+ * editor learns which lesson or field to fix instead of a generic retry prompt.
+ */
+export function explainIssue(issue: z.ZodIssue, input: unknown): string {
+  const path = issue.path.map(String);
+  const root = (input ?? {}) as { lessons?: { title?: string }[] };
+  let where = '';
+  if (path[0] === 'lessons' && path[1] !== undefined) {
+    const index = Number(path[1]);
+    const lessonTitle = root.lessons?.[index]?.title?.trim();
+    where = lessonTitle ? `في الدرس «${lessonTitle}»` : `في الدرس رقم ${index + 1}`;
+  }
+  const last = path.at(-1);
+  const inLessonList = path[0] === 'lessons' && path.length > 2 ? path.slice(2) : path;
+  if (issue.message === 'video-duration')
+    return `أدخل مدة الفيديو بالثواني ${where}؛ تُقرأ تلقائيًا بعد رفع الفيديو.`;
+  if (last === 'title') {
+    if (inLessonList[0] === 'resources') return `اكتب اسم الملف ${where || 'في ملفات الدورة'}.`;
+    if (inLessonList[0] === 'quiz') return `اكتب عنوان الاختبار ${where}.`;
+    if (inLessonList[0] === 'assignment') return `اكتب عنوان ورقة العمل ${where}.`;
+    return where ? `اكتب اسم ${where.replace('في ', '')}.` : 'اكتب اسم الدورة.';
+  }
+  if (last === 'video' || last === 'file' || last === 'trailer')
+    return `مسار الملف غير صالح ${where}. ارفع الملف من هذه الصفحة بدل كتابة رابط خارجي.`;
+  if (last === 'prompt' || inLessonList[0] === 'quiz')
+    return `راجع أسئلة الاختبار ${where}: كل سؤال يحتاج نصًا وخيارين على الأقل وإجابة صحيحة.`;
+  if (last === 'price') return 'أدخل سعرًا بين 0 و100000 ريال.';
+  if (last === 'durationSeconds') return `أدخل مدة الفيديو بالثواني ${where}.`;
+  return `راجع حقل «${last ?? 'البيانات'}» ${where} وحاول مجددًا.`;
+}
 export function definition(input: unknown): CourseDefinition {
-  const c = schema.parse(input);
+  const parsed = schema.safeParse(input);
+  if (!parsed.success) throw new LearningError(422, explainIssue(parsed.error.issues[0], input));
+  const c = parsed.data;
   const ids = new Set<string>();
   const add = (id: string) => {
     if (ids.has(id)) throw new LearningError(422, 'معرّفات المحتوى مكررة.');

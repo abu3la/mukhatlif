@@ -107,6 +107,38 @@ describe('learning trust boundary', () => {
   });
 });
 
+describe('studio file preview', () => {
+  const options = { user: 'usr-admin-1', surface: 'studio' };
+  it('forwards a course file to the preview action for an administrator', async () => {
+    const response = await request('/studio/courses/course-1/preview', {
+      ...options,
+      body: { file: '/private/files/abc.mp4' },
+    });
+    expect(response.status).toBe(200);
+    expect(upstream.mock.calls[0][1]).toBe('studio.preview');
+    expect(upstream.mock.calls[0][2]).toEqual({ file: '/private/files/abc.mp4', courseId: 'course-1' });
+    expect(upstream.mock.calls[0][3]!.admin).toBe(true);
+  });
+  it('rejects external links, extra fields and non-administrators', async () => {
+    for (const body of [
+      { file: 'https://example.test/a.mp4' },
+      { file: '/private/files/../secret' },
+      { file: '/private/files/abc.mp4', user: 'x' },
+    ])
+      expect((await request('/studio/courses/course-1/preview', { ...options, body })).status).toBe(422);
+    expect(
+      (
+        await request('/studio/courses/course-1/preview', {
+          user: 'usr-listener-1',
+          surface: 'studio',
+          body: { file: '/private/files/abc.mp4' },
+        })
+      ).status,
+    ).toBe(403);
+    expect(upstream).not.toHaveBeenCalled();
+  });
+});
+
 describe('course upload size limits', () => {
   it.each([
     ['video.mp4', 5 * 1024 ** 3],

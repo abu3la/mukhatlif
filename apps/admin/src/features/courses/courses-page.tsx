@@ -109,9 +109,20 @@ function CourseManager({
   const [freshLesson, setFreshLesson] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [notice, setNotice] = useState('');
   const [retry, setRetry] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -119,11 +130,11 @@ function CourseManager({
       .then((result) => {
         if (active) {
           setCourses(result);
-          setError('');
+          setLoadError('');
         }
       })
       .catch((e) => {
-        if (active) setError(e.message);
+        if (active) setLoadError(e.message);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -144,8 +155,10 @@ function CourseManager({
       setBusy(false);
     }
   };
-  const patch = (change: Partial<CourseDefinition>) =>
+  const patch = (change: Partial<CourseDefinition>) => {
+    setDirty(true);
     setCourse((old) => (old ? { ...old, ...change } : old));
+  };
   const loadRoster = () =>
     run(async () => {
       if (course) setRoster(await request<Roster[]>(`/${course.id}/learners`));
@@ -156,10 +169,16 @@ function CourseManager({
         <h1>أكاديمية مختلف</h1>
         <p>إدارة المحتوى والتسجيلات والتقييم. جميع عمليات الدفع هنا تجريبية.</p>
       </header>
-      {error && (
+      {loadError && (
         <div role="alert">
-          <p>{error}</p>
+          <p>{loadError}</p>
           <button onClick={() => setRetry(retry + 1)}>أعد الاتصال</button>
+        </div>
+      )}
+      {error && (
+        <div role="alert" className="studio-course-error">
+          <p>{error}</p>
+          <p>تغييراتك ما زالت في الصفحة؛ صحّح المطلوب ثم احفظ مجددًا.</p>
         </div>
       )}
       {notice && <p role="status">{notice}</p>}
@@ -174,6 +193,7 @@ function CourseManager({
               if (!id) return;
               void run(async () => {
                 setCourse(await request<CourseDefinition>(`/${id}`));
+                setDirty(false);
                 setPersisted(true);
                 setTab('content');
                 setSection('basics');
@@ -193,6 +213,7 @@ function CourseManager({
           disabled={busy}
           onClick={() => {
             setCourse(blank());
+            setDirty(false);
             setPersisted(false);
             setRoster([]);
             setTab('content');
@@ -251,8 +272,13 @@ function CourseManager({
                 void run(async () => {
                   const result = await request<CourseDefinition>('', course);
                   setCourse(result);
+                  setDirty(false);
                   setPersisted(true);
-                  setNotice('حُفظت الدورة.');
+                  setNotice(
+                    persisted
+                      ? 'حُفظت الدورة.'
+                      : 'حُفظت الدورة. صار بإمكانك رفع الفيديو والملفات داخل كل درس.',
+                  );
                   setRetry(retry + 1);
                 });
               }}
@@ -369,6 +395,11 @@ function CourseManager({
                           {index + 1} / {course.lessons.length}
                         </span>{' '}
                         {lesson.title || 'درس جديد'}
+                        {lesson.durationSeconds > 0 ? (
+                          <bdi className="studio-course-lesson-duration" dir="ltr">
+                            {formatDuration(lesson.durationSeconds)}
+                          </bdi>
+                        ) : null}
                       </summary>
                       <Field title="اسم الدرس">
                         <input
@@ -405,32 +436,29 @@ function CourseManager({
                         value={lesson.video}
                         persisted={persisted}
                         request={request}
-                        onChange={(video) =>
+                        // One update for both values: two patches built from the same
+                        // render would overwrite each other and drop the new video.
+                        onChange={(video, durationSeconds) =>
                           patch({
                             lessons: course.lessons.map((x) =>
-                              x.id === lesson.id ? { ...x, video } : x,
+                              x.id === lesson.id
+                                ? { ...x, video, ...(durationSeconds ? { durationSeconds } : {}) }
+                                : x,
                             ),
                           })
                         }
                       />
-                      <Field title="مدة الفيديو بالثواني">
-                        <input
-                          type="number"
-                          min={0}
-                          max={86400}
-                          required
-                          value={lesson.durationSeconds}
-                          onChange={(e) =>
-                            patch({
-                              lessons: course.lessons.map((x) =>
-                                x.id === lesson.id
-                                  ? { ...x, durationSeconds: Number(e.target.value) }
-                                  : x,
-                              ),
-                            })
-                          }
-                        />
-                      </Field>
+                      <DurationField
+                        seconds={lesson.durationSeconds}
+                        hasVideo={Boolean(lesson.video)}
+                        onChange={(durationSeconds) =>
+                          patch({
+                            lessons: course.lessons.map((x) =>
+                              x.id === lesson.id ? { ...x, durationSeconds } : x,
+                            ),
+                          })
+                        }
+                      />
                       <ResourceEditor
                         courseId={course.id}
                         persisted={persisted}
@@ -640,13 +668,114 @@ function EditorSection({
     </details>
   );
 }
-function Field({ title, children }: { title: string; children: ReactNode }) {
+function Field({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}) {
   return (
     <label className="studio-course-field">
       <span>{title}</span>
       {children}
+      {hint ? <small className="studio-course-field-hint">{hint}</small> : null}
     </label>
   );
+}
+/** 5400 → "1:30:00"; 95 → "1:35". */
+function formatDuration(total: number): string {
+  const seconds = Math.max(0, Math.round(total));
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+const DURATION_PARTS = [
+  { key: 'hours', label: 'ساعة', max: 24, size: 3600 },
+  { key: 'minutes', label: 'دقيقة', max: 59, size: 60 },
+  { key: 'seconds', label: 'ثانية', max: 59, size: 1 },
+] as const;
+/** The lesson length as hours, minutes and seconds; the course still stores seconds. */
+function DurationField({
+  seconds,
+  hasVideo,
+  onChange,
+}: {
+  seconds: number;
+  hasVideo: boolean;
+  onChange: (seconds: number) => void;
+}) {
+  const total = Math.max(0, Math.round(seconds));
+  const parts = {
+    hours: Math.floor(total / 3600),
+    minutes: Math.floor((total % 3600) / 60),
+    seconds: total % 60,
+  };
+  const lastRef = useRef<HTMLInputElement>(null);
+  const missing = hasVideo && total === 0;
+  // The form's own validity flow opens the lesson and focuses this field on save.
+  useEffect(() => {
+    lastRef.current?.setCustomValidity(missing ? 'أدخل مدة الفيديو.' : '');
+  }, [missing]);
+  return (
+    <fieldset className="studio-course-duration">
+      <legend>مدة الفيديو</legend>
+      <div className="studio-course-duration-parts">
+        {DURATION_PARTS.map((part) => (
+          <label key={part.key}>
+            <input
+              ref={part.key === 'seconds' ? lastRef : undefined}
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={part.max}
+              step={1}
+              required
+              value={parts[part.key]}
+              onChange={(e) => {
+                const value = Math.min(part.max, Math.max(0, Math.floor(Number(e.target.value) || 0)));
+                const next = { ...parts, [part.key]: value };
+                onChange(Math.min(86400, next.hours * 3600 + next.minutes * 60 + next.seconds));
+              }}
+            />
+            <span>{part.label}</span>
+          </label>
+        ))}
+      </div>
+      <small className="studio-course-field-hint">
+        {hasVideo
+          ? 'تُقرأ من ملف الفيديو بعد رفعه، وتقدر تصحّحها يدويًا.'
+          : 'تُملأ تلقائيًا عند رفع فيديو الدرس.'}
+      </small>
+    </fieldset>
+  );
+}
+/** Reads a video's length in the browser so the editor never has to type it. */
+function readVideoDuration(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    if (typeof document === 'undefined') return resolve(null);
+    const video = document.createElement('video');
+    const url = URL.createObjectURL(file);
+    let settled = false;
+    const done = (value: number | null) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      URL.revokeObjectURL(url);
+      resolve(value);
+    };
+    // A file the browser cannot read must never hold the upload back.
+    const timer = window.setTimeout(() => done(null), 8000);
+    video.preload = 'metadata';
+    video.onloadedmetadata = () =>
+      done(Number.isFinite(video.duration) && video.duration > 0 ? Math.round(video.duration) : null);
+    video.onerror = () => done(null);
+    video.src = url;
+  });
 }
 function AssetField({
   title,
@@ -661,16 +790,59 @@ function AssetField({
   kind?: 'video' | 'document' | 'resource';
   courseId: string;
   value: string;
-  onChange: (value: string) => void;
+  /** Video fields also report the file's length, in seconds, once an upload read it. */
+  onChange: (value: string, durationSeconds?: number) => void;
   persisted: boolean;
   request: Request;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [status, setStatus] = useState('');
   const [percent, setPercent] = useState(0);
+  const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<File | null>(null);
   const [uploadedName, setUploadedName] = useState('');
+  // The chosen file plays from memory, before and after its upload, with no extra request.
+  const [localFile, setLocalFile] = useState<File | null>(null);
+  const [localUrl, setLocalUrl] = useState('');
+  const [remoteUrl, setRemoteUrl] = useState('');
+  const [previewBusy, setPreviewBusy] = useState(false);
+  useEffect(() => {
+    if (!localFile) {
+      setLocalUrl('');
+      return;
+    }
+    const url = URL.createObjectURL(localFile);
+    setLocalUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [localFile]);
+  const localMatches = useRef('');
+  // A path typed or loaded from the server is not the file held in memory.
+  useEffect(() => {
+    setRemoteUrl('');
+    if (value !== localMatches.current && !selected) setLocalFile(null);
+  }, [value, selected]);
+  const mediaName = localFile?.name ?? value;
+  const mediaKind = /\.(mp4|webm)$/i.test(mediaName)
+    ? 'video'
+    : /\.mp3$/i.test(mediaName)
+      ? 'audio'
+      : null;
+  const previewUrl = localUrl || remoteUrl;
+  const openPreview = async () => {
+    if (previewBusy || !value) return;
+    setError('');
+    setPreviewBusy(true);
+    try {
+      const result = await request<{ url: string }>(`/${courseId}/preview`, { file: value });
+      if (mounted.current) setRemoteUrl(result.url);
+    } catch (e) {
+      if (mounted.current) setError((e as Error).message);
+    } finally {
+      if (mounted.current) setPreviewBusy(false);
+    }
+  };
   const accept =
     kind === 'video' ? '.mp4,.webm' : kind === 'document' ? '.pdf' : '.pdf,.mp4,.webm,.mp3';
   const formats =
@@ -680,8 +852,13 @@ function AssetField({
         ? 'مستند PDF'
         : 'مستند PDF، فيديو MP4 أو WebM، صوت MP3';
   const choose = (file?: File) => {
-    if (!file || busy || !persisted) return;
+    if (!file || busy) return;
+    if (!persisted) {
+      setError('احفظ الدورة أولًا، ثم ارفع الملف.');
+      return;
+    }
     setError('');
+    setStatus('');
     if (!accept.split(',').includes(`.${file.name.split('.').pop()?.toLowerCase()}`)) {
       setError(`اختر ملفًا بإحدى الصيغ المدعومة: ${formats}.`);
       return;
@@ -692,6 +869,7 @@ function AssetField({
       return;
     }
     setSelected(file);
+    setLocalFile(file);
   };
   const latestChange = useRef(onChange);
   latestChange.current = onChange;
@@ -706,9 +884,11 @@ function AssetField({
     const file = selected;
     if (!file || busy || !persisted) return;
     setError('');
+    setStatus('');
     setBusy(true);
     setPercent(0);
     try {
+      const duration = kind === 'video' ? await readVideoDuration(file) : null;
       const session = await request<{ token: string; chunkSize: number }>(
         `/${courseId}/upload-start`,
         {
@@ -734,9 +914,15 @@ function AssetField({
         token: session.token,
       });
       if (mounted.current) {
-        latestChange.current(result.file);
+        localMatches.current = result.file;
+        latestChange.current(result.file, duration ?? undefined);
         setUploadedName(file.name);
         setSelected(null);
+        setStatus(
+          kind === 'video' && !duration
+            ? 'رُفع الفيديو. أدخل مدته بالثواني ثم احفظ الدورة.'
+            : 'رُفع الملف. احفظ الدورة لتثبيته.',
+        );
       }
     } catch (e) {
       setError((e as Error).message);
@@ -751,25 +937,34 @@ function AssetField({
         <span>{value ? 'ملف مرفق' : 'اختياري'}</span>
       </div>
       <div
-        className="course-upload-area"
-        onDragOver={(e) => e.preventDefault()}
+        className={`course-upload-area ${dragging ? 'course-upload-area--dragging' : ''}`.trim()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!dragging) setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
         onDrop={(e) => {
           e.preventDefault();
+          setDragging(false);
           choose(e.dataTransfer.files[0]);
         }}
       >
         <div className="course-upload-copy">
           <strong>
-            {selected
-              ? selected.name
-              : value
-                ? uploadedName || 'الملف الحالي جاهز'
-                : 'اسحب الملف هنا'}
+            {!persisted
+              ? 'احفظ الدورة أولًا'
+              : selected
+                ? selected.name
+                : value
+                  ? uploadedName || 'الملف الحالي جاهز'
+                  : 'اسحب الملف هنا أو اختره'}
           </strong>
           <span>
-            {selected
-              ? `${(selected.size / 1024 / 1024).toFixed(1)} ميجابايت، جاهز للرفع`
-              : formats}
+            {!persisted
+              ? 'بعد الحفظ تقدر ترفع الملفات هنا، ثم تضغط «رفع الملف».'
+              : selected
+                ? `${(selected.size / 1024 / 1024).toFixed(1)} ميجابايت، اضغط «رفع الملف» للبدء`
+                : formats}
           </span>
           <small>
             {kind === 'video'
@@ -809,6 +1004,7 @@ function AssetField({
             disabled={busy}
             onClick={() => {
               setSelected(null);
+              setLocalFile(null);
               setError('');
             }}
           >
@@ -817,21 +1013,60 @@ function AssetField({
         </div>
       )}
       {busy && selected && <UploadProgress filename={selected.name} bytes={selected.size} percent={percent} />}
+      {status && <p role="status">{status}</p>}
+      {error && <p role="alert">{error}</p>}
+      {mediaKind && previewUrl ? (
+        <figure className="course-asset-preview">
+          <figcaption>{selected ? 'معاينة قبل الرفع' : 'معاينة الملف المرفوع'}</figcaption>
+          {mediaKind === 'video' ? (
+            <video
+              key={previewUrl}
+              src={previewUrl}
+              controls
+              playsInline
+              preload="metadata"
+              controlsList="nodownload"
+              aria-label={`معاينة: ${title}`}
+            />
+          ) : (
+            <audio
+              key={previewUrl}
+              src={previewUrl}
+              controls
+              preload="metadata"
+              controlsList="nodownload"
+              aria-label={`معاينة: ${title}`}
+            />
+          )}
+        </figure>
+      ) : mediaKind && value && persisted ? (
+        <div className="course-upload-actions">
+          <Button
+            aria-busy={previewBusy}
+            type="button"
+            disabled={previewBusy || busy}
+            onClick={() => void openPreview()}
+          >
+            {mediaKind === 'video' ? 'معاينة الفيديو' : 'تشغيل الملف'}
+          </Button>
+        </div>
+      ) : null}
       <details className="course-asset-link">
-        <summary>استخدام رابط ملف</summary>
-        <Field title="رابط الملف">
+        <summary>ملف رفعته من قبل في هذه الدورة</summary>
+        <p>
+          بدل رفع الملف مرة أخرى، الصق المسار الذي ظهر بعد رفعه سابقًا (يبدأ بـ
+          <bdi> /private/files/ </bdi>). الروابط الخارجية لا تُقبل.
+        </p>
+        <Field title="مسار الملف">
           <input
             value={value}
             dir="ltr"
-            placeholder="https://…"
+            placeholder="/private/files/…"
             disabled={busy}
             onChange={(e) => onChange(e.target.value)}
           />
         </Field>
       </details>
-
-      {!persisted && <p>احفظ المسودة أولًا لرفع الملفات.</p>}
-      {error && <p role="alert">{error}</p>}
     </section>
   );
 }
