@@ -479,3 +479,81 @@
   color: var(--st-ink-soft);
   font-size: var(--st-text-xs);
 }
+
+/* Lesson length as hours, minutes and seconds. */
+.studio-course-duration {
+  min-inline-size: 0;
+  margin: var(--st-space-12) 0;
+  padding: 0;
+  border: 0;
+}
+.studio-course-duration legend {
+  margin-block-end: var(--st-space-8);
+  padding: 0;
+}
+.studio-course-duration-parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--st-space-12);
+}
+.studio-course-duration-parts label {
+  display: flex;
+  align-items: center;
+  gap: var(--st-space-8);
+}
+.studio-course-duration-parts input {
+  inline-size: 88px;
+  min-block-size: 44px;
+  padding: var(--st-space-8) var(--st-space-12);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: inherit;
+  background: var(--st-surface);
+  border: 1px solid var(--st-field-line);
+  border-radius: var(--st-radius-control);
+}
+.studio-course-duration-parts input:hover {
+  border-color: var(--st-ink-soft);
+}
+.studio-course-duration-parts input:invalid {
+  border-color: var(--st-danger);
+}
+.studio-course-duration-parts span {
+  color: var(--st-ink-soft);
+  font-size: var(--st-text-xs);
+}
+.studio-course-duration .studio-course-field-hint {
+  display: block;
+  margin-block-start: var(--st-space-8);
+}
+.studio-course-lesson-duration {
+  margin-inline-start: var(--st-space-12);
+  color: var(--st-muted);
+  font-size: var(--st-text-xs);
+  font-weight: var(--st-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The uploaded or chosen file, playable in its slot. */
+.course-asset-preview {
+  margin: var(--st-space-12) 0 0;
+}
+.course-asset-preview figcaption {
+  margin-block-end: var(--st-space-8);
+  color: var(--st-muted);
+  font-size: var(--st-text-xs);
+}
+.course-asset-preview video {
+  display: block;
+  inline-size: 100%;
+  max-inline-size: 640px;
+  aspect-ratio: 16 / 9;
+  background: var(--st-ink);
+  border-radius: var(--st-radius-panel);
+}
+.course-asset-preview audio {
+  display: block;
+  inline-size: 100%;
+  max-inline-size: 640px;
+}

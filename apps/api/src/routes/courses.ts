@@ -114,6 +114,19 @@ studioCoursesRoute.post('/:id/grade', async (c) => {
   if (!parsed.success) return c.json({ error: 'راجع التقييم.' }, 422);
   return call(c, 'studio.grade', { ...parsed.data, courseId: id.parse(c.req.param('id')) });
 });
+studioCoursesRoute.post('/:id/preview', async (c) => {
+  const parsed = z
+    .object({
+      file: z
+        .string()
+        .max(500)
+        .regex(/^\/private\/files\/[a-zA-Z0-9_.-]+$/),
+    })
+    .strict()
+    .safeParse(await c.req.json());
+  if (!parsed.success) return c.json({ error: 'الملف غير صالح للمعاينة.' }, 422);
+  return call(c, 'studio.preview', { ...parsed.data, courseId: id.parse(c.req.param('id')) });
+});
 const uploads = {
   'upload-start': z
     .object({

@@ -3,7 +3,46 @@ import type { CourseDefinition } from '@mukhtalif/types';
 import type { Env } from '../env';
 import type { AppEnv } from '../auth';
 import { learningDb, checkDb } from './service';
+import { getRepository } from '../repo';
 import { files, LearningError, assertVideoAccess, type State } from './domain';
+/**
+ * Marks a ticket an administrator opened from the Studio to check a file.
+ * It lives in the ticket's `file` column, so no schema change is needed.
+ */
+const STUDIO_PREVIEW = 'studio-preview:';
+const STUDIO_PREVIEW_MS = 30 * 60 * 1000;
+/**
+ * A short-lived link for an administrator to play or open a course file,
+ * whether or not the course is published or the file is saved into it yet.
+ */
+export async function studioPreviewLink(
+  env: Env,
+  origin: string,
+  courseId: string,
+  file: string,
+  adminId: string,
+) {
+  const db = learningDb(env);
+  const asset = await db
+    .from('learning_assets')
+    .select('id')
+    .eq('id', file.slice('/private/files/'.length))
+    .eq('course_id', courseId)
+    .eq('ready', true)
+    .maybeSingle();
+  checkDb(asset.error);
+  if (!asset.data) throw new LearningError(404, 'الملف غير موجود في هذه الدورة.');
+  const id = crypto.randomUUID();
+  const r = await db.from('learning_media_tickets').insert({
+    id,
+    course_id: courseId,
+    file: `${STUDIO_PREVIEW}${file}`,
+    user_id: adminId,
+    expires_at: new Date(Date.now() + STUDIO_PREVIEW_MS).toISOString(),
+  });
+  checkDb(r.error);
+  return { url: `${origin}/courses/media/${id}` };
+}
 export async function assetLink(
   env: Env,
   origin: string,
@@ -38,6 +77,9 @@ export async function serveLearningMedia(c: Context<AppEnv>) {
   checkDb(t.error);
   if (!t.data) throw new LearningError(403, 'انتهت صلاحية رابط الملف.');
   const ticket = t.data;
+  const preview = String(ticket.file).startsWith(STUDIO_PREVIEW);
+  // The stored row is never changed; `file` is the path with the marker removed.
+  const file: string = preview ? String(ticket.file).slice(STUDIO_PREVIEW.length) : ticket.file;
   const cr = await db
     .from('learning_courses')
     .select('definition')
@@ -45,9 +87,16 @@ export async function serveLearningMedia(c: Context<AppEnv>) {
     .maybeSingle();
   checkDb(cr.error);
   const course = cr.data?.definition as CourseDefinition;
-  if (!course?.published || !files(course).includes(ticket.file))
+  if (preview) {
+    // Rechecked on every request: a ticket outlives neither the role nor the membership.
+    const member = ticket.user_id
+      ? await getRepository(c.env).getStudioMemberByAuthId(ticket.user_id)
+      : null;
+    if (!course || member?.status !== 'active' || member.role !== 'admin')
+      throw new LearningError(403, 'المعاينة متاحة للمدير فقط.');
+  } else if (!course?.published || !files(course).includes(file))
     throw new LearningError(404, 'الملف غير متاح.');
-  if (ticket.user_id) {
+  else if (ticket.user_id) {
     const e = await db
       .from('learning_enrollments')
       .select('user_id,state')
@@ -56,12 +105,12 @@ export async function serveLearningMedia(c: Context<AppEnv>) {
       .maybeSingle();
     checkDb(e.error);
     if (!e.data) throw new LearningError(403, 'سجّل في الدورة أولًا.');
-    assertVideoAccess(course, e.data.state as State, ticket.file);
-  } else if (ticket.file !== course.trailer) throw new LearningError(403, 'الملف غير متاح.');
+    assertVideoAccess(course, e.data.state as State, file);
+  } else if (file !== course.trailer) throw new LearningError(403, 'الملف غير متاح.');
   const ar = await db
     .from('learning_assets')
     .select('*')
-    .eq('id', ticket.file.slice('/private/files/'.length))
+    .eq('id', file.slice('/private/files/'.length))
     .eq('course_id', course.id)
     .eq('ready', true)
     .maybeSingle();
