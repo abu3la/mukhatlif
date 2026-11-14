@@ -28,7 +28,7 @@ describe('legacy route recovery and redirects', () => {
     lookup.mockRejectedValue(error);
     const response = await GET(new Request('https://web.test/unknown/'));
     expect(response.status).toBe(404);
-    expect(await response.text()).toContain('هذه الصفحة ليست هنا.');
+    expect(await response.text()).toContain('ما لقينا الصفحة اللي تبحث عنها.');
   });
   it('shows retryable branded503 without redirecting on content API failure', async () => {
     const error = new ApiUnavailableError('not rendered');

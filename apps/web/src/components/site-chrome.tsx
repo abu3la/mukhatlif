@@ -34,6 +34,38 @@ export function SiteHeader() {
     </header>
   );
 }
+/** Footer groups per the site brief (section 22). The store and numbers pages
+ * are added when they have approved content. */
+const FOOTER_GROUPS: [string, [string, string][]][] = [
+  [
+    'اكتشف مختلف',
+    [
+      ['/communities', 'المجتمعات'],
+      ['/shows', 'برامج البودكاست'],
+      ['/articles', 'المقالات والنشرات'],
+      ['/courses', 'الأكاديمية'],
+    ],
+  ],
+  [
+    'عن مختلف',
+    [
+      ['/about', 'من نحن'],
+      ['/presenters', 'مقدّمو مختلف'],
+      ['/account', 'حسابي'],
+      ['/library', 'مكتبتي'],
+    ],
+  ],
+  [
+    'تعاون وشارك',
+    [
+      ['/sponsor', 'الرعايات والمشاريع'],
+      ['/suggest', 'اقترح ضيفًا'],
+      ['/join-us', 'انضم لفريقنا'],
+      ['/contact', 'تواصل معنا'],
+    ],
+  ],
+];
+
 export function SiteFooter() {
   return (
     <footer className="site-footer">
@@ -43,41 +75,34 @@ export function SiteFooter() {
             <Link href="/" aria-label="مختلف - الرئيسية">
               <BrandLogo />
             </Link>
-            <p className="site-footer__tagline">إعلام مهني. لمسار يشبهك.</p>
+            <p className="site-footer__tagline">
+              مختلف، شبكة محتوى تفتح لك تجارب ومعارف تساعدك تكتشف مسارًا مهنيًا يشبهك. إحدى شركات
+              ماد قروب.
+            </p>
             <a className="site-footer__email" href="mailto:Info@mukhtalif.net">
               <bdi>Info@mukhtalif.net</bdi>
             </a>
           </div>
-          <nav className="site-footer__group" aria-label="روابط مختلف">
-            {[
-              ['/about', 'من نحن'],
-              ['/mission', 'قضيتنا'],
-              ['/services', 'الإنتاج'],
-              ['/work', 'أعمالنا'],
-              ['/sponsor', 'للشراكات والرعايات'],
-              ['/suggest', 'اقترح ضيفًا'],
-              ['/join-us', 'انضم إلينا'],
-            ].map(([href, label]) => (
-              <Link href={href} key={href}>
-                {label}
-              </Link>
-            ))}
-          </nav>
-          <nav className="site-footer__group" aria-label="حسابك والسياسات">
-            {[
-              ['/account', 'حسابي'],
-              ['/library', 'مكتبتي'],
-              ['/library?tab=playlists', 'قوائم التشغيل'],
-              ['/privacy', 'الخصوصية'],
-              ['/terms', 'الشروط'],
-            ].map(([href, label]) => (
-              <Link href={href} key={href}>
-                {label}
-              </Link>
-            ))}
+          {FOOTER_GROUPS.map(([title, links]) => (
+            <nav className="site-footer__group" aria-label={title} key={title}>
+              <h2 className="site-footer__heading">{title}</h2>
+              {links.map(([href, label]) => (
+                <Link href={href} key={href}>
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          ))}
+        </div>
+        <div className="site-footer__legal">
+          <p className="site-footer__copyright">
+            © {new Date().getFullYear()} مختلف. جميع الحقوق محفوظة.
+          </p>
+          <nav aria-label="السياسات">
+            <Link href="/privacy">سياسة الخصوصية</Link>
+            <Link href="/terms">الشروط والأحكام</Link>
           </nav>
         </div>
-        <p className="site-footer__copyright">© {new Date().getFullYear()} مختلف</p>
       </div>
     </footer>
   );

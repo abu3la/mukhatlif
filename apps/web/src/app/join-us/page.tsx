@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 export default function JoinUsPage() {
   return (
     <RequestPage
-      title="مساحة لمهارتك."
-      intro="عرّفنا بما تصنعه والمجال الذي يهمك. نتواصل معك حين تناسبك فرصة."
+      title="اشتغل مع مختلف"
+      intro="عرّفنا عليك وعلى خبراتك، وأرفق نماذج من أعمالك."
       note="يراجع فريق مختلف الطلبات بحسب الاحتياج، ويتواصل مع أصحاب الخبرات المناسبة."
     >
       <RequestForm apiOrigin={apiOrigin()} type="careers" />

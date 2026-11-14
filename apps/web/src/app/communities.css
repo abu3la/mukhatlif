@@ -1,0 +1,513 @@
+/* Communities, presenters, newsletters and participation (site brief of
+   9 November 2026). Flat and tonal: depth comes from page -> surface -> card,
+   overlap is separated by a ring in the card's own colour, never a shadow. */
+
+/* ---- Shared card recipe: whole card is the link, action anchored low ---- */
+.community-card,
+.presenter-card,
+.newsletter-card,
+.participation-path {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-8);
+  min-width: 0;
+  padding: var(--mk-space-24);
+  border-radius: var(--mk-radius-card);
+  background: var(--mk-card);
+  color: var(--mk-ink);
+  text-decoration: none;
+  transition: background-color var(--mk-duration-fast) ease;
+}
+.community-card:hover,
+.presenter-card:hover,
+.newsletter-card:hover,
+.participation-path:hover {
+  background: var(--mk-surface-hover);
+}
+.community-card__action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-8);
+  min-height: 44px;
+  margin-block-start: auto;
+  padding-block-start: var(--mk-space-8);
+  font-weight: var(--mk-weight-semibold);
+  font-size: var(--mk-text-sm);
+}
+.community-card__arrow {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* ---- The crate: channel mark as the record, programme covers as sleeves ---- */
+.community-crate {
+  --record: 128px;
+  --sleeve: 112px;
+  --step: 34px;
+  position: relative;
+  display: block;
+  height: calc(var(--record) + var(--mk-space-8));
+  margin-block-end: var(--mk-space-12);
+}
+.community-crate--head {
+  --record: 176px;
+  --sleeve: 152px;
+  --step: 52px;
+}
+.community-crate__sleeve {
+  position: absolute;
+  inset-block-start: calc((var(--record) - var(--sleeve)) / 2);
+  inset-inline-start: calc(var(--record) - var(--sleeve) / 2 + (var(--i) - 1) * var(--step));
+  z-index: calc(10 - var(--i));
+  width: var(--sleeve);
+  height: var(--sleeve);
+  border-radius: var(--mk-radius-media);
+  outline: 3px solid var(--mk-card);
+  object-fit: cover;
+  background: var(--mk-surface);
+}
+.community-crate__sleeve--logo {
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 20;
+  width: var(--record);
+  height: var(--record);
+  border-radius: var(--mk-radius-round);
+}
+.community-page .community-crate__sleeve {
+  outline-color: var(--mk-page);
+}
+.community-card__name {
+  font-size: var(--mk-text-xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.community-card__count,
+.presenter-card__programmes,
+.newsletter-card__frequency {
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-medium);
+}
+.community-card__text,
+.presenter-card__bio,
+.newsletter-card__text,
+.participation-path__text {
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-reading);
+}
+.community-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--mk-space-4);
+}
+.community-grid,
+.presenter-grid,
+.participation-paths,
+.home-academy__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-24);
+}
+.newsletter-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--mk-space-24);
+}
+
+/* ---- Community page ---- */
+.community-head {
+  display: grid;
+  gap: var(--mk-space-16);
+  margin-block-end: var(--mk-space-48);
+}
+.community-head .public-page-head {
+  margin-block-end: 0;
+}
+.community-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-16);
+  margin-block-start: var(--mk-space-16);
+}
+.programme-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--mk-space-24);
+}
+.programme-entry {
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr);
+  gap: var(--mk-space-20);
+  padding: var(--mk-space-20);
+  border-radius: var(--mk-radius-card);
+  background: var(--mk-card);
+}
+.programme-entry__cover img {
+  display: block;
+  width: 136px;
+  height: 136px;
+  border-radius: var(--mk-radius-media);
+  object-fit: cover;
+}
+.programme-entry__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-8);
+  min-width: 0;
+}
+.programme-entry__name {
+  margin: 0;
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.programme-entry__text {
+  margin: 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-reading);
+}
+.programme-entry__hosts {
+  margin: 0;
+  font-size: var(--mk-text-sm);
+}
+.programme-entry__hosts > span:first-child {
+  color: var(--mk-ink-muted);
+}
+.programme-entry__hosts a {
+  color: var(--mk-ink);
+  font-weight: var(--mk-weight-medium);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: color-mix(in srgb, var(--mk-ink) 30%, transparent);
+}
+.programme-entry__hosts a:hover {
+  text-decoration-color: var(--mk-ink);
+}
+.programme-entry__action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-8);
+  width: fit-content;
+  min-height: 44px;
+  margin-block-start: auto;
+  color: var(--mk-ink);
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-semibold);
+  text-decoration: none;
+  border-radius: var(--mk-radius-control);
+}
+.programme-entry__action:hover {
+  color: var(--mk-ink-hover);
+}
+/* Points up and out of the site, toward reading direction. */
+.programme-entry__out {
+  width: 16px;
+  height: 16px;
+  transform: rotate(-45deg);
+}
+.community-invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-12) var(--mk-space-32);
+  padding: var(--mk-space-32);
+  border-radius: var(--mk-radius-card);
+  background: var(--mk-surface);
+}
+.community-invite > div {
+  flex: 1 1 320px;
+}
+.community-invite h2,
+.community-invite p {
+  margin: 0;
+}
+.community-invite p {
+  margin-block-start: var(--mk-space-4);
+}
+.community-invite__title {
+  font-size: var(--mk-text-xl);
+  font-weight: var(--mk-weight-bold);
+}
+.community-invite p {
+  color: var(--mk-ink-muted);
+}
+
+/* ---- Presenters ---- */
+.presenter-card__covers {
+  display: flex;
+  min-height: 64px;
+  margin-block-end: var(--mk-space-8);
+}
+.presenter-card__covers img {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--mk-radius-media);
+  outline: 3px solid var(--mk-card);
+  object-fit: cover;
+}
+.presenter-card__covers img + img {
+  margin-inline-start: -14px;
+}
+.presenter-card__name,
+.newsletter-card__name,
+.participation-path__title {
+  margin: 0;
+  font-size: var(--mk-text-xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+
+/* ---- Newsletters, contact, about, collaboration ---- */
+.newsletter-landing .public-primary {
+  margin-block-start: var(--mk-space-16);
+}
+.newsletter-landing__frequency {
+  margin: 0;
+  font-weight: var(--mk-weight-semibold);
+}
+.newsletter-landing__frequency span {
+  color: var(--mk-ink-muted);
+  font-weight: var(--mk-weight-regular);
+}
+.contact-page__paths {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-12);
+  max-width: 760px;
+  margin-block-end: var(--mk-space-32);
+}
+.contact-page__paths a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mk-space-8);
+  min-height: 56px;
+  padding-inline: var(--mk-space-20);
+  border-radius: var(--mk-radius-card);
+  background: var(--mk-card);
+  color: var(--mk-ink);
+  font-weight: var(--mk-weight-semibold);
+  text-decoration: none;
+  transition: background-color var(--mk-duration-fast) ease;
+}
+.contact-page__paths a:hover {
+  background: var(--mk-surface-hover);
+}
+.contact-page__email {
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+}
+.about-page__group {
+  font-weight: var(--mk-weight-semibold);
+  color: var(--mk-ink);
+}
+.about-communities {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--mk-space-16);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.about-communities a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mk-space-12);
+  padding: var(--mk-space-16);
+  border-radius: var(--mk-radius-card);
+  color: var(--mk-ink);
+  font-weight: var(--mk-weight-semibold);
+  text-align: center;
+  text-decoration: none;
+  transition: background-color var(--mk-duration-fast) ease;
+}
+.about-communities a:hover {
+  background: var(--mk-card);
+}
+.about-communities img {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--mk-radius-round);
+}
+.about-page__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-8);
+  min-height: 44px;
+  margin-block-start: var(--mk-space-16);
+  color: var(--mk-ink);
+  font-weight: var(--mk-weight-semibold);
+}
+.about-page__contact p {
+  color: var(--mk-ink-muted);
+}
+.collaboration-paths {
+  display: grid;
+  gap: var(--mk-space-16);
+  margin: var(--mk-space-16) 0 0;
+}
+.collaboration-paths dt {
+  font-weight: var(--mk-weight-bold);
+}
+.collaboration-paths dd {
+  margin: var(--mk-space-4) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-reading);
+}
+.home-academy .participation-path__text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+/* ---- Hero additions ---- */
+/* «اكتشف مجتمعاتنا» is the one filled action; the latest episode follows as a
+   text action with its play glyph, in both appearances. */
+html .handoff-hero__action .handoff-hero__play {
+  background: transparent;
+  color: var(--mk-ink);
+  padding-inline: var(--mk-space-12);
+}
+html .handoff-hero__action .handoff-hero__play:hover {
+  background: var(--mk-surface-hover);
+  color: var(--mk-ink);
+}
+.handoff-hero__action p span {
+  display: block;
+  color: var(--mk-ink-muted);
+}
+
+/* ---- Footer: brand and three groups, legal row ---- */
+.site-footer__grid {
+  grid-template-columns: 1.3fr repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-40);
+}
+.site-footer__heading {
+  margin: 0 0 var(--mk-space-4);
+  color: var(--footer-ink);
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-bold);
+}
+.site-footer__tagline {
+  max-width: 340px;
+  line-height: var(--mk-leading-reading);
+}
+.site-footer__legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--mk-space-24);
+}
+.site-footer__legal nav {
+  display: flex;
+  gap: var(--mk-space-16);
+}
+.site-footer__legal a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--footer-secondary);
+  font-size: var(--mk-text-2xs);
+}
+.site-footer__legal a:hover {
+  color: var(--footer-ink);
+}
+
+@media (max-width: 1000px) {
+  .community-grid,
+  .presenter-grid,
+  .participation-paths,
+  .home-academy__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .newsletter-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .site-footer__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .site-footer__brand {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 820px) {
+  .programme-list,
+  .contact-page__paths {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .community-grid,
+  .presenter-grid,
+  .participation-paths,
+  .home-academy__list,
+  .newsletter-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .community-card,
+  .presenter-card,
+  .newsletter-card,
+  .participation-path {
+    padding: var(--mk-space-20);
+  }
+  .community-crate--head {
+    --record: 132px;
+    --sleeve: 112px;
+    --step: 36px;
+  }
+  .programme-entry {
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: var(--mk-space-16);
+    padding: var(--mk-space-16);
+  }
+  .programme-entry__cover img {
+    width: 96px;
+    height: 96px;
+  }
+  .community-invite {
+    padding: var(--mk-space-24);
+  }
+  .site-footer__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .community-card,
+  .presenter-card,
+  .newsletter-card,
+  .participation-path,
+  .contact-page__paths a,
+  .about-communities a {
+    transition: none;
+  }
+}
+
+/* "See all" links beside a section title stay on one line on phones. */
+.content-section__header > a {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* Grid cells hold the whole-card links, which stretch to equal height. */
+.card-cell {
+  display: flex;
+  min-width: 0;
+}
+.card-cell > * {
+  flex: 1;
+}
+
+/* About: consecutive paragraphs in the story and mission blocks. */
+.public-about-story p + p,
+.public-mission p + p {
+  margin-block-start: var(--mk-space-16);
+}
