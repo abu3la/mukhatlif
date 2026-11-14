@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { canonicalLegacySourcePath } from './routes/redirects';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url).href);
@@ -75,18 +75,29 @@ async function productionLikeTable() {
 
 type Row = { source_path: string; destination: string; status_code: number; is_active: boolean };
 
+// One in-memory database for the file, started once: booting PGlite takes a few
+// seconds on CI, more than a single test's default limit (same as the other
+// PGlite suites here).
+let db: PGlite;
+let rows: Row[] = [];
+beforeAll(async () => {
+  db = await productionLikeTable();
+  const sql = readFileSync(sqlPath, 'utf8');
+  await db.exec(sql);
+  await db.exec(sql); // a second run must succeed and change nothing
+  rows = (await db.query<Row>('select * from public.url_redirects')).rows;
+}, 30000);
+afterAll(async () => {
+  await db?.close();
+});
+
 describe('cutover redirect script', () => {
   it('is the current output of its generator', () => {
     const generated = execFileSync(process.execPath, [scriptPath], { encoding: 'utf8' });
     expect(readFileSync(sqlPath, 'utf8')).toBe(generated);
   });
 
-  it('applies cleanly twice and leaves no old address pointing at a missing page', async () => {
-    const db = await productionLikeTable();
-    const sql = readFileSync(sqlPath, 'utf8');
-    await db.exec(sql);
-    await db.exec(sql);
-    const rows = (await db.query<Row>('select * from public.url_redirects')).rows;
+  it('applies cleanly twice and leaves no old address pointing at a missing page', () => {
     const find = (path: string) => rows.find((row) => row.source_path === key(path));
 
     expect(rows).toHaveLength(19 + 44);
@@ -112,10 +123,7 @@ describe('cutover redirect script', () => {
     expect(find('/نشرة-أميال/')).toMatchObject({ destination: '/', status_code: 302 });
   });
 
-  it('keys every row exactly the way the site looks a path up', async () => {
-    const db = await productionLikeTable();
-    await db.exec(readFileSync(sqlPath, 'utf8'));
-    const rows = (await db.query<Row>('select source_path from public.url_redirects')).rows;
+  it('keys every row exactly the way the site looks a path up', () => {
     for (const row of rows) expect(key(row.source_path)).toBe(row.source_path);
   });
 });
