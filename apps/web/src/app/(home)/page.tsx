@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { HomeSummary } from '@mukhtalif/types';
 import { ArticleCard, EpisodeCard, ShowCard } from '@/components/cards';
@@ -12,6 +13,8 @@ import { ApiUnavailableError, getHomeSummary } from '@/lib/api';
 import { publicEpisodeAudioSrc } from '@/lib/player-source';
 
 export const revalidate = 60;
+
+export const metadata: Metadata = { alternates: { canonical: '/' } };
 
 export default async function HomePage() {
   let summary: HomeSummary;
