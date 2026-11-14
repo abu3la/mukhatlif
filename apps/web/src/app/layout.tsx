@@ -24,7 +24,6 @@ export const metadata: Metadata = {
     locale: 'ar_SA',
     siteName: 'مختلف',
   },
-  alternates: { canonical: '/' },
   robots: isSearchIndexingEnabled()
     ? { index: true, follow: true }
     : { index: false, follow: false, noarchive: true, nocache: true },
