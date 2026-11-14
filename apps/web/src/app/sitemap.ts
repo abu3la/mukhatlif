@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import type { PaginatedList } from '@mukhtalif/types';
 import { listArticles, listCourses, listEpisodes, listGuests, listShows } from '@/lib/api';
 import { absoluteUrl } from '@/lib/config';
+import { COMMUNITIES, NEWSLETTERS, PRESENTERS } from '@/lib/communities';
 
 // Built on request from the live catalogue, never at build time, so a build
 // without API access still succeeds and the list is never stale.
@@ -15,6 +16,9 @@ export const STATIC_PATHS = [
   '/articles',
   '/guests',
   '/courses',
+  '/communities',
+  '/presenters',
+  '/contact',
   '/about',
   '/mission',
   '/services',
@@ -52,6 +56,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...STATIC_PATHS.map((path) => ({ url: absoluteUrl(path) })),
+    ...COMMUNITIES.map((community) => ({ url: absoluteUrl(`/communities/${community.slug}`) })),
+    ...PRESENTERS.map((presenter) => ({ url: absoluteUrl(`/presenters/${presenter.slug}`) })),
+    ...NEWSLETTERS.map((newsletter) => ({ url: absoluteUrl(`/newsletters/${newsletter.slug}`) })),
     ...shows.map((show) => ({ url: absoluteUrl(`/shows/${segment(show.slug)}`) })),
     ...episodes.map((episode) => ({
       url: absoluteUrl(`/episodes/${segment(episode.id)}`),

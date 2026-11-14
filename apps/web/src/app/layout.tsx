@@ -11,6 +11,7 @@ import './tokens.css';
 import './listener.css';
 import './handoff.css';
 import './public-pages.css';
+import './communities.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(publicWebUrl()),
