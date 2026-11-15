@@ -34,11 +34,6 @@
   font-weight: var(--mk-weight-semibold);
   font-size: var(--mk-text-sm);
 }
-.community-card__arrow {
-  width: 16px;
-  height: 16px;
-  flex: none;
-}
 
 /* ---- The crate: channel mark as the record, programme covers as sleeves ---- */
 .community-crate {
@@ -204,12 +199,6 @@
 }
 .programme-entry__action:hover {
   color: var(--mk-ink-hover);
-}
-/* Points up and out of the site, toward reading direction. */
-.programme-entry__out {
-  width: 16px;
-  height: 16px;
-  transform: rotate(-45deg);
 }
 .community-invite {
   display: flex;

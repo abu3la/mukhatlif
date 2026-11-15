@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { BrandIcon } from '@/components/brand-icon';
 import { COMMUNITIES } from '@/lib/communities';
 
 export const metadata: Metadata = {
@@ -89,7 +88,6 @@ export default function AboutPage() {
           </div>
           <Link className="about-page__link" href="/presenters">
             تعرّف على مقدّمي برامجنا
-            <BrandIcon name="next" className="community-card__arrow" />
           </Link>
         </section>
 
