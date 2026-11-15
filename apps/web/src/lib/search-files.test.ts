@@ -75,6 +75,9 @@ describe('sitemap.xml', () => {
         'https://mukhtalif.net/articles/12fdk',
         'https://mukhtalif.net/guests/guest-1',
         'https://mukhtalif.net/courses/c-1',
+        'https://mukhtalif.net/communities/idhaa',
+        'https://mukhtalif.net/presenters/ahmed-attar',
+        'https://mukhtalif.net/newsletters/amyal',
       ]),
     );
     expect(new Set(urls).size).toBe(urls.length);

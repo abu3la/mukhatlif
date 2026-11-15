@@ -27,6 +27,18 @@ type SubmissionState =
   | { status: 'unknown' }
   | { status: 'error'; message: string };
 
+/** Approved success copy (site brief of 9 November 2026, section 18). */
+const SUCCESS_TITLE: Partial<Record<PublicRequestType, string>> = {
+  guest_suggestion: 'وصلنا ترشيحك',
+};
+const SUCCESS_MESSAGE: Partial<Record<PublicRequestType, string>> = {
+  sponsorship: 'وصلنا طلبك، وسيتواصل معك فريق مختلف عبر بيانات التواصل المسجلة.',
+  partnership: 'وصلنا طلبك، وسيتواصل معك فريق مختلف عبر بيانات التواصل المسجلة.',
+  production_service: 'وصلنا طلبك، وسيتواصل معك فريق مختلف عبر بيانات التواصل المسجلة.',
+  guest_suggestion: 'شكرًا لمساهمتك في اختيار ضيوف مختلف.',
+  careers: 'وصلنا طلبك، وسنتواصل معك عند وجود فرصة تناسب خبراتك.',
+};
+
 const RequestErrors = createContext<Record<string, string>>({});
 
 interface RequestFormProps {
@@ -746,8 +758,11 @@ export function RequestForm({
         role="status"
         aria-labelledby={`${prefix}-success-title`}
       >
-        <h2 id={`${prefix}-success-title`}>وصل طلبك</h2>
-        <p>حفظناه لدى فريق مختلف، وسنتواصل معك عبر البيانات التي أرسلتها.</p>
+        <h2 id={`${prefix}-success-title`}>{SUCCESS_TITLE[type] ?? 'وصل طلبك'}</h2>
+        <p>
+          {SUCCESS_MESSAGE[type] ??
+            'حفظناه لدى فريق مختلف، وسنتواصل معك عبر البيانات التي أرسلتها.'}
+        </p>
         <button type="button" onClick={() => setState({ status: 'idle' })}>
           إرسال طلب آخر
         </button>

@@ -85,7 +85,7 @@ describe('header navigation', () => {
     expect(search?.nextElementSibling?.getAttribute('href')).toBe('/library');
     expect(search?.nextElementSibling?.textContent).toBe('مكتبتي');
     expect(outsideLinks.find((link) => link.getAttribute('href') === '/sponsor')).toBeUndefined();
-    expect(menu().querySelector('a[href="/sponsor"]')?.textContent).toBe('الشراكات والرعايات');
+    expect(menu().querySelector('a[href="/sponsor"]')?.textContent).toBe('الرعايات والمشاريع');
     expect(button('تفعيل المظهر الداكن').closest('dialog')).toBe(menu());
     expect(container.querySelectorAll('button[aria-label="تفعيل المظهر الداكن"]')).toHaveLength(1);
   });

@@ -6,28 +6,35 @@ import { BrandIcon } from './brand-icon';
 import { ThemeControl } from './theme-control';
 import styles from './site-navigation.module.css';
 
+// Main bar per the site brief of 9 November 2026 (section 2). The logo returns
+// home. Partnerships stay in the menu above appearance (owner rule, 2026-10-17).
 const NAVIGATION = [
-  { href: '/', label: 'الرئيسية' },
-  { href: '/shows', label: 'البرامج' },
-  { href: '/episodes', label: 'الحلقات' },
-  { href: '/guests', label: 'الضيوف' },
-  { href: '/articles', label: 'قراءات من مختلف' },
-  { href: '/courses', label: 'أكاديمية مختلف' },
-  { href: '/about', label: 'من نحن' },
-  { href: '/services', label: 'الإنتاج' },
+  { href: '/communities', label: 'المجتمعات' },
+  { href: '/articles', label: 'المقالات والنشرات' },
+  { href: '/courses', label: 'الأكاديمية' },
+  { href: '/about', label: 'عن مختلف' },
 ] as const;
 
 const MENU_GROUPS = [
-  { title: 'اكتشف مختلف', links: NAVIGATION.slice(0, 6) },
+  {
+    title: 'اكتشف مختلف',
+    links: [
+      { href: '/communities', label: 'المجتمعات' },
+      { href: '/shows', label: 'برامج البودكاست' },
+      { href: '/episodes', label: 'الحلقات' },
+      { href: '/guests', label: 'الضيوف' },
+      { href: '/articles', label: 'المقالات والنشرات' },
+      { href: '/courses', label: 'الأكاديمية' },
+    ],
+  },
   {
     title: 'عن مختلف',
     links: [
       { href: '/about', label: 'من نحن' },
-      { href: '/mission', label: 'قضيتنا' },
-      { href: '/services', label: 'الإنتاج' },
-      { href: '/work', label: 'أعمالنا' },
+      { href: '/presenters', label: 'مقدّمو مختلف' },
       { href: '/suggest', label: 'اقترح ضيفًا' },
-      { href: '/join-us', label: 'انضم إلينا' },
+      { href: '/join-us', label: 'انضم لفريقنا' },
+      { href: '/contact', label: 'تواصل معنا' },
     ],
   },
   {
@@ -176,7 +183,7 @@ export function SiteNavigation() {
           ))}
         </div>
         <Link className={styles.menuSponsor} href="/sponsor" onClick={closeMenu}>
-          الشراكات والرعايات
+          الرعايات والمشاريع
         </Link>
         <div className={styles.menuSettings}>
           <span>مظهر الموقع</span>

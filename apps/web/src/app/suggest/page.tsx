@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 export default function SuggestPage() {
   return (
     <RequestPage
-      title="من يستحق أن تُنصت إليه؟"
-      intro="اقترح صاحب تجربة مهنية تود الاستماع إلى قصته."
+      title="مين ودّك نسمع قصته؟"
+      intro="رشّح لنا شخصًا عنده تجربة أو معرفة تستحق نفتح حولها حوار."
       note="يراجع فريق التحرير الترشيح ومدى مناسبته للبرامج، ثم يتواصل إذا احتاج إلى معلومات إضافية."
     >
       <RequestForm apiOrigin={apiOrigin()} type="guest_suggestion" />
