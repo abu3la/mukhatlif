@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import type { Episode, Show, PageInfo } from '@mukhtalif/types';
 import { EpisodeCard } from '@/components/cards';
 import Link from 'next/link';
@@ -7,6 +7,7 @@ import { FollowShowButton } from '@/components/customer-content';
 import { Pager, parsePage } from '@/components/pager';
 import { EmptyState, ErrorState } from '@/components/states';
 import { ApiUnavailableError, NotFoundError, getShow, listEpisodes } from '@/lib/api';
+import { communityOfShow, programmeHref } from '@/lib/communities';
 
 export const revalidate = 60;
 
@@ -49,8 +50,13 @@ export default async function ShowPage({
   searchParams,
 }: Params & { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { slug } = await params;
-  const show = await loadShow(slug);
   const page = parsePage((await searchParams).page);
+  // The 27 programmes of the site brief have their own page with these episodes.
+  const programme = communityOfShow(slug)?.programme;
+  if (programme) {
+    permanentRedirect(programmeHref(programme) + (page > 1 ? `?page=${page}` : ''));
+  }
+  const show = await loadShow(slug);
   let episodes: Episode[] = [];
   let pageInfo: PageInfo | null = null;
   let episodesFailed = false;
@@ -67,8 +73,8 @@ export default async function ShowPage({
   return (
     <div className="content-page public-page">
       <div className="content-container">
-        <Link className="public-back" href="/shows">
-          البرامج
+        <Link className="public-back" href="/programmes">
+          برامج البودكاست
         </Link>
         <section className="public-show-intro" aria-labelledby="show-title">
           {show.artworkUrl ? (

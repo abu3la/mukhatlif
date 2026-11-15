@@ -43,6 +43,8 @@ export interface Newsletter {
   frequency?: string;
   /** The subscription page in use today. */
   subscribeUrl: string;
+  /** The programme the newsletter grows out of, when there is one. */
+  programme?: string;
 }
 
 const p = (
@@ -434,6 +436,7 @@ export const NEWSLETTERS: Newsletter[] = [
       'تجارب ضيوف بترولي وأفكار حلقاته في نشرة أسبوعية، تقرّب لك القصص وتستخلص منها ما يفيدك في حياتك وعملك.',
     frequency: 'أسبوعية',
     subscribeUrl: 'https://mukhtalif.net/petrolynewsletter/',
+    programme: 'petroly',
   },
   {
     slug: 'amyal',
@@ -442,6 +445,7 @@ export const NEWSLETTERS: Newsletter[] = [
       'أخبار الطيران وتحليلاته وقصصه، مع نصائح للسفر، تصلك من الأحد إلى الخميس في نشرة مختصرة.',
     frequency: 'من الأحد إلى الخميس',
     subscribeUrl: 'https://mukhtalif.net/amyalnl/',
+    programme: 'amyal',
   },
   {
     slug: 'almukhtalifoon',
@@ -455,6 +459,7 @@ export const NEWSLETTERS: Newsletter[] = [
     name: 'أروقة',
     description: 'خبرات ومهارات من ضيوف أروقة، تساعدك على التقدم في عملك وحياتك المهنية.',
     subscribeUrl: 'https://mukhtalif.net/arwiqahnl/',
+    programme: 'arwiqah',
   },
 ];
 
@@ -465,9 +470,22 @@ export const programmeCover = (programme: Pick<Programme, 'slug'>) =>
 export const playlistUrl = (programme: Pick<Programme, 'playlist'>) =>
   `https://www.youtube.com/playlist?list=${programme.playlist}`;
 
-/** Where a programme card leads: its page here, or its playlist on YouTube. */
-export const programmeHref = (programme: Programme) =>
-  programme.showSlug ? `/shows/${programme.showSlug}` : playlistUrl(programme);
+export const programmeHref = (programme: Pick<Programme, 'slug'>) =>
+  `/programmes/${programme.slug}`;
+
+export function findProgramme(slug: string) {
+  for (const community of COMMUNITIES) {
+    const programme = community.programmes.find((x) => x.slug === slug);
+    if (programme) return { community, programme };
+  }
+  return undefined;
+}
+
+/** Newsletters tied to a programme of this community. */
+export const newslettersOf = (community: Community) =>
+  NEWSLETTERS.filter((newsletter) =>
+    community.programmes.some((programme) => programme.slug === newsletter.programme),
+  );
 
 export const findCommunity = (slug: string) => COMMUNITIES.find((c) => c.slug === slug);
 export const findPresenter = (slug: string) => PRESENTERS.find((x) => x.slug === slug);
@@ -486,4 +504,10 @@ export function communityOfShow(showSlug: string) {
     if (programme) return { community, programme };
   }
   return undefined;
+}
+
+/** A catalogue show's page: the programme page when it is one of the 27. */
+export function showHref(showSlug: string) {
+  const found = communityOfShow(showSlug);
+  return found ? programmeHref(found.programme) : `/shows/${encodeURIComponent(showSlug)}`;
 }

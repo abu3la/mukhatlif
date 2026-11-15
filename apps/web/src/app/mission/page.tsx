@@ -31,7 +31,7 @@ export default async function MissionPage() {
             تتنوع المهن وتتعدد تجارب أصحابها. في برامج مختلف وقراءاتها مساحة لفهم العمل، وتبادل
             التجربة، والتأمل في الخيارات التي تشكل حياتنا المهنية.
           </p>
-          <Link className="public-primary" href="/shows">
+          <Link className="public-primary" href="/programmes">
             استكشف برامج مختلف
           </Link>
         </section>

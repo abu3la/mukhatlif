@@ -67,9 +67,7 @@ export function CommunityCard({ community }: { community: Community }) {
           {count ? programmeCount(count) : '\u00a0'}
         </span>
         <span className="community-card__text">{community.description}</span>
-        <span className="community-card__action">
-          استكشف المجتمع
-        </span>
+        <span className="community-card__action">استكشف المجتمع</span>
       </span>
     </Link>
   );
@@ -96,18 +94,16 @@ export function ProgrammeEntry({
   headingLevel?: 2 | 3;
 }) {
   const Heading = `h${headingLevel}` as const;
-  const external = !programme.showSlug;
   const presenters = programme.presenters
     .map(findPresenter)
     .filter((presenter): presenter is Presenter => Boolean(presenter));
   return (
     <article className="programme-entry">
-      <a
+      <Link
         className="programme-entry__cover"
         href={programmeHref(programme)}
         tabIndex={-1}
         aria-hidden="true"
-        {...(external ? { target: '_blank', rel: 'noopener' } : {})}
       >
         <img
           src={programmeCover(programme)}
@@ -117,7 +113,7 @@ export function ProgrammeEntry({
           loading="lazy"
           decoding="async"
         />
-      </a>
+      </Link>
       <div className="programme-entry__body">
         <Heading className="programme-entry__name">{programme.name}</Heading>
         <p className="programme-entry__text">{programme.description}</p>
@@ -132,21 +128,10 @@ export function ProgrammeEntry({
             ))}
           </p>
         ) : null}
-        {external ? (
-          <a
-            className="programme-entry__action"
-            href={programmeHref(programme)}
-            target="_blank"
-            rel="noopener"
-          >
-            شاهد الحلقات على يوتيوب
-            <span className="visually-hidden"> (يفتح في نافذة جديدة)</span>
-          </a>
-        ) : (
-          <Link className="programme-entry__action" href={programmeHref(programme)}>
-            استمع وشاهد الحلقات
-          </Link>
-        )}
+        <Link className="programme-entry__action" href={programmeHref(programme)}>
+          اكتشف البرنامج
+          <span className="visually-hidden"> {programme.name}</span>
+        </Link>
       </div>
     </article>
   );
@@ -225,9 +210,7 @@ export function ParticipationPaths({
           <Link className="participation-path" href={path.href}>
             <Heading className="participation-path__title">{path.title}</Heading>
             <span className="participation-path__text">{path.text}</span>
-            <span className="community-card__action">
-              {path.action}
-            </span>
+            <span className="community-card__action">{path.action}</span>
           </Link>
         </div>
       ))}

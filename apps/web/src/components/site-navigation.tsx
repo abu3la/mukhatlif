@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { BrandIcon } from './brand-icon';
 import { ThemeControl } from './theme-control';
 import styles from './site-navigation.module.css';
@@ -12,7 +12,12 @@ const NAVIGATION = [
   { href: '/communities', label: 'المجتمعات' },
   { href: '/articles', label: 'المقالات والنشرات' },
   { href: '/courses', label: 'الأكاديمية' },
-  { href: '/about', label: 'عن مختلف' },
+] as const;
+
+// «عن مختلف» opens a short list. «أرقام مختلف» joins it once the page exists.
+const ABOUT_LINKS = [
+  { href: '/about', label: 'من نحن' },
+  { href: '/presenters', label: 'مقدّمو مختلف' },
 ] as const;
 
 const MENU_GROUPS = [
@@ -20,7 +25,7 @@ const MENU_GROUPS = [
     title: 'اكتشف مختلف',
     links: [
       { href: '/communities', label: 'المجتمعات' },
-      { href: '/shows', label: 'برامج البودكاست' },
+      { href: '/programmes', label: 'برامج البودكاست' },
       { href: '/episodes', label: 'الحلقات' },
       { href: '/guests', label: 'الضيوف' },
       { href: '/articles', label: 'المقالات والنشرات' },
@@ -94,6 +99,7 @@ export function SiteNavigation() {
             {item.label}
           </Link>
         ))}
+        <NavDisclosure label="عن مختلف" links={ABOUT_LINKS} isCurrent={isCurrent} />
       </nav>
       <div className={styles.actions}>
         <Link
@@ -191,5 +197,78 @@ export function SiteNavigation() {
         </div>
       </dialog>
     </>
+  );
+}
+
+/**
+ * A top-bar item that opens a short list of links. It closes on a choice, on
+ * Escape (returning focus to its button), and when focus or a pointer leaves it.
+ */
+function NavDisclosure({
+  label,
+  links,
+  isCurrent,
+}: {
+  label: string;
+  links: readonly { href: string; label: string }[];
+  isCurrent: (href: string) => boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapper = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const panelId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: PointerEvent) => {
+      if (!wrapper.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      button.current?.focus();
+    };
+    document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div
+      ref={wrapper}
+      className={styles.navGroup}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false);
+      }}
+    >
+      <button
+        ref={button}
+        type="button"
+        className={styles.navLink}
+        aria-expanded={open}
+        aria-controls={panelId}
+        data-current={links.some((link) => isCurrent(link.href)) || undefined}
+        onClick={() => setOpen((value) => !value)}
+      >
+        {label}
+        <BrandIcon name="down" />
+      </button>
+      <div id={panelId} className={styles.navPanel} hidden={!open}>
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={styles.navPanelLink}
+            aria-current={isCurrent(link.href) ? 'page' : undefined}
+            onClick={() => setOpen(false)}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }

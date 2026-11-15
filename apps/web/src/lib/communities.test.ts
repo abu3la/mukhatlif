@@ -6,8 +6,11 @@ import {
   NEWSLETTERS,
   PRESENTERS,
   communityLogo,
+  findCommunity,
+  newslettersOf,
   programmeCover,
   programmesOf,
+  showHref,
 } from './communities';
 
 const publicFile = (path: string) =>
@@ -50,5 +53,16 @@ describe('communities from the site brief of 9 November 2026', () => {
       'petroly',
       'amyal',
     ]);
+  });
+
+  it('ties each programme newsletter to its community, and sends catalogue shows to programme pages', () => {
+    const slugs = (community: string) =>
+      newslettersOf(findCommunity(community)!).map((n) => n.slug);
+    expect(slugs('idhaa')).toEqual(['petroly', 'arwiqah']);
+    expect(slugs('tayyar')).toEqual(['amyal']);
+    expect(slugs('jinai')).toEqual([]);
+    expect(showHref('petroly')).toBe('/programmes/petroly');
+    expect(showHref('qadiyah')).toBe('/programmes/qadiyah');
+    expect(showHref('not-a-programme')).toBe('/shows/not-a-programme');
   });
 });

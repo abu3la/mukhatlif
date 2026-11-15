@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
+import { COMMUNITIES } from './src/lib/communities';
 
 const isFinalPublicOrigin =
   process.env.PUBLIC_WEB_URL?.trim().replace(/\/$/, '') === 'https://mukhtalif.net';
@@ -52,6 +53,22 @@ const config: NextConfig = {
         destination: '/:segment/:rest*',
         permanent: true,
       },
+      // The programme directory and the 27 programme pages replaced the
+      // catalogue show pages of the same programmes (site brief, section 7).
+      { source: '/shows', destination: '/programmes', permanent: false },
+      ...COMMUNITIES.flatMap((community) =>
+        community.programmes.flatMap((programme) =>
+          programme.showSlug
+            ? [
+                {
+                  source: `/shows/${programme.showSlug}`,
+                  destination: `/programmes/${programme.slug}`,
+                  permanent: true,
+                },
+              ]
+            : [],
+        ),
+      ),
     ];
   },
   async headers() {

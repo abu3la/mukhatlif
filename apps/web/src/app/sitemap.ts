@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import type { PaginatedList } from '@mukhtalif/types';
 import { listArticles, listCourses, listEpisodes, listGuests, listShows } from '@/lib/api';
 import { absoluteUrl } from '@/lib/config';
-import { COMMUNITIES, NEWSLETTERS, PRESENTERS } from '@/lib/communities';
+import { COMMUNITIES, NEWSLETTERS, PRESENTERS, communityOfShow } from '@/lib/communities';
 
 // Built on request from the live catalogue, never at build time, so a build
 // without API access still succeeds and the list is never stale.
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 /** Public pages that exist once; the account and utility pages are left out on purpose. */
 export const STATIC_PATHS = [
   '/',
-  '/shows',
+  '/programmes',
   '/episodes',
   '/articles',
   '/guests',
@@ -59,7 +59,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...COMMUNITIES.map((community) => ({ url: absoluteUrl(`/communities/${community.slug}`) })),
     ...PRESENTERS.map((presenter) => ({ url: absoluteUrl(`/presenters/${presenter.slug}`) })),
     ...NEWSLETTERS.map((newsletter) => ({ url: absoluteUrl(`/newsletters/${newsletter.slug}`) })),
-    ...shows.map((show) => ({ url: absoluteUrl(`/shows/${segment(show.slug)}`) })),
+    ...COMMUNITIES.flatMap((community) =>
+      community.programmes.map((programme) => ({
+        url: absoluteUrl(`/programmes/${programme.slug}`),
+      })),
+    ),
+    // Catalogue shows outside the 27 programmes keep their own page.
+    ...shows
+      .filter((show) => !communityOfShow(show.slug))
+      .map((show) => ({ url: absoluteUrl(`/shows/${segment(show.slug)}`) })),
     ...episodes.map((episode) => ({
       url: absoluteUrl(`/episodes/${segment(episode.id)}`),
       lastModified: date(episode.publishAt),
