@@ -50,7 +50,7 @@ describe('robots.txt', () => {
 describe('sitemap.xml', () => {
   beforeEach(() => {
     process.env.PUBLIC_WEB_URL = 'https://mukhtalif.net';
-    api.listShows.mockResolvedValue([{ slug: 'petroly' }]);
+    api.listShows.mockResolvedValue([{ slug: 'petroly' }, { slug: 'archive-only' }]);
     api.listEpisodes.mockImplementation(async ({ page: n }: { page: number }) =>
       page([{ id: `ep-${n}`, publishAt: '2026-11-01T10:00:00.000Z' }], n, 2),
     );
@@ -69,7 +69,10 @@ describe('sitemap.xml', () => {
     expect(urls).toEqual(
       expect.arrayContaining([
         'https://mukhtalif.net/',
-        'https://mukhtalif.net/shows/petroly',
+        'https://mukhtalif.net/programmes',
+        'https://mukhtalif.net/programmes/petroly',
+        'https://mukhtalif.net/programmes/qatim',
+        'https://mukhtalif.net/shows/archive-only',
         'https://mukhtalif.net/episodes/ep-1',
         'https://mukhtalif.net/episodes/ep-2',
         'https://mukhtalif.net/articles/12fdk',
@@ -80,6 +83,8 @@ describe('sitemap.xml', () => {
         'https://mukhtalif.net/newsletters/amyal',
       ]),
     );
+    // A catalogue show that is one of the 27 programmes is listed once, as its programme page.
+    expect(urls).not.toContain('https://mukhtalif.net/shows/petroly');
     expect(new Set(urls).size).toBe(urls.length);
     expect(api.listEpisodes).toHaveBeenCalledTimes(2);
   });

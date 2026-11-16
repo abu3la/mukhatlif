@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { EpisodeCard } from '@/components/cards';
 import { CommunityCrate, ProgrammeEntry } from '@/components/communities';
-import { COMMUNITIES, communityLogo, findCommunity } from '@/lib/communities';
+import { NewsletterCards } from '@/components/newsletter-cards';
+import { COMMUNITIES, communityLogo, findCommunity, newslettersOf } from '@/lib/communities';
 import { latestEpisodesOf } from '@/lib/community-episodes';
 
 export const revalidate = 60;
@@ -31,6 +32,7 @@ export default async function CommunityPage({ params }: Params) {
   const showSlugs = community.programmes.flatMap((p) => (p.showSlug ? [p.showSlug] : []));
   const latest = await latestEpisodesOf(showSlugs);
   const hasProgrammes = community.programmes.length > 0;
+  const newsletters = newslettersOf(community);
 
   return (
     <div className="content-page public-page community-page">
@@ -91,6 +93,18 @@ export default async function CommunityPage({ params }: Params) {
                 />
               ))}
             </div>
+          </section>
+        ) : null}
+
+        {newsletters.length ? (
+          <section className="content-section" aria-labelledby="newsletters-title">
+            <div className="content-section__header">
+              <h2 className="content-section__title" id="newsletters-title">
+                {newsletters.length > 1 ? 'نشرات' : 'نشرة'} {community.name}
+              </h2>
+              <Link href="/articles#newsletters">كل النشرات</Link>
+            </div>
+            <NewsletterCards newsletters={newsletters} />
           </section>
         ) : null}
 

@@ -18,6 +18,7 @@ import {
 import { InlineEpisodePlayer, type PlayerEpisode } from '@/components/player';
 import { ApiUnavailableError, NotFoundError, getEpisode, getShow, listEpisodes } from '@/lib/api';
 import { publicEpisodeAudioSrc } from '@/lib/player-source';
+import { showHref } from '@/lib/communities';
 
 export const revalidate = 60;
 
@@ -113,7 +114,7 @@ export default async function EpisodePage({
           <p className="episode-detail__breadcrumb">
             {show ? (
               <>
-                <Link href={`/shows/${encodeURIComponent(show.slug)}`}>{show.titleAr}</Link>
+                <Link href={showHref(show.slug)}>{show.titleAr}</Link>
                 {' · '}
               </>
             ) : null}
@@ -204,10 +205,7 @@ export default async function EpisodePage({
               <h2 className="content-section__title" id="related-title">
                 المزيد من {show.titleAr}
               </h2>
-              <Link
-                className="content-section__more"
-                href={`/shows/${encodeURIComponent(show.slug)}`}
-              >
+              <Link className="content-section__more" href={showHref(show.slug)}>
                 كل الحلقات
               </Link>
             </div>

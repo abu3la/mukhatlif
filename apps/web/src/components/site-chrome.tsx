@@ -41,7 +41,7 @@ const FOOTER_GROUPS: [string, [string, string][]][] = [
     'اكتشف مختلف',
     [
       ['/communities', 'المجتمعات'],
-      ['/shows', 'برامج البودكاست'],
+      ['/programmes', 'برامج البودكاست'],
       ['/articles', 'المقالات والنشرات'],
       ['/courses', 'الأكاديمية'],
     ],

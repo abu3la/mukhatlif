@@ -61,12 +61,58 @@
   flex: none;
 }
 .navLink[aria-current='page'],
+.navLink[data-current],
+.navPanelLink[aria-current='page'],
 .menuLink[aria-current='page'] {
   font-weight: var(--mk-weight-bold);
 }
 .navLink:hover,
 .menuLink:hover {
   color: var(--ink-hover);
+}
+/* «عن مختلف»: the chevron turns with the state; the list drops below it. */
+.navGroup {
+  position: relative;
+}
+.navGroup .navLink svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  transition: transform var(--mk-duration-fast) ease;
+}
+.navGroup .navLink[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.navPanel {
+  position: absolute;
+  inset-block-start: calc(100% + 4px);
+  inset-inline-start: calc(-1 * var(--mk-space-12));
+  z-index: 30;
+  display: grid;
+  min-width: 200px;
+  padding: var(--mk-space-8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.navPanel[hidden] {
+  display: none;
+}
+.navPanelLink {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: var(--mk-space-12);
+  border-radius: var(--radius);
+  color: var(--fg);
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-medium);
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color var(--mk-duration-fast) ease;
+}
+.navPanelLink:hover {
+  background: var(--surface-hover);
 }
 .search:hover,
 .library:hover,
@@ -179,7 +225,8 @@
   .navLink[href='/'],
   .navLink[href='/guests'],
   .navLink[href='/about'],
-  .navLink[href='/services'] {
+  .navLink[href='/services'],
+  .navGroup {
     display: none;
   }
 }
@@ -262,6 +309,8 @@
     animation: none;
   }
   .navLink,
+  .navPanelLink,
+  .navGroup .navLink svg,
   .search,
   .library,
   .menuToggle,

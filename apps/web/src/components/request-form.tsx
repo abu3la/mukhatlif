@@ -46,6 +46,8 @@ interface RequestFormProps {
   type: PublicRequestType;
   allowPartnershipChoice?: boolean;
   showNames?: string[];
+  /** Fills «البرنامج المقترح» when the visitor came from a programme page. */
+  defaultShowName?: string;
 }
 
 interface FieldProps {
@@ -60,6 +62,7 @@ interface FieldProps {
   inputMode?: 'email' | 'tel' | 'url';
   placeholder?: string;
   maxLength?: number;
+  defaultValue?: string;
 }
 
 function Field({
@@ -74,6 +77,7 @@ function Field({
   inputMode,
   placeholder,
   maxLength,
+  defaultValue,
 }: FieldProps) {
   const ltr = type === 'email' || type === 'tel' || type === 'url';
   const error = useContext(RequestErrors)[name];
@@ -99,6 +103,7 @@ function Field({
               inputMode={inputMode}
               placeholder={placeholder}
               maxLength={maxLength}
+              defaultValue={defaultValue}
               required={!optional}
               dir={ltr ? 'ltr' : undefined}
             />
@@ -314,7 +319,13 @@ function SponsorFields({
   );
 }
 
-function GuestSuggestionFields({ prefix }: { prefix: string }) {
+function GuestSuggestionFields({
+  prefix,
+  defaultShowName,
+}: {
+  prefix: string;
+  defaultShowName?: string;
+}) {
   return (
     <>
       <div className="request-form__row">
@@ -332,6 +343,7 @@ function GuestSuggestionFields({ prefix }: { prefix: string }) {
           label="البرنامج المقترح"
           name="showName"
           maxLength={160}
+          defaultValue={defaultShowName}
           optional
         />
         <Field
@@ -526,13 +538,18 @@ function GuestReviewFields({ prefix }: { prefix: string }) {
   );
 }
 
-function fieldsFor(type: PublicRequestType, prefix: string, showNames: string[]): ReactNode {
+function fieldsFor(
+  type: PublicRequestType,
+  prefix: string,
+  showNames: string[],
+  defaultShowName?: string,
+): ReactNode {
   switch (type) {
     case 'sponsorship':
     case 'partnership':
       return <SponsorFields prefix={prefix} type={type} showNames={showNames} />;
     case 'guest_suggestion':
-      return <GuestSuggestionFields prefix={prefix} />;
+      return <GuestSuggestionFields prefix={prefix} defaultShowName={defaultShowName} />;
     case 'careers':
       return <CareersFields prefix={prefix} />;
     case 'production_service':
@@ -547,6 +564,7 @@ export function RequestForm({
   type,
   allowPartnershipChoice = false,
   showNames = [],
+  defaultShowName,
 }: RequestFormProps) {
   const prefix = useId().replaceAll(':', '');
   const [selectedType, setSelectedType] = useState<PublicRequestType>(type);
@@ -811,7 +829,7 @@ export function RequestForm({
             </fieldset>
           ) : null}
 
-          {fieldsFor(selectedType, prefix, showNames)}
+          {fieldsFor(selectedType, prefix, showNames, defaultShowName)}
         </RequestErrors.Provider>
 
         <div className="request-form__honeypot" aria-hidden="true">

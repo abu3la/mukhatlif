@@ -11,6 +11,7 @@ import { dateTimeAttribute, formatDate, formatDuration, formatNumber } from './f
 import { PlayEpisodeButton, type PlayerEpisode } from './player';
 import { EpisodeLibraryActions, EpisodeProgress } from './episode-library-actions';
 import { publicEpisodeAudioSrc } from '@/lib/player-source';
+import { showHref } from '@/lib/communities';
 
 function PlayIcon({ size = 14 }: { size?: number }) {
   return (
@@ -57,7 +58,7 @@ function artworkTone(show: Pick<Show, 'id' | 'slug'>): 0 | 1 | 2 {
 }
 
 export function ShowCard({ show }: { show: Show }) {
-  const href = `/shows/${encodeURIComponent(show.slug)}`;
+  const href = showHref(show.slug);
   const tone = artworkTone(show);
 
   return (
