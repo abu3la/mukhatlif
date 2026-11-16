@@ -265,7 +265,6 @@ function CourseContent({ courseId }: { courseId: string }) {
                       if (customer.requireAccount()) setCheckout(true);
                     }}
                   >
-                    <BrandIcon name="next" />
                     المتابعة للتسجيل
                   </button>
                 )}

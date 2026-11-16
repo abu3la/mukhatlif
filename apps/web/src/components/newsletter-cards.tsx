@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { BrandIcon } from '@/components/brand-icon';
 import { NEWSLETTERS } from '@/lib/communities';
 
 /** Section 9: name, description, stated frequency, and «اكتشف النشرة». */
@@ -18,7 +17,6 @@ export function NewsletterCards({ headingLevel = 3 }: { headingLevel?: 2 | 3 }) 
             <span className="newsletter-card__text">{newsletter.description}</span>
             <span className="community-card__action">
               اكتشف النشرة
-              <BrandIcon name="next" className="community-card__arrow" />
             </span>
           </Link>
         </div>

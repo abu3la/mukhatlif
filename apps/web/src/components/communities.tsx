@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { BrandIcon } from '@/components/brand-icon';
 import {
   communityLogo,
   findPresenter,
@@ -70,7 +69,6 @@ export function CommunityCard({ community }: { community: Community }) {
         <span className="community-card__text">{community.description}</span>
         <span className="community-card__action">
           استكشف المجتمع
-          <BrandIcon name="next" className="community-card__arrow" />
         </span>
       </span>
     </Link>
@@ -143,12 +141,10 @@ export function ProgrammeEntry({
           >
             شاهد الحلقات على يوتيوب
             <span className="visually-hidden"> (يفتح في نافذة جديدة)</span>
-            <BrandIcon name="up" className="programme-entry__out" />
           </a>
         ) : (
           <Link className="programme-entry__action" href={programmeHref(programme)}>
             استمع وشاهد الحلقات
-            <BrandIcon name="next" className="community-card__arrow" />
           </Link>
         )}
       </div>
@@ -180,7 +176,6 @@ export function PresenterCard({ presenter }: { presenter: Presenter }) {
       <span className="presenter-card__bio">{presenter.bio}</span>
       <span className="community-card__action">
         {presenter.feminine ? 'تعرّف عليها' : 'تعرّف عليه'}
-        <BrandIcon name="next" className="community-card__arrow" />
       </span>
     </Link>
   );
@@ -232,7 +227,6 @@ export function ParticipationPaths({
             <span className="participation-path__text">{path.text}</span>
             <span className="community-card__action">
               {path.action}
-              <BrandIcon name="next" className="community-card__arrow" />
             </span>
           </Link>
         </div>

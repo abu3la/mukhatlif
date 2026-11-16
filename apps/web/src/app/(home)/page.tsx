@@ -5,7 +5,6 @@ import type { CourseSummary } from '@mukhtalif/types';
 import { ArticleCard, EpisodeCard } from '@/components/cards';
 import { CommunityGrid, ParticipationPaths } from '@/components/communities';
 import { NewsletterCards } from '@/components/newsletter-cards';
-import { BrandIcon } from '@/components/brand-icon';
 import { EmptyState, ErrorState } from '@/components/states';
 import { WeeklyEpisodeCard } from '@/components/weekly-episodes';
 import { NewsletterSignup } from '@/components/newsletter-signup';
@@ -257,7 +256,6 @@ export default async function HomePage() {
                     <span className="participation-path__text">{course.description}</span>
                     <span className="community-card__action">
                       اكتشف الورشة
-                      <BrandIcon name="next" className="community-card__arrow" />
                     </span>
                   </Link>
                 </div>

@@ -278,7 +278,6 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
                       </div>
                       <Link className="course-button" href={`/courses/${course.id}`}>
                         تفاصيل الدورة
-                        <BrandIcon name="next" />
                       </Link>
                     </>
                   )}

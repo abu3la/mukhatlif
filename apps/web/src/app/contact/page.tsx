@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { BrandIcon } from '@/components/brand-icon';
 
 export const metadata: Metadata = {
   title: 'تواصل مع مختلف',
@@ -26,7 +25,6 @@ export default function ContactPage() {
           {paths.map(([href, label]) => (
             <Link href={href} key={href}>
               {label}
-              <BrandIcon name="next" className="community-card__arrow" />
             </Link>
           ))}
         </nav>
