@@ -71,6 +71,15 @@ export function canonicalLegacyRequestPath(value: string): string | null {
   return pathname.length <= MAX_PATH_LENGTH ? pathname : null;
 }
 
+/**
+ * The site's own pages have no trailing slash. Sending a visitor straight to that
+ * form keeps every old link to a single redirect, which is what search engines
+ * follow most reliably.
+ */
+function siteLocationPath(pathname: string): string {
+  return pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+}
+
 function canonicalDestinationPath(pathname: string): string | null {
   if (ENCODED_SEPARATOR.test(pathname) || hasDotSegment(pathname)) return null;
   if (pathname === '/') return '/';
@@ -120,7 +129,7 @@ export function validateLegacyRedirect(
     return {
       destination,
       statusCode,
-      location: `${upperCasePercentEscapes(target.pathname)}${target.search}`,
+      location: `${upperCasePercentEscapes(siteLocationPath(target.pathname))}${target.search}`,
     };
   }
 

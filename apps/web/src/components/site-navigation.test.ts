@@ -85,9 +85,38 @@ describe('header navigation', () => {
     expect(search?.nextElementSibling?.getAttribute('href')).toBe('/library');
     expect(search?.nextElementSibling?.textContent).toBe('مكتبتي');
     expect(outsideLinks.find((link) => link.getAttribute('href') === '/sponsor')).toBeUndefined();
-    expect(menu().querySelector('a[href="/sponsor"]')?.textContent).toBe('الشراكات والرعايات');
+    expect(menu().querySelector('a[href="/sponsor"]')?.textContent).toBe('الرعايات والمشاريع');
     expect(button('تفعيل المظهر الداكن').closest('dialog')).toBe(menu());
     expect(container.querySelectorAll('button[aria-label="تفعيل المظهر الداكن"]')).toHaveLength(1);
+  });
+
+  it('opens «عن مختلف» as a short list that closes on Escape, outside presses and a choice', async () => {
+    const about = Array.from(container.querySelectorAll('button')).find(
+      (element) => element.textContent === 'عن مختلف',
+    )!;
+    const panel = document.getElementById(about.getAttribute('aria-controls')!)!;
+    expect(about.getAttribute('aria-expanded')).toBe('false');
+    expect(panel.hidden).toBe(true);
+    expect(
+      Array.from(panel.querySelectorAll('a')).map((link) => link.getAttribute('href')),
+    ).toEqual(['/about', '/presenters']);
+
+    await update(() => about.click());
+    expect(about.getAttribute('aria-expanded')).toBe('true');
+    expect(panel.hidden).toBe(false);
+    await update(() =>
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+    );
+    expect(panel.hidden).toBe(true);
+    expect(document.activeElement).toBe(about);
+
+    await update(() => about.click());
+    await update(() => main.dispatchEvent(new Event('pointerdown', { bubbles: true })));
+    expect(panel.hidden).toBe(true);
+
+    await update(() => about.click());
+    await update(() => panel.querySelector('a')!.click());
+    expect(panel.hidden).toBe(true);
   });
 
   it('opens a native modal, focuses its close action, and restores focus and scrolling after Escape', async () => {

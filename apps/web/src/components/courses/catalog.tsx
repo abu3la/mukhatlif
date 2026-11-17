@@ -92,11 +92,11 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
         </Link>
       </nav>
       <header className="courses-heading">
-        <h1>{mine ? 'دوراتي' : 'أكاديمية مختلف'}</h1>
+        <h1>{mine ? 'دوراتي' : 'تعلّم مع أكاديمية مختلف'}</h1>
         <p>
           {mine
             ? 'ارجع إلى آخر درس، وأكمل من حيث توقفت.'
-            : 'دروس وتطبيقات تساعدك على تحويل المعرفة إلى ممارسة.'}
+            : 'ورش مسجلة تقدّم معرفة عملية من تجارب المتخصصين، وتساعدك تطبّق ما تتعلّمه في حياتك وعملك. اختر الورشة المناسبة لك، وتعلّم في الوقت الذي يناسبك.'}
         </p>
       </header>
       <section className="courses-discovery" aria-label="البحث وتصفية الدورات">
@@ -278,7 +278,6 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
                       </div>
                       <Link className="course-button" href={`/courses/${course.id}`}>
                         تفاصيل الدورة
-                        <BrandIcon name="next" />
                       </Link>
                     </>
                   )}
@@ -288,7 +287,31 @@ function CourseCatalogContent({ mine }: { mine: boolean }) {
           })}
         </div>
       )}
+      {mine ? null : <HowToLearn />}
     </div>
   );
   return mine ? <CustomerGate>{content}</CustomerGate> : content;
+}
+
+/** «كيف تتعلّم» from section 16 of the site brief. */
+const LEARNING_STEPS = [
+  ['اختر ورشتك', 'تعرّف على محتواها ومدرّبها وشاهد المعاينة.'],
+  ['اشترِ وابدأ', 'بعد اكتمال الدفع تظهر الورشة في «دوراتي».'],
+  ['تعلّم بوقتك', 'شاهد الدروس، دوّن ملاحظاتك، وارجع من حيث توقفت.'],
+] as const;
+
+function HowToLearn() {
+  return (
+    <section className="academy-steps" aria-labelledby="academy-steps-title">
+      <h2 id="academy-steps-title">كيف تتعلّم</h2>
+      <ol>
+        {LEARNING_STEPS.map(([title, text]) => (
+          <li key={title}>
+            <h3>{title}</h3>
+            <p>{text}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
 }

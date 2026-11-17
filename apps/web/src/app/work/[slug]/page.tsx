@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getShow, listEpisodes, NotFoundError, ApiUnavailableError } from '@/lib/api';
 import { EpisodeVideo } from '@/components/episode-video';
+import { showHref } from '@/lib/communities';
 type Params = { params: Promise<{ slug: string }> };
 export const revalidate = 60;
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -48,7 +49,7 @@ export default async function WorkDetailPage({ params }: Params) {
           <div>
             <h1>{show.titleAr}</h1>
             <p>{show.descriptionAr}</p>
-            <Link href={'/shows/' + encodeURIComponent(show.slug)}>كل حلقات البرنامج</Link>
+            <Link href={showHref(show.slug)}>كل حلقات البرنامج</Link>
           </div>
         </section>
         <section className="public-mission">

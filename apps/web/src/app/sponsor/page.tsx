@@ -5,8 +5,8 @@ import { ApiUnavailableError, listShows } from '@/lib/api';
 import { apiOrigin } from '@/lib/config';
 
 export const metadata: Metadata = {
-  title: 'الشراكات والرعايات',
-  description: 'تواصل مع فريق مختلف للرعاية أو لبناء شراكة محتوى.',
+  title: 'الرعايات والمشاريع',
+  description: 'من رعاية برامجنا إلى إنتاج محتواك، نطوّر معك أفكارًا تخدم أهدافك وتصل إلى جمهورك.',
   alternates: { canonical: '/sponsor' },
 };
 
@@ -19,9 +19,26 @@ export default async function SponsorPage() {
   }
   return (
     <RequestPage
-      title="كن جزءًا من الحوار."
-      intro="عرّفنا بعلامتك، والبرنامج أو الموضوع الذي يهمك."
-      note="يصل الطلب إلى فريق الشراكات، ويراجع التفاصيل ثم يتواصل مع مسؤول الجهة."
+      title="تعاون مع مختلف"
+      intro="من رعاية برامجنا إلى إنتاج محتواك، نطوّر معك أفكارًا تخدم أهدافك وتصل إلى جمهورك."
+      details={
+        <dl className="collaboration-paths">
+          <div>
+            <dt>الرعايات والشراكات</dt>
+            <dd>
+              نربط علامتك بالمجتمع والبرنامج المناسبين، ونطوّر حضورًا داخل المحتوى يخدم أهدافك
+              ويقدّم قيمة للجمهور.
+            </dd>
+          </div>
+          <div>
+            <dt>مشاريع الإنتاج</dt>
+            <dd>
+              ننتج لجهتك برامج بودكاست وفيديوهات وأعمالًا صوتية، من تطوير الفكرة إلى الإنتاج
+              والتسليم، بحسب نطاق المشروع.
+            </dd>
+          </div>
+        </dl>
+      }
     >
       <RequestForm
         apiOrigin={apiOrigin()}

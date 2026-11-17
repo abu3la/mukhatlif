@@ -3,11 +3,13 @@ import type { ReactNode } from 'react';
 interface RequestPageProps {
   title: string;
   intro: string;
-  note: string;
+  note?: string;
+  /** Extra context under the picture, such as the ways to work together. */
+  details?: ReactNode;
   children: ReactNode;
 }
 
-export function RequestPage({ title, intro, note, children }: RequestPageProps) {
+export function RequestPage({ title, intro, note, details, children }: RequestPageProps) {
   return (
     <div className="content-page request-page">
       <div className="content-container public-request-layout">
@@ -20,7 +22,8 @@ export function RequestPage({ title, intro, note, children }: RequestPageProps) 
             width="460"
             height="259"
           />
-          <p className="public-request-note">{note}</p>
+          {details}
+          {note ? <p className="public-request-note">{note}</p> : null}
         </header>
         <div className="request-page__body">{children}</div>
       </div>

@@ -1,5 +1,6 @@
 import { CLIENT_SURFACE_HEADER } from '@mukhtalif/types';
 import type {
+  CourseSummary,
   Episode,
   HomeSummary,
   PaginatedList,
@@ -163,6 +164,11 @@ export function listGuests(options: {
 
 export function getGuestProfile(idOrSlug: string): Promise<PublicGuestProfile> {
   return read<PublicGuestProfile>(`/guests/${encodeURIComponent(idOrSlug)}`, { notFound: true });
+}
+
+/** Published courses only; the public route never lists a draft. */
+export function listCourses(): Promise<CourseSummary[]> {
+  return read<CourseSummary[]>('/courses');
 }
 
 /**

@@ -11,6 +11,7 @@ import './tokens.css';
 import './listener.css';
 import './handoff.css';
 import './public-pages.css';
+import './communities.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(publicWebUrl()),
@@ -24,7 +25,6 @@ export const metadata: Metadata = {
     locale: 'ar_SA',
     siteName: 'مختلف',
   },
-  alternates: { canonical: '/' },
   robots: isSearchIndexingEnabled()
     ? { index: true, follow: true }
     : { index: false, follow: false, noarchive: true, nocache: true },

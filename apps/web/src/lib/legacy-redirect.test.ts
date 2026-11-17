@@ -46,7 +46,7 @@ describe('validateLegacyRedirect', () => {
     expect(redirect).toEqual({
       destination: '/articles/new-home/?from=wordpress',
       statusCode: 301,
-      location: '/articles/new-home/?from=wordpress',
+      location: '/articles/new-home?from=wordpress',
     });
     expect(redirect?.location).not.toContain('utm=drop-me');
   });
@@ -88,6 +88,18 @@ describe('validateLegacyRedirect', () => {
   });
 });
 
+describe('site-relative locations', () => {
+  it('drops the trailing slash so an old link reaches its page in one redirect', () => {
+    expect(
+      validateLegacyRedirect({ destination: '/shows/petroly/', statusCode: 301 }, sourcePath, requestUrl)
+        ?.location,
+    ).toBe('/shows/petroly');
+    expect(
+      validateLegacyRedirect({ destination: '/', statusCode: 302 }, sourcePath, requestUrl)?.location,
+    ).toBe('/');
+  });
+});
+
 describe('legacyRedirectResponse', () => {
   it('returns the exact reviewed status and a relative Location header', () => {
     const response = legacyRedirectResponse(
@@ -97,7 +109,7 @@ describe('legacyRedirectResponse', () => {
     );
 
     expect(response?.status).toBe(308);
-    expect(response?.headers.get('location')).toBe('/articles/new-home/');
+    expect(response?.headers.get('location')).toBe('/articles/new-home');
     expect(response?.headers.get('cache-control')).toBe('public, max-age=60');
     expect(response?.body).toBeNull();
   });

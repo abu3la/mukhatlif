@@ -11,6 +11,7 @@ const { mockGetHomeSummary } = vi.hoisted(() => ({
 vi.mock('@/lib/api', () => ({
   ApiUnavailableError: class ApiUnavailableError extends Error {},
   getHomeSummary: mockGetHomeSummary,
+  listCourses: async () => [],
 }));
 
 vi.mock('@/lib/config', () => ({
@@ -24,7 +25,7 @@ afterEach(() => {
 });
 
 describe('HomePage weekly episodes placement', () => {
-  it('places the weekly episodes section directly after the hero', async () => {
+  it('opens with the hero, then the communities, then the weekly episodes', async () => {
     vi.stubGlobal('React', React);
     mockGetHomeSummary.mockResolvedValue({
       asOf: '2026-09-02T12:00:00.000Z',
@@ -55,12 +56,17 @@ describe('HomePage weekly episodes placement', () => {
       React.createElement(PlayerProvider, { children: await HomePage() }),
     );
     const heroEnd = html.indexOf('</section>');
+    const communitiesStart = html.indexOf('<section class="content-section home-communities"');
     const weeklyStart = html.indexOf('<section class="content-section weekly-episodes"');
 
     expect(heroEnd).toBeGreaterThan(-1);
-    expect(weeklyStart).toBe(heroEnd + '</section>'.length);
+    expect(communitiesStart).toBe(heroEnd + '</section>'.length);
+    expect(weeklyStart).toBeGreaterThan(communitiesStart);
+    expect(html).toContain('href="/communities/idhaa"');
+    expect(html).toContain('حلقات تستحق وقتك');
     expect(html).not.toContain('لا يوجد محتوى منشور بعد');
-    expect(html).toContain('حلقة هذا الأسبوع · بترولي');
+    expect(html).toContain('حلقة هذا الأسبوع<span>بترولي</span>');
+    expect(html).not.toContain(' · ');
     expect(html.match(/class="newsletter-signup"/g)).toHaveLength(1);
   });
 

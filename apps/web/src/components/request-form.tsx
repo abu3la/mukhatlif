@@ -27,6 +27,18 @@ type SubmissionState =
   | { status: 'unknown' }
   | { status: 'error'; message: string };
 
+/** Approved success copy (site brief of 9 November 2026, section 18). */
+const SUCCESS_TITLE: Partial<Record<PublicRequestType, string>> = {
+  guest_suggestion: 'وصلنا ترشيحك',
+};
+const SUCCESS_MESSAGE: Partial<Record<PublicRequestType, string>> = {
+  sponsorship: 'وصلنا طلبك، وسيتواصل معك فريق مختلف عبر بيانات التواصل المسجلة.',
+  partnership: 'وصلنا طلبك، وسيتواصل معك فريق مختلف عبر بيانات التواصل المسجلة.',
+  production_service: 'وصلنا طلبك، وسيتواصل معك فريق مختلف عبر بيانات التواصل المسجلة.',
+  guest_suggestion: 'شكرًا لمساهمتك في اختيار ضيوف مختلف.',
+  careers: 'وصلنا طلبك، وسنتواصل معك عند وجود فرصة تناسب خبراتك.',
+};
+
 const RequestErrors = createContext<Record<string, string>>({});
 
 interface RequestFormProps {
@@ -34,6 +46,8 @@ interface RequestFormProps {
   type: PublicRequestType;
   allowPartnershipChoice?: boolean;
   showNames?: string[];
+  /** Fills «البرنامج المقترح» when the visitor came from a programme page. */
+  defaultShowName?: string;
 }
 
 interface FieldProps {
@@ -48,6 +62,7 @@ interface FieldProps {
   inputMode?: 'email' | 'tel' | 'url';
   placeholder?: string;
   maxLength?: number;
+  defaultValue?: string;
 }
 
 function Field({
@@ -62,6 +77,7 @@ function Field({
   inputMode,
   placeholder,
   maxLength,
+  defaultValue,
 }: FieldProps) {
   const ltr = type === 'email' || type === 'tel' || type === 'url';
   const error = useContext(RequestErrors)[name];
@@ -87,6 +103,7 @@ function Field({
               inputMode={inputMode}
               placeholder={placeholder}
               maxLength={maxLength}
+              defaultValue={defaultValue}
               required={!optional}
               dir={ltr ? 'ltr' : undefined}
             />
@@ -302,7 +319,13 @@ function SponsorFields({
   );
 }
 
-function GuestSuggestionFields({ prefix }: { prefix: string }) {
+function GuestSuggestionFields({
+  prefix,
+  defaultShowName,
+}: {
+  prefix: string;
+  defaultShowName?: string;
+}) {
   return (
     <>
       <div className="request-form__row">
@@ -320,6 +343,7 @@ function GuestSuggestionFields({ prefix }: { prefix: string }) {
           label="البرنامج المقترح"
           name="showName"
           maxLength={160}
+          defaultValue={defaultShowName}
           optional
         />
         <Field
@@ -514,13 +538,18 @@ function GuestReviewFields({ prefix }: { prefix: string }) {
   );
 }
 
-function fieldsFor(type: PublicRequestType, prefix: string, showNames: string[]): ReactNode {
+function fieldsFor(
+  type: PublicRequestType,
+  prefix: string,
+  showNames: string[],
+  defaultShowName?: string,
+): ReactNode {
   switch (type) {
     case 'sponsorship':
     case 'partnership':
       return <SponsorFields prefix={prefix} type={type} showNames={showNames} />;
     case 'guest_suggestion':
-      return <GuestSuggestionFields prefix={prefix} />;
+      return <GuestSuggestionFields prefix={prefix} defaultShowName={defaultShowName} />;
     case 'careers':
       return <CareersFields prefix={prefix} />;
     case 'production_service':
@@ -535,6 +564,7 @@ export function RequestForm({
   type,
   allowPartnershipChoice = false,
   showNames = [],
+  defaultShowName,
 }: RequestFormProps) {
   const prefix = useId().replaceAll(':', '');
   const [selectedType, setSelectedType] = useState<PublicRequestType>(type);
@@ -746,8 +776,11 @@ export function RequestForm({
         role="status"
         aria-labelledby={`${prefix}-success-title`}
       >
-        <h2 id={`${prefix}-success-title`}>وصل طلبك</h2>
-        <p>حفظناه لدى فريق مختلف، وسنتواصل معك عبر البيانات التي أرسلتها.</p>
+        <h2 id={`${prefix}-success-title`}>{SUCCESS_TITLE[type] ?? 'وصل طلبك'}</h2>
+        <p>
+          {SUCCESS_MESSAGE[type] ??
+            'حفظناه لدى فريق مختلف، وسنتواصل معك عبر البيانات التي أرسلتها.'}
+        </p>
         <button type="button" onClick={() => setState({ status: 'idle' })}>
           إرسال طلب آخر
         </button>
@@ -796,7 +829,7 @@ export function RequestForm({
             </fieldset>
           ) : null}
 
-          {fieldsFor(selectedType, prefix, showNames)}
+          {fieldsFor(selectedType, prefix, showNames, defaultShowName)}
         </RequestErrors.Provider>
 
         <div className="request-form__honeypot" aria-hidden="true">

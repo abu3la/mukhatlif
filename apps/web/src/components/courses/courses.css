@@ -1302,3 +1302,46 @@
   .course-bookmark { flex-wrap: wrap; }
   .course-bookmark p { flex-basis: calc(100% - 110px); }
 }
+
+/* «كيف تتعلّم» (site brief, section 16): three flat cards in the academy's own
+   surface, no numbers or rail; the order is carried by the reading direction. */
+.academy-steps {
+  margin-block-start: var(--mk-space-64);
+}
+.academy-steps h2 {
+  margin: 0 0 var(--mk-space-24);
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.academy-steps ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-24);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.academy-steps li {
+  padding: var(--mk-space-24);
+  border-radius: var(--mk-radius-card);
+  background: var(--mk-card);
+}
+.academy-steps h3 {
+  margin: 0 0 var(--mk-space-8);
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.academy-steps p {
+  margin: 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-reading);
+}
+@media (max-width: 820px) {
+  .academy-steps ol {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mk-space-12);
+  }
+}

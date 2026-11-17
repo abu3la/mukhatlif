@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import type { PaginatedList, PublishedArticle } from '@mukhtalif/types';
 import { ArticleCard } from '@/components/cards';
+import { NewsletterCards } from '@/components/newsletter-cards';
 import { Pager, parsePage } from '@/components/pager';
 import { EmptyState, ErrorState } from '@/components/states';
 import { ApiUnavailableError, listArticles } from '@/lib/api';
@@ -10,8 +11,8 @@ import { singleQuery } from '@/lib/public-content';
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: 'قراءات من مختلف',
-  description: 'مقالات شبكة مختلف عن العمل والمسار المهني.',
+  title: 'المقالات والنشرات',
+  description: 'مقالات ونشرات مختلف عن العمل والمسار المهني.',
   alternates: { canonical: '/articles' },
 };
 
@@ -39,8 +40,7 @@ export default async function ArticlesPage({
   return (
     <div className="shell articles-index public-page">
       <header className="public-page-head">
-        <h1>قراءات من مختلف</h1>
-        <p>مساحة للرأي والتأمل في معنى العمل.</p>
+        <h1>اقرأ من مختلف</h1>
       </header>
       <form action="/articles" className="public-filters public-filters--search" role="search">
         <label>
@@ -84,6 +84,14 @@ export default async function ArticlesPage({
           <Pager pageInfo={articles.pageInfo} basePath="/articles" query={{ search }} />
         </>
       )}
+      <section className="content-section" id="newsletters" aria-labelledby="newsletters-title">
+        <div className="content-section__header">
+          <h2 className="content-section__title" id="newsletters-title">
+            النشرات
+          </h2>
+        </div>
+        <NewsletterCards />
+      </section>
       <section className="content-section">
         <h2 className="content-section__title">ومن القراءة إلى الحوار</h2>
         <div className="public-reading-controls">
