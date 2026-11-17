@@ -33,6 +33,32 @@ function cli(args) {
   }
 }
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
+/**
+ * The provider's own build output is the only record of why a build failed, so
+ * print its tail before failing. Token-shaped strings are redacted in case the
+ * host ever echoes an environment value.
+ */
+function printProviderLog(uuid) {
+  try {
+    const raw = cli(['hosting', 'nodejs', 'build-logs', username, target, uuid]);
+    const data = raw.data ?? raw;
+    const body =
+      typeof data === 'string' ? data : (data.logs ?? data.log ?? data.content ?? data.output);
+    const text = Array.isArray(body)
+      ? body.map((line) => (typeof line === 'string' ? line : JSON.stringify(line))).join('\n')
+      : typeof body === 'string'
+        ? body
+        : JSON.stringify(data, null, 2);
+    const clean = text
+      .replace(new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*[A-Za-z]`, 'g'), '')
+      .replace(/eyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,}/g, '[redacted]')
+      .replace(/\b(sk|re|sb)_[\w-]{16,}/g, '[redacted]');
+    console.log('Provider build log (last 150 lines):');
+    console.log(clean.split('\n').slice(-150).join('\n'));
+  } catch (error) {
+    console.log(`Provider build log unavailable: ${error.message}`);
+  }
+}
 if (phase === 'prepare') {
   const source = join(output, 'source');
   const selected = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
@@ -219,8 +245,10 @@ if (phase === 'verify') {
     const list = cli(['hosting', 'nodejs', 'list-builds', username, target, '--per-page', '20']);
     const build = list.data?.find((b) => b.uuid === receipt.uuid);
     if (!build) throw Error('Expected build missing');
-    if (['failed', 'failure', 'cancelled'].includes(build.state))
+    if (['failed', 'failure', 'cancelled'].includes(build.state)) {
+      printProviderLog(receipt.uuid);
       throw Error(`Provider build ${build.state}: ${receipt.uuid}`);
+    }
     if (build.state === 'completed') {
       try {
         const release = await fetch(`https://${target}/release.json?verify=${sha}`, {
