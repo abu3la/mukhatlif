@@ -3,6 +3,14 @@ import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { COMMUNITIES } from './src/lib/communities';
 
+const isHostingerBuild = process.env.MUKHTALIF_HOSTINGER_BUILD === '1';
+
+// Hostinger's shared build host reports dozens of CPUs but caps the account's
+// threads. Next sizes its build workers, and each worker's native (tokio) pool,
+// from the CPU count, so an uncapped build aborts with "OS can't spawn worker
+// thread". Keep both small there; local and Cloudflare builds are unchanged.
+if (isHostingerBuild) process.env.TOKIO_WORKER_THREADS ??= '4';
+
 const isFinalPublicOrigin =
   process.env.PUBLIC_WEB_URL?.trim().replace(/\/$/, '') === 'https://mukhtalif.net';
 
@@ -22,8 +30,9 @@ function appSegments(): string[] {
 }
 
 const config: NextConfig = {
-  ...(process.env.MUKHTALIF_HOSTINGER_BUILD === '1'
+  ...(isHostingerBuild
     ? {
+        experimental: { cpus: 2 },
         output: 'standalone' as const,
         outputFileTracingRoot: path.resolve(__dirname, '../..'),
         // Next's server can resolve either SWC export condition at runtime.
