@@ -359,14 +359,6 @@ button:disabled {
 .article-card__title {
   line-height: var(--mk-leading-ui);
 }
-.weekly-episodes__track {
-  grid-auto-columns: clamp(280px, 28vw, 365px);
-  padding: 4px 0 14px;
-  gap: 20px;
-}
-.weekly-episodes__track > .handoff-episode-card {
-  scroll-snap-align: start;
-}
 .episode-list,
 .episodes {
   background: transparent;

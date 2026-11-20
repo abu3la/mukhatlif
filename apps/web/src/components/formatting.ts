@@ -46,3 +46,9 @@ export function formatDuration(seconds: number): string {
   const minutes = totalMinutes % 60;
   return minutes ? `${hours} س ${minutes} د` : `${hours} س`;
 }
+
+/** «389 حلقة», «5 حلقات»: the counted noun after a number, by its last two digits. */
+export function episodesNoun(count: number) {
+  const tens = count % 100;
+  return tens >= 3 && tens <= 10 ? 'حلقات' : 'حلقة';
+}

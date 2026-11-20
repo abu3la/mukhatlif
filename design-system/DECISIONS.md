@@ -121,6 +121,54 @@ Format: `D-nn · date · decision · why / source`.
   focus rings are ink, not green (D-04); metadata is spaced, not dotted (the
   owner's standing rule). The avatar is ink with an on-ink initial.
 
+- **D-24 · 2026-11-20 · The presentation site (direction C).** The owner chose
+  the third direction of the redesign canvas
+  (https://claude.ai/artifact/44WWRh2CUhAHRiw1CsEpDS): the site introduces
+  Mukhtalif before it plays media. Built on the home, the header, the footer and
+  the programme page; the other templates keep their current look until they
+  are redrawn in this language.
+  - **The night stage, the sheet, the floor.** A page may open on a night stage
+    (`--mk-stage*`: indigo night in light, the footer's green-black in dark),
+    continue on a white sheet whose rounded top (`--mk-radius-sheet`) slides
+    over it, and end on the footer's floor. The sheet's edge is the boundary,
+    so these are deliberate breaks, not seams (an exception to D-06's single
+    floor and to "sections are separated by space").
+  - **The maze is the brand pattern.** The rounded-line pattern becomes a real
+    maze (`lib/maze.ts`, fixed seeds in `lib/home-maze.ts`, tested). One route
+    starts at the diamond full stop of «لمسار مهني يشبهك» and runs down the
+    page; «أي مسار يشبهك؟» draws a route to each community. Routes are always
+    drawn as a faint trace; the ink draws itself over it once
+    (`--mk-duration-route`, `--mk-duration-pick`), so nothing depends on
+    motion. The hero is one drawing that scales as a unit (`--u`), the one
+    place layout uses physical geometry.
+  - **The home tells the story** in order: hero, «قضيتنا» lit phrase by phrase
+    (`--mk-stage-ink-unlit` keeps unlit phrases readable), the 2023-to-today
+    stops, a programmes rail, the community picker (slides on phones and
+    tablets), the general newsletter (kept: it is the site's only signup),
+    production, the team as credits. Listening starts from «استمع» in the
+    header (`/episodes`) and from every programme.
+  - **A programme page stands on its cover.** Each programme has a ground
+    sampled from its cover's edge and an accent from its lettering
+    (`--mk-cover-<slug>-*`, tested for contrast); all other text on the cover
+    is one ink per tone. The cover is the title (Petroly uses its calligraphy
+    cut onto black, `public/communities/programmes/marks`). The count is the
+    page's one large number (`--mk-display-numeral`). The latest twelve
+    episodes are a rail; older pages redirect to `/episodes?showId=…`.
+  - **Header and footer.** The bar gains «البرامج» and «الإنتاج», «قضيتنا»
+    joins «عن مختلف», and «استمع» is the bar's one filled action; search,
+    «مكتبتي» and the menu stay as the owner's rules require. Over a stage the
+    bar is transparent and takes the stage's ink. The footer floor carries
+    four link groups, the platform marks and the wordmark at the bottom edge.
+  - **Type and space.** Display sizes `--mk-display-1`, `-2`, `-numeral`, and
+    `--mk-section` for the room between stage sections (part of Q-03).
+  - **Kept out:** decorative arrows on text links (they were removed on
+    purpose); presenter photos that are not confirmed (only Ahmed Attar's
+    portrait is used); the sentence on Petroly's KFUPM origin, which waits for
+    the owner's confirmation.
+  - Now unused and left for Q-09: `WeeklyEpisodeCard`, `LatestEpisodeAction`,
+    `ListeningPlatforms`, `ContinueListening`, `CommunityCard`'s rail use, and
+    the older `.home-*` rules in `listener.css`.
+
 ## Open questions for the owner
 
 These are inconsistencies found while building the system. Each is a visible

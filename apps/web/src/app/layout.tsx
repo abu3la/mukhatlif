@@ -12,6 +12,7 @@ import './listener.css';
 import './handoff.css';
 import './public-pages.css';
 import './communities.css';
+import './stage.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(publicWebUrl()),

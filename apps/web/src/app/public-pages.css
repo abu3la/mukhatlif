@@ -315,9 +315,17 @@
   border-radius: var(--mk-radius-round);
   cursor: pointer;
 }
-.public-rail-controls button:hover {
+.public-rail-controls button:hover:not(:disabled) {
   color: var(--bg);
   background: var(--fg);
+}
+/* The end of the rail: a solid tonal step, like every unavailable control. */
+.public-rail-controls button:disabled {
+  color: color-mix(in srgb, var(--mk-ink) 35%, var(--mk-surface));
+  cursor: default;
+}
+.public-rail-controls[hidden] {
+  display: none;
 }
 .public-rail-controls svg {
   width: 20px;
@@ -328,6 +336,7 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
 .public-home-shows .shows-grid {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 26px 20px;

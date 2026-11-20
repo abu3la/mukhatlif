@@ -228,9 +228,129 @@ export const utilityColor = {
   videoLetterbox: same('#111111', 'خلفية الفيديو', 'Behind the YouTube frame while it loads.'),
 } satisfies Record<string, ThemedToken>;
 
+/**
+ * The night stage (D-24, the presentation site): the ground the home page opens
+ * on, with its maze, manifesto and story, and the corners above the sheet that
+ * slides over it. Indigo night in the light appearance; the footer's deepest
+ * green-black in the dark one, so the dark page stays one warm world.
+ */
+export const stageColor = {
+  stage: {
+    light: '#0d0f2e',
+    dark: '#10120f',
+    label: 'أرضية المسرح',
+    role: 'Night ground of the home hero, manifesto and story; the corners above the sheet.',
+  },
+  stageRaised: {
+    light: '#151845',
+    dark: '#22251f',
+    label: 'سطح على المسرح',
+    role: 'Hover fill of quiet controls that sit on the stage (header icons).',
+  },
+  stageWall: {
+    light: '#1b1e4f',
+    dark: '#272925',
+    label: 'جدار المتاهة',
+    role: 'Maze walls drawn on the stage. Decorative and deliberately quiet; never text.',
+  },
+  stageInk: {
+    light: '#eaebf6',
+    dark: '#f5f6f3',
+    label: 'نص المسرح',
+    role: 'Headings, links, the route and its diamonds on the stage.',
+  },
+  stageInkMuted: {
+    light: '#bfc3df',
+    dark: '#b8c0b7',
+    label: 'نص المسرح الثانوي',
+    role: 'Lead lines and descriptions on the stage; hover fill of the stage pill.',
+  },
+  stageInkFaint: {
+    light: '#9fa3c8',
+    dark: '#9aa294',
+    label: 'نص المسرح الخافت',
+    role: 'The story path and its date labels.',
+  },
+  stageInkUnlit: {
+    light: '#767bb0',
+    dark: '#777f75',
+    label: 'جملة لم تُضأ',
+    role: 'Manifesto phrases the scroll has not lit yet. Still readable at 4.5:1.',
+  },
+} satisfies Record<string, ThemedToken>;
+
+/**
+ * Programme covers (D-24): a programme page opens on its cover's own ground,
+ * and its one large number takes the colour of the cover's lettering. Grounds
+ * were sampled from each cover's edge and accents from its lettering, then
+ * checked: every accent clears 3:1 on its ground (large text), and all other
+ * text on a cover uses `cover-ink-on-*`. Where an edge is a gradient the
+ * ground is its most common colour, not the average. Identical in both appearances.
+ */
+const cover = (slug: string, name: string, ground: string, accent: string) => ({
+  [`${slug}-ground`]: same(
+    ground,
+    `أرضية ${name}`,
+    `The ${slug} page ground, from its cover's edge.`,
+  ),
+  [`${slug}-accent`]: same(
+    accent,
+    `حبر ${name}`,
+    `The ${slug} cover's lettering, for its large count.`,
+  ),
+});
+
+export const coverColor = {
+  inkOnDark: same('#ffffff', 'نص على غلاف داكن', 'Every text and control on a dark cover ground.'),
+  inkOnLight: same(
+    '#171a56',
+    'نص على غلاف فاتح',
+    'Every text and control on a light cover ground.',
+  ),
+  raisedOnDark: same(
+    'rgb(255 255 255 / 0.14)',
+    'سطح على غلاف داكن',
+    'Hover fill of quiet controls on a dark cover ground.',
+  ),
+  raisedOnLight: same(
+    'rgb(23 26 86 / 0.08)',
+    'سطح على غلاف فاتح',
+    'Hover fill of quiet controls on a light cover ground.',
+  ),
+  ...cover('amyal', 'أميال', '#ffffff', '#0c2454'),
+  ...cover('anfus', 'أنفس', '#ffffff', '#240c24'),
+  ...cover('arwiqah', 'أروقة', '#191919', '#fcfcfc'),
+  ...cover('awalim', 'عوالم', '#082b31', '#6cfcb4'),
+  ...cover('bokra', 'بكرة', '#73e8f2', '#0c0c24'),
+  ...cover('deal', 'ديل', '#ffffff', '#0c0c0c'),
+  ...cover('dynamica', 'ديناميكا', '#ffffff', '#0c0c0c'),
+  ...cover('fintech525', 'Fintech525', '#000e2b', '#fcfcfc'),
+  ...cover('gilaf', 'غلاف', '#926744', '#ffffff'),
+  ...cover('handas', 'هنداس', '#656e61', '#ffffff'),
+  ...cover('khuzama', 'خزامى', '#66457a', '#ccccb4'),
+  ...cover('mafi-shay-yidahhik', 'مافي شي يضحّك', '#000000', '#fce454'),
+  ...cover('majlis-raim', 'مجلس رايم', '#1a1914', '#fcfcfc'),
+  ...cover('menu', 'منيو', '#046f69', '#9cfc84'),
+  ...cover('munagasha', 'مناقشة', '#060807', '#fcfcfc'),
+  ...cover('munawib', 'مناوب', '#0d5852', '#fcfcfc'),
+  ...cover('muqawil', 'مقاول', '#723d26', '#fcfcfc'),
+  ...cover('nitaq', 'نطاق', '#000000', '#fcfcfc'),
+  ...cover('petroly', 'بترولي', '#000000', '#d2a606'),
+  ...cover('qadiyah', 'قضية', '#8c1313', '#ffffff'),
+  ...cover('qatim', 'قاتم', '#ffffff', '#6c3c0c'),
+  ...cover('salasil', 'سلاسل', '#000000', '#0ccc84'),
+  ...cover('seera', 'سيرة', '#7b27fe', '#fcfcfc'),
+  ...cover('shaqla', 'شغلة', '#1c540b', '#e4fc0c'),
+  ...cover('tashreeh', 'تشريح', '#192c46', '#cce4e4'),
+  ...cover('unicorn', 'يونيكورن', '#c1076d', '#fcfcfc'),
+  ...cover('wakala', 'وكالة', '#ffffff', '#243c54'),
+} satisfies Record<string, ThemedToken>;
+
 export const webColorGroups = {
   semantic: { label: 'ألوان الأدوار', tokens: webColor },
   brand: { label: 'ألوان الهوية', tokens: brandColor },
+  stage: { label: 'المسرح الليلي (الرئيسية)', tokens: stageColor },
+  cover: { label: 'أغلفة البرامج', tokens: coverColor, prefix: 'cover-' },
   broadcast: { label: 'عالم البث (المشغّل)', tokens: broadcastColor },
   utility: { label: 'تنبيهات وأغطية', tokens: utilityColor },
 } as const;
@@ -263,6 +383,28 @@ export const webText = {
   '3xl': { value: '24px', label: 'عنوان قسم', role: 'Section and dialog headings.' },
   '4xl': { value: '26px', label: 'عنوان قسم كبير', role: 'Larger section headings.' },
   '5xl': { value: '30px', label: 'عنوان صفحة صغير', role: 'Compact page headings.' },
+} satisfies Record<string, ScaleToken>;
+
+/**
+ * Display sizes (D-24): fluid steps for statements set above the type scale.
+ * Each keeps its proportion from a 390px phone to a 1440px desktop.
+ */
+export const webDisplay = {
+  '1': {
+    value: 'clamp(34px, 4.45vw, 64px)',
+    label: 'عرض كبير',
+    role: 'Section statements on the stage and the sheet; the story years.',
+  },
+  '2': {
+    value: 'clamp(28px, 3.34vw, 48px)',
+    label: 'عرض',
+    role: 'The manifesto, service names and programme-page section headings.',
+  },
+  numeral: {
+    value: 'clamp(120px, 16.7vw, 240px)',
+    label: 'رقم العرض',
+    role: 'The one large count on a programme page. Digits only.',
+  },
 } satisfies Record<string, ScaleToken>;
 
 export const webLeading = {
@@ -298,6 +440,11 @@ export const webRadius = {
   control: same('8px', 'زاوية الحقل', 'Inputs, selects and dialog fields.'),
   media: same('10px', 'زاوية الصورة', 'Images inside cards.'),
   dialog: same('16px', 'زاوية النافذة', 'Account dialogs.'),
+  sheet: same(
+    'clamp(28px, 3vw, 44px)',
+    'زاوية الصفحة المنزلقة',
+    'The rounded top of the sheet that slides over the stage (D-24).',
+  ),
   pill: same('999px', 'كبسولة', 'Primary actions and filter choices.'),
   round: same('50%', 'دائرة', 'Round icon buttons, portraits and marks.'),
 } satisfies Record<string, ThemedToken>;
@@ -310,6 +457,11 @@ export const webLayout = {
     role: 'Page side gutter. Wider in the dark appearance by design.',
   },
   measure: same('1500px', 'عرض المحتوى', 'Maximum content width.'),
+  section: same(
+    'clamp(72px, 10.4vw, 150px)',
+    'فاصل المسرح',
+    'Vertical room around the sections of the stage, the sheet and the floor (D-24).',
+  ),
   measureEpisode: same('840px', 'عرض صفحة الحلقة', 'Episode detail column.'),
   measureArticle: same('760px', 'عرض المقال', 'Article reading column.'),
 } satisfies Record<string, ThemedToken>;
@@ -317,6 +469,39 @@ export const webLayout = {
 export const webMotion = {
   fast: { value: '140ms', label: 'سريعة', role: 'Colour and fill state changes on controls.' },
   base: { value: '160ms', label: 'عادية', role: 'Larger state changes.' },
+  light: {
+    value: '500ms',
+    label: 'إضاءة الجملة',
+    role: 'A manifesto phrase changing from unlit to lit as it scrolls in (D-24).',
+  },
+  pick: {
+    value: '900ms',
+    label: 'رسم مسار المجتمع',
+    role: 'The picker route drawing itself to the chosen community (D-24).',
+  },
+  route: {
+    value: '2400ms',
+    label: 'رسم المسار',
+    role: 'The hero route drawing itself once from the headline’s full stop (D-24).',
+  },
+} satisfies Record<string, ScaleToken>;
+
+/**
+ * Masks (D-24). A long, finely eased fade so an edge dissolves into the ground
+ * instead of stopping on a line; never used to hide content.
+ */
+const fadeStops = (direction: string, from: number) =>
+  `linear-gradient(${direction}, rgb(0 0 0) 0%, rgb(0 0 0) ${from}%, ` +
+  [0.92, 0.78, 0.6, 0.42, 0.26, 0.13, 0.05]
+    .map((alpha, i) => `rgb(0 0 0 / ${alpha}) ${from + ((99 - from) * (i + 1)) / 8}%`)
+    .join(', ') +
+  ', rgb(0 0 0 / 0) 99%)';
+export const webMask = {
+  fade: {
+    value: fadeStops('to bottom', 58),
+    label: 'تلاشٍ إلى الأسفل',
+    role: 'The hero maze dissolving into the stage below it.',
+  },
 } satisfies Record<string, ScaleToken>;
 
 /**

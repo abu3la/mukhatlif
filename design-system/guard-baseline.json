@@ -124,7 +124,7 @@
     "important": 2,
     "line-height": 1,
     "radius": 3,
-    "spacing": 47
+    "spacing": 45
   },
   "apps/web/src/app/listener.css": {
     "font-size": 17,
@@ -135,7 +135,7 @@
     "radius": 7,
     "raw-color": 1,
     "shadow": 1,
-    "spacing": 188
+    "spacing": 186
   },
   "apps/web/src/app/public-pages.css": {
     "font-size": 19,

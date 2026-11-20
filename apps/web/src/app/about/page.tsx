@@ -1,24 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { COMMUNITIES } from '@/lib/communities';
+import { TEAM as team } from '@/lib/site-facts';
 
 export const metadata: Metadata = {
   title: 'من نحن',
   description: 'مختلف شبكة محتوى تضم مجتمعات متخصصة وبرامج بودكاست ومقالات ونشرات وورشًا تعليمية.',
   alternates: { canonical: '/about' },
 };
-
-const team = [
-  ['محمد بازيد', 'رئيس مجلس الإدارة'],
-  ['أحمد عطار', 'المدير التنفيذي'],
-  ['عماد ناجي', 'المدير الإداري'],
-  ['محمد نعمان غريواتي', 'مدير العمليات'],
-  ['محمد عبدالعزيز', 'مدير المحتوى'],
-  ['عبدالرحمن عثمان', 'مدير التسويق'],
-  ['علاء الدين عثمان', 'مسؤول المنصات'],
-  ['عبدالرحمن معشي', 'معد البرامج'],
-  ['أحمد نور', 'محرر الفيديوهات القصيرة'],
-] as const;
 
 export default function AboutPage() {
   return (
