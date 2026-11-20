@@ -32,8 +32,9 @@ Rules:
 
 ## Presentation pages (D-24)
 
-The home and the programme pages introduce rather than list. Their rhythm is
-stage, sheet, floor (`app/stage.css`):
+The home, programme, community, episode, reading and newsletter pages
+introduce rather than list. Their rhythm is stage, sheet, floor
+(`app/stage.css`):
 
 | Part  | What it is                                                                | Built from                                                      |
 | ----- | ------------------------------------------------------------------------- | --------------------------------------------------------------- |
@@ -50,6 +51,12 @@ stage, sheet, floor (`app/stage.css`):
   `RailControls` for arrows, `position: relative` so a card's absolutely placed
   parts stay inside the rail).
 - Routes are drawn as a trace plus ink; content never waits for them.
+- A page's head on a stage is centred (`.stage-head`): where it belongs, the
+  title, one line, its facts, its actions. A video or cover may cross from the
+  stage onto the sheet (`.has-cross` + `.stage-cross`); the sheet's first
+  section starts below it.
+- Grids on a sheet hold every slot (a tile's title keeps two lines, a missing
+  cover keeps its frame), so rows share their lines.
 
 ## Grids and rails
 

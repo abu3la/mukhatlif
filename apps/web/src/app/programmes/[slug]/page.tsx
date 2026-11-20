@@ -270,7 +270,7 @@ export default async function ProgrammePage({
                 اقرأ {programme.name} في بريدك
               </h2>
               <div className="cover-section__body">
-                <NewsletterCards newsletters={newsletters} />
+                <NewsletterCards newsletters={newsletters} variant="stage" />
               </div>
             </section>
           ) : null}
@@ -296,23 +296,22 @@ export default async function ProgrammePage({
             </section>
           ) : null}
 
-          <section
-            className="content-container community-invite cover-invite"
-            aria-labelledby="invite-title"
-          >
-            <div>
-              <h2 className="community-invite__title" id="invite-title">
-                مين ودّك نسمع قصته؟
-              </h2>
-              <p>رشّح لنا شخصًا عنده تجربة أو معرفة تستحق نفتح حولها حوار.</p>
-            </div>
-            <Link
-              className="public-primary"
-              href={`/suggest?programme=${encodeURIComponent(programme.slug)}`}
-            >
-              اقترح ضيفًا
-            </Link>
-          </section>
+          <div className="content-container">
+            <section className="community-invite cover-invite" aria-labelledby="invite-title">
+              <div>
+                <h2 className="community-invite__title" id="invite-title">
+                  مين ودّك نسمع قصته؟
+                </h2>
+                <p>رشّح لنا شخصًا عنده تجربة أو معرفة تستحق نفتح حولها حوار.</p>
+              </div>
+              <Link
+                className="public-primary"
+                href={`/suggest?programme=${encodeURIComponent(programme.slug)}`}
+              >
+                اقترح ضيفًا
+              </Link>
+            </section>
+          </div>
         </div>
       </div>
     </div>

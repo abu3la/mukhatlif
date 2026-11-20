@@ -161,3 +161,127 @@ export const PICKER = {
   /** For the tests. */
   route: (to: Cell) => picker.route([7, 5], to),
 };
+
+/**
+ * Community pages (D-24): the route that left the home headline arrives at the
+ * community's name. It enters through the quiet gap between the nav and the
+ * logo (phones: from the right edge), crosses the maze above the name and ends
+ * at its full stop. Only the last point depends on the name, through its
+ * measured width, so every name stays centred.
+ */
+export interface ArrivalMaze {
+  pitch: number;
+  width: number;
+  height: number;
+  walls: string;
+  /** The full stop's centre, from the top, in design pixels. */
+  stopY: number;
+  /** The route, ending at `endX` design pixels from the drawing's left edge. */
+  route: (endX: number) => string;
+  /** Kept for the tests. */
+  cells: Cell[];
+  last: Cell;
+  blockedFrom: number;
+  open: (col: number, row: number) => boolean;
+}
+
+interface ArrivalPlan {
+  pitch: number;
+  cols: number;
+  rows: number;
+  height: number;
+  seed: number;
+  blocked: (col: number, row: number) => boolean;
+  entrance: Exit;
+  /** The last corridor cell, beside the name. */
+  last: Cell;
+  /** Where the route starts, outside the drawing, in cell units. */
+  first: readonly [number, number];
+  /** First blocked column of the name's area. */
+  blockedFrom: number;
+}
+
+function arrival(plan: ArrivalPlan): ArrivalMaze {
+  const start: Cell = [plan.entrance[0], plan.entrance[1]];
+  const maze = makeMaze({
+    cols: plan.cols,
+    rows: plan.rows,
+    seed: plan.seed,
+    blocked: plan.blocked,
+    braid: 0.1,
+    start,
+  });
+  const cells = maze.route(start, plan.last);
+  const { runs, dots } = maze.walls([plan.entrance]);
+  const stopRow = plan.last[1] + 0.5;
+  return {
+    pitch: plan.pitch,
+    width: plan.cols * plan.pitch,
+    height: plan.height,
+    walls: wallPath(runs, plan.pitch) + dotPath(dots, plan.pitch),
+    stopY: stopRow * plan.pitch,
+    route: (endX) =>
+      routePath([plan.first, ...centers(cells), [endX / plan.pitch, stopRow]], plan.pitch),
+    cells,
+    last: plan.last,
+    blockedFrom: plan.blockedFrom,
+    open: maze.open,
+  };
+}
+
+export const ARRIVAL_WIDE = arrival({
+  pitch: 48,
+  cols: 59,
+  rows: 14,
+  height: 640,
+  seed: 7,
+  blocked: (c, r) => r <= 1 || (c >= 18 && c <= 40 && r >= 4 && r <= 11),
+  entrance: [38, 2, 'top'],
+  last: [17, 6],
+  first: [38.5, -0.3],
+  blockedFrom: 18,
+});
+
+export const ARRIVAL_PHONE = arrival({
+  pitch: 26,
+  cols: 33,
+  rows: 22,
+  height: 560,
+  seed: 56,
+  blocked: (c, r) => r <= 2 || (c >= 10 && c <= 22 && r >= 8 && r <= 19),
+  entrance: [32, 4, 'right'],
+  last: [9, 11],
+  first: [33.3, 4.5],
+  blockedFrom: 10,
+});
+
+/**
+ * Each community's name set at 1em, its full stop included: IBM Plex Sans
+ * Arabic bold, measured in the browser. A new community without a width gets
+ * an estimate until it is measured (see maze.test.ts).
+ */
+export const COMMUNITY_NAME_EM: Record<string, number> = {
+  idhaa: 5.516,
+  riyadi: 5.716,
+  mohandis: 6.536,
+  tayyar: 5.039,
+  jinai: 5.487,
+  nafsi: 5.682,
+  tarbawi: 5.673,
+  thakali: 5.385,
+  comedian: 7.028,
+};
+
+/** Type sizes (design pixels) and routes of one community's hero. */
+export function communityHero(slug: string, name: string) {
+  const em = COMMUNITY_NAME_EM[slug] ?? 0.62 * Array.from(name).length;
+  // Phones: the name fits 330 design pixels, so the longest one clears the gutter.
+  const sizes = { wide: 104, phone: Math.min(54, Math.floor(330 / em)) };
+  const end = (maze: ArrivalMaze, size: number) => maze.width / 2 - (em * size) / 2 + 0.11 * size;
+  return {
+    sizes,
+    wide: ARRIVAL_WIDE.route(end(ARRIVAL_WIDE, sizes.wide)),
+    phone: ARRIVAL_PHONE.route(end(ARRIVAL_PHONE, sizes.phone)),
+    ends: { wide: end(ARRIVAL_WIDE, sizes.wide), phone: end(ARRIVAL_PHONE, sizes.phone) },
+  };
+}

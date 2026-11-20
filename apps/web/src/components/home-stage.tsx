@@ -1,5 +1,7 @@
+import type { CSSProperties } from 'react';
 import Link from 'next/link';
-import { HERO_PHONE, HERO_WIDE, type HeroMaze } from '@/lib/home-maze';
+import { PlatformMark } from '@/components/platform-mark';
+import { ARRIVAL_PHONE, ARRIVAL_WIDE, HERO_PHONE, HERO_WIDE, communityHero } from '@/lib/home-maze';
 import {
   communityLogo,
   coverTone,
@@ -28,7 +30,14 @@ export function Diamond({ className }: { className?: string }) {
   );
 }
 
-function HeroDrawing({ maze, variant }: { maze: HeroMaze; variant: 'wide' | 'phone' }) {
+interface Drawing {
+  width: number;
+  height: number;
+  walls: string;
+  route: string;
+}
+
+function HeroDrawing({ maze, variant }: { maze: Drawing; variant: 'wide' | 'phone' }) {
   const viewBox = `0 0 ${maze.width} ${maze.height}`;
   return (
     <div className={`stage-hero__maze stage-hero__maze--${variant}`} aria-hidden="true">
@@ -59,6 +68,46 @@ export function HomeHero() {
       <p className="stage-hero__lede">
         حوارات عن المهن والناس الذين يمارسونها، في أكثر من 30 برنامجًا.
       </p>
+    </section>
+  );
+}
+
+/**
+ * A community's stage (D-24): the route that left the home headline arrives
+ * at the community's name and ends at its full stop. The name's size and the
+ * route's last point come from its measured width (communityHero).
+ */
+export function CommunityHero({ community, fact }: { community: Community; fact?: string }) {
+  const hero = communityHero(community.slug, community.name);
+  const size = {
+    '--hero-fs': hero.sizes.wide,
+    '--hero-fs-phone': hero.sizes.phone,
+  } as CSSProperties;
+  return (
+    <section className="community-hero" aria-labelledby="community-title" style={size}>
+      {/* Drawn with the home hero's maze pieces, in its two compositions. */}
+      <HeroDrawing maze={{ ...ARRIVAL_WIDE, route: hero.wide }} variant="wide" />
+      <HeroDrawing maze={{ ...ARRIVAL_PHONE, route: hero.phone }} variant="phone" />
+      <h1 id="community-title" className="community-hero__title">
+        {community.name}
+        <Diamond className="stage-hero__stop" />
+      </h1>
+      <div className="community-hero__body">
+        <p className="community-hero__lede">
+          {community.description}
+          {fact ? (
+            <>
+              {' '}
+              <span className="community-hero__fact">{fact}.</span>
+            </>
+          ) : null}
+        </p>
+        <a className="stage-link" href={community.youtube} target="_blank" rel="noopener">
+          <PlatformMark id="youtube" className="stage-link__mark" />
+          تابع {community.name} على يوتيوب
+          <span className="visually-hidden"> (يفتح في نافذة جديدة)</span>
+        </a>
+      </div>
     </section>
   );
 }

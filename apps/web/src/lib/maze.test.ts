@@ -76,3 +76,36 @@ describe('the home pictures', () => {
     }
   });
 });
+
+describe('the community heroes', () => {
+  it('measures every community name and ends each route inside the name area', async () => {
+    const { ARRIVAL_PHONE, ARRIVAL_WIDE, COMMUNITY_NAME_EM, communityHero } =
+      await import('./home-maze');
+    for (const community of COMMUNITIES) {
+      expect(COMMUNITY_NAME_EM[community.slug], community.slug).toBeGreaterThan(0);
+      const hero = communityHero(community.slug, community.name);
+      for (const [maze, end] of [
+        [ARRIVAL_WIDE, hero.ends.wide],
+        [ARRIVAL_PHONE, hero.ends.phone],
+      ] as const) {
+        // The full stop sits past the last corridor cell, inside the cleared area.
+        expect(end).toBeGreaterThan(maze.blockedFrom * maze.pitch);
+        expect(end).toBeLessThan(maze.width / 2);
+      }
+      // On phones the whole name fits 330 design pixels.
+      expect(COMMUNITY_NAME_EM[community.slug] * hero.sizes.phone).toBeLessThanOrEqual(330);
+    }
+  });
+
+  it('keeps the arriving routes in their corridors', async () => {
+    const { ARRIVAL_PHONE, ARRIVAL_WIDE } = await import('./home-maze');
+    expect(ARRIVAL_WIDE.cells.every(([c, r]) => c >= 15 && c <= 44 && (r <= 3 || c <= 17))).toBe(
+      true,
+    );
+    expect(ARRIVAL_PHONE.cells.every(([c, r]) => c >= 9 && (r <= 7 || c === 9))).toBe(true);
+    for (const maze of [ARRIVAL_WIDE, ARRIVAL_PHONE]) {
+      expect(maze.cells.every(([c, r]) => maze.open(c, r))).toBe(true);
+      expect(maze.cells.at(-1)).toEqual(maze.last);
+    }
+  });
+});

@@ -124,9 +124,10 @@ Format: `D-nn · date · decision · why / source`.
 - **D-24 · 2026-11-20 · The presentation site (direction C).** The owner chose
   the third direction of the redesign canvas
   (https://claude.ai/artifact/44WWRh2CUhAHRiw1CsEpDS): the site introduces
-  Mukhtalif before it plays media. Built on the home, the header, the footer and
-  the programme page; the other templates keep their current look until they
-  are redrawn in this language.
+  Mukhtalif before it plays media. Built on the home, the header, the footer,
+  the programme, community, episode, articles, article and newsletter pages;
+  the other templates (episodes index, search, account, academy) keep their
+  current look until they are redrawn in this language.
   - **The night stage, the sheet, the floor.** A page may open on a night stage
     (`--mk-stage*`: indigo night in light, the footer's green-black in dark),
     continue on a white sheet whose rounded top (`--mk-radius-sheet`) slides
@@ -154,6 +155,32 @@ Format: `D-nn · date · decision · why / source`.
     cut onto black, `public/communities/programmes/marks`). The count is the
     page's one large number (`--mk-display-numeral`). The latest twelve
     episodes are a rail; older pages redirect to `/episodes?showId=…`.
+  - **A community page is where the home's route arrives.** The route enters
+    the maze through the gap between the nav and the logo (phones: the right
+    edge) and ends at the full stop of the community's name
+    (`ARRIVAL_WIDE`/`ARRIVAL_PHONE`; each name's measured width,
+    `COMMUNITY_NAME_EM`, keeps it centred; tested). The stage says what the
+    community holds in words («تسعة برامج ونشرتان», `countInWords`), then the
+    sheet shows its programmes whole, three to a row, its latest episodes,
+    its newsletters two-up and the other communities.
+  - **An episode stands on its programme's cover** (the night stage for a show
+    outside the 27). The video is embedded from the start, as before, and
+    crosses onto the sheet by a quarter of its width (`.has-cross`,
+    `.stage-cross`); its «مشاهدة الحلقة» heading stays for screen readers.
+    Listening starts from the player's own pill (`PlayEpisodeButton`), whose
+    bar then carries the timeline, so the page no longer repeats an inline
+    player. Facts are spaced with a bare clock icon, never dotted. The notes
+    are read at the article measure; moments, more episodes and the
+    programme's newsletter follow.
+  - **Reading pages.** The articles index and an article stand on the night
+    stage; the newest article's cover (or the article's own) crosses onto the
+    sheet. Search, pages, the newsletters and the topics stay. An article is
+    read one step up the scale (`--mk-text-2xl`; «كبّر النص» still enlarges
+    it); its byline is plain text (the initial in a circle is gone); more
+    reading, the latest episodes and the general newsletter follow. A
+    newsletter page stands on its programme's cover with the programme's mark
+    or cover (the general one on the night stage); subscription still happens
+    on each list's current page.
   - **Header and footer.** The bar gains «البرامج» and «الإنتاج», «قضيتنا»
     joins «عن مختلف», and «استمع» is the bar's one filled action; search,
     «مكتبتي» and the menu stay as the owner's rules require. Over a stage the
@@ -167,7 +194,10 @@ Format: `D-nn · date · decision · why / source`.
     the owner's confirmation.
   - Now unused and left for Q-09: `WeeklyEpisodeCard`, `LatestEpisodeAction`,
     `ListeningPlatforms`, `ContinueListening`, `CommunityCard`'s rail use, and
-    the older `.home-*` rules in `listener.css`.
+    the older `.home-*` rules in `listener.css`; since the second round,
+    `CommunityCrate`, `InlineEpisodePlayer` and the rules for
+    `.community-head`, `.episode-detail__*`, `.public-episode-detail`,
+    `.article-detail__header`, `.article-author*` and `.newsletter-landing*`.
 
 ## Open questions for the owner
 

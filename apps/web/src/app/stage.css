@@ -1091,6 +1091,431 @@ body:has(.cover-stage[data-tone='light']) .site-header {
   line-height: var(--mk-leading-body);
 }
 
+/* ------------------------------------------------------------ community page */
+
+/* The route that left the home headline arrives at the community's name and
+   ends at its full stop (communityHero in lib/home-maze.ts sets the name's
+   size through --hero-fs and --hero-fs-phone, in design pixels). The text
+   below the name is in the flow, so a longer description makes the stage
+   taller instead of running into anything. */
+.community-hero {
+  --u: min(1px, calc(100cqi / 1440));
+  --up: min(1px, calc(100cqi / 390));
+  --stop-y: 0.876em;
+  position: relative;
+  min-height: calc(640 * var(--u));
+  overflow: hidden;
+  background: var(--mk-stage);
+}
+.community-hero .stage-hero__maze--wide {
+  height: calc(640 * var(--u));
+}
+.community-hero .stage-hero__maze--phone {
+  height: calc(560 * var(--up));
+}
+.community-hero__title {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: calc(312 * var(--u) - var(--stop-y));
+  inset-inline: 0;
+  margin: 0;
+  color: var(--mk-stage-ink);
+  font-size: calc(var(--hero-fs) * var(--u));
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+  text-align: center;
+  white-space: nowrap;
+}
+.community-hero__body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mk-space-24);
+  padding-block: calc(380 * var(--u)) var(--mk-space-64);
+  padding-inline: var(--mk-gutter);
+  text-align: center;
+}
+.community-hero__lede {
+  max-width: calc(780 * var(--u));
+  margin: 0;
+  color: var(--mk-stage-ink-muted);
+  font-size: max(var(--mk-text-base), calc(22 * var(--u)));
+  line-height: var(--mk-leading-ui);
+  text-wrap: balance;
+}
+.community-hero__fact {
+  color: var(--mk-stage-ink);
+  font-weight: var(--mk-weight-semibold);
+}
+/* A platform's own mark before a link to it. */
+.stage-link__mark {
+  width: 1.25em;
+  height: 1.25em;
+  flex: none;
+  margin-inline-end: var(--mk-space-8);
+}
+/* Every programme whole, three to a row; each row's names, lines and hosts
+   share a line because the tile reserves their heights. */
+.community-programmes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-48) var(--mk-space-32);
+  margin: var(--mk-space-40) 0 0;
+  padding: 0;
+  list-style: none;
+}
+/* Newsletters two to a row, at the sheet's scale. */
+.newsletter-cards--stage {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.newsletter-cards--stage[data-count='3'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.newsletter-cards--stage .newsletter-card {
+  gap: var(--mk-space-12);
+  padding: var(--mk-space-32);
+  border-radius: var(--mk-radius-dialog);
+}
+.newsletter-cards--stage .newsletter-card__name {
+  font-size: var(--mk-text-5xl);
+}
+.newsletter-cards--stage .newsletter-card__frequency {
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+}
+.newsletter-cards--stage .newsletter-card__text {
+  max-width: 48ch;
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-body);
+}
+.newsletter-cards--stage .community-card__action {
+  font-size: var(--mk-text-lg);
+}
+/* A newsletter's programme, drawn above its name. */
+.newsletter-stage__mark {
+  display: block;
+  width: min(420px, 80%);
+  height: auto;
+  margin-block-end: var(--mk-space-24);
+}
+.newsletter-stage__art {
+  display: block;
+  width: min(280px, 64%);
+  height: auto;
+  aspect-ratio: 1;
+  margin-block-end: var(--mk-space-24);
+  border-radius: var(--mk-radius-media);
+}
+.cover-invite {
+  gap: var(--mk-space-24) var(--mk-space-48);
+  padding: var(--mk-space-40);
+  border-radius: var(--mk-radius-dialog);
+}
+/* The action follows its words instead of waiting at the far edge. */
+.cover-invite > div {
+  flex: 0 1 auto;
+}
+.cover-invite .community-invite__title {
+  font-size: var(--mk-text-5xl);
+  line-height: var(--mk-leading-heading);
+}
+.cover-invite p {
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-body);
+}
+
+/* ------------------------------------------------- stage heads and crossings */
+
+/* The head of a page that stands on a stage or a cover (an episode, an
+   article): where it belongs, its title, a line, its facts and its actions,
+   centred. */
+.stage-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.stage-head__crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0 var(--mk-space-20);
+  margin: 0;
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+}
+.stage-head__crumbs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.35em;
+  transition: color var(--mk-duration-fast) ease;
+}
+.stage-head__crumbs a:hover {
+  color: var(--ink-hover);
+}
+.stage-head__accent {
+  color: var(--cover-accent, var(--muted));
+}
+.stage-head__title {
+  max-width: 15em;
+  margin: var(--mk-space-8) 0 0;
+  font-size: var(--mk-display-1);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+  text-wrap: balance;
+}
+.stage-head__lede {
+  max-width: 34em;
+  margin: var(--mk-space-20) 0 0;
+  color: var(--muted);
+  font-size: var(--mk-text-2xl);
+  line-height: var(--mk-leading-body);
+  text-wrap: balance;
+}
+.stage-head__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--mk-space-8) var(--mk-space-24);
+  margin: var(--mk-space-20) 0 0;
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-ui);
+}
+.stage-head__icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-8);
+}
+.stage-head__icon-text svg {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+}
+.stage-head__strong {
+  font-weight: var(--mk-weight-semibold);
+}
+.stage-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--mk-space-12) var(--mk-space-16);
+  margin-block-start: var(--mk-space-32);
+}
+.stage-head__actions .episode-library-actions {
+  display: flex;
+  align-items: center;
+}
+/* On a cover the play pill takes the cover's ink in both appearances, like
+   every other action standing on it. */
+:root .cover-stage .mukhtalif-player-button {
+  background: var(--fg);
+  color: var(--bg);
+}
+:root .cover-stage .mukhtalif-player-button:hover:not(:disabled) {
+  background: var(--ink-hover);
+}
+.stage-head__note {
+  max-width: 34em;
+  margin: var(--mk-space-24) 0 0;
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-body);
+}
+
+/* A picture that crosses from the stage onto the sheet: an episode's video,
+   an article's cover. It is there from the start, about a quarter of its
+   width hangs over the sheet, and the sheet's first section starts below
+   it. Pages with one carry .has-cross. */
+.has-cross {
+  --cross-w: min(1100px, 100cqi - 2 * var(--mk-gutter));
+  --overlap: calc(var(--cross-w) * 0.27);
+}
+.has-cross .cover-stage,
+.has-cross .reading-stage {
+  padding-block-end: 0;
+}
+.has-cross .home-sheet__surface {
+  padding-block-start: calc(var(--overlap) + var(--mk-section));
+}
+.stage-cross {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: var(--cross-w);
+  margin: var(--mk-space-64) auto calc(-1 * var(--overlap));
+}
+.stage-cross > section {
+  margin: 0;
+}
+/* The raised surface holds the picture's place while it loads. */
+.stage-cross img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--mk-radius-dialog);
+  background: var(--surface);
+  object-fit: cover;
+}
+
+/* ------------------------------------------------------------- episode page */
+
+.episode-page {
+  container-type: inline-size;
+}
+/* The notes at a reading measure. */
+.episode-read {
+  max-width: calc(var(--mk-measure-article) + 2 * var(--gutter));
+}
+.episode-read__body p {
+  margin: var(--mk-space-20) 0 0;
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-reading);
+}
+
+/* ------------------------------------------------------------- reading pages */
+
+/* The articles and an article stand on the night stage. */
+.reading-stage {
+  padding-block: calc(var(--mk-space-96) + var(--mk-space-32)) var(--mk-section);
+  background: var(--mk-stage);
+  text-align: center;
+}
+.reading-stage .stage-statement {
+  max-width: 14em;
+}
+/* The newest article, introduced under its cover. */
+.reading-feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: calc(var(--mk-measure-article) + 2 * var(--gutter));
+  text-align: center;
+}
+.reading-feature__date,
+.reading-feature__by {
+  margin: 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-ui);
+}
+.reading-feature__title {
+  margin: var(--mk-space-8) 0 0;
+  font-size: var(--mk-display-2);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+  text-wrap: balance;
+}
+.reading-feature__title a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--mk-duration-fast) ease;
+}
+.reading-feature__title a:hover {
+  color: var(--mk-ink-hover);
+}
+.reading-feature__text {
+  margin: var(--mk-space-12) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-body);
+}
+.reading-feature__by {
+  margin-block: var(--mk-space-12) var(--mk-space-8);
+}
+.reading-search {
+  max-width: 720px;
+  margin-block: var(--mk-space-32) 0;
+}
+/* Articles three to a row: the cover, then the title held to two lines and
+   who wrote it, so every row shares its lines. */
+.article-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-48) var(--mk-space-32);
+  margin: var(--mk-space-40) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.article-tile__link {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--mk-radius-media);
+  color: var(--fg);
+  text-decoration: none;
+}
+.article-tile__cover {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-surface);
+  object-fit: cover;
+}
+.article-tile__title {
+  display: -webkit-box;
+  min-height: 2lh;
+  margin: var(--mk-space-16) 0 0;
+  overflow: hidden;
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  transition: color var(--mk-duration-fast) ease;
+}
+.article-tile__link:hover .article-tile__title {
+  color: var(--ink-hover);
+}
+.article-tile__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--mk-space-16);
+  margin-block-start: var(--mk-space-8);
+  color: var(--muted);
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-ui);
+}
+.reading-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--mk-space-32);
+  margin: var(--mk-space-24) 0 0;
+  padding: 0;
+  list-style: none;
+}
+/* An article's body on the sheet, at its reading measure. */
+.article-read {
+  max-width: calc(var(--mk-measure-article) + 2 * var(--gutter));
+}
+/* The prose recipe one step up for the sheet's scale; «كبّر النص» still
+   enlarges it (#article-body.public-reading-large). */
+.article-read .prose {
+  margin-block-start: 0;
+  font-size: var(--mk-text-2xl);
+}
+.article-read .prose h2 {
+  font-size: var(--mk-text-5xl);
+  line-height: var(--mk-leading-heading);
+}
+.article-read .prose h3 {
+  font-size: var(--mk-text-3xl);
+  line-height: var(--mk-leading-heading);
+}
+.article-read__by {
+  margin: var(--mk-space-40) 0 0;
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+}
 /* ------------------------------------------------------------- breakpoints */
 
 @media (max-width: 1000px) {
@@ -1132,6 +1557,12 @@ body:has(.cover-stage[data-tone='light']) .site-header {
   }
   .site-floor__cols,
   .site-floor__base {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .article-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .newsletter-cards--stage[data-count='3'] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1201,6 +1632,59 @@ body:has(.cover-stage[data-tone='light']) .site-header {
   .stage-rail--episodes {
     --rail-item: 300px;
   }
+  .community-hero {
+    min-height: calc(560 * var(--up));
+  }
+  .community-hero__title {
+    inset-block-start: calc(299 * var(--up) - var(--stop-y));
+    font-size: calc(var(--hero-fs-phone) * var(--up));
+  }
+  .community-hero__body {
+    padding-block-start: calc(330 * var(--up));
+  }
+  .community-hero__lede {
+    max-width: calc(300 * var(--up));
+    font-size: var(--mk-text-base);
+    line-height: var(--mk-leading-body);
+  }
+  .community-programmes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--mk-space-32) var(--mk-space-16);
+    margin-block-start: var(--mk-space-24);
+  }
+  .community-programmes .programme-tile__name {
+    margin-block-start: var(--mk-space-12);
+    font-size: var(--mk-text-2xl);
+  }
+  .community-programmes .programme-tile__text {
+    font-size: var(--mk-text-sm);
+  }
+  .community-programmes .programme-tile__hosts {
+    font-size: var(--mk-text-xs);
+  }
+  .newsletter-cards--stage,
+  .newsletter-cards--stage[data-count='3'] {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mk-space-16);
+  }
+  .newsletter-cards--stage .newsletter-card {
+    padding: var(--mk-space-24);
+  }
+  .newsletter-cards--stage .newsletter-card__name {
+    font-size: var(--mk-text-3xl);
+  }
+  .newsletter-cards--stage .newsletter-card__text {
+    font-size: var(--mk-text-base);
+  }
+  .cover-invite {
+    padding: var(--mk-space-24);
+  }
+  .cover-invite .community-invite__title {
+    font-size: var(--mk-text-3xl);
+  }
+  .cover-invite p {
+    font-size: var(--mk-text-base);
+  }
 }
 
 @media (max-width: 600px) {
@@ -1216,6 +1700,26 @@ body:has(.cover-stage[data-tone='light']) .site-header {
   .site-floor__marks,
   .site-floor__legal {
     grid-column: 1 / -1;
+  }
+  .article-tiles {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mk-space-40);
+  }
+  /* One to a row: no neighbour to line up with, so no reserved second line. */
+  .article-tile__title {
+    min-height: 0;
+  }
+  .article-read .prose {
+    font-size: var(--mk-text-xl);
+  }
+  .article-read .prose h2 {
+    font-size: var(--mk-text-3xl);
+  }
+  .article-read .prose h3 {
+    font-size: var(--mk-text-2xl);
+  }
+  .episode-read__body p {
+    font-size: var(--mk-text-lg);
   }
 }
 
