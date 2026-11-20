@@ -1,17 +1,26 @@
 import Link from 'next/link';
 import { NEWSLETTERS, type Newsletter } from '@/lib/communities';
 
-/** Section 9: name, description, stated frequency, and «اكتشف النشرة». */
+/**
+ * Section 9: name, description, stated frequency, and «اكتشف النشرة». The
+ * stage variant is the presentation pages' two-up form (D-24).
+ */
 export function NewsletterCards({
   headingLevel = 3,
   newsletters = NEWSLETTERS,
+  variant = 'grid',
 }: {
   headingLevel?: 2 | 3;
   newsletters?: readonly Newsletter[];
+  variant?: 'grid' | 'stage';
 }) {
   const Heading = `h${headingLevel}` as const;
   return (
-    <div className="newsletter-cards" role="list">
+    <div
+      className={'newsletter-cards' + (variant === 'stage' ? ' newsletter-cards--stage' : '')}
+      data-count={newsletters.length}
+      role="list"
+    >
       {newsletters.map((newsletter) => (
         <div className="card-cell" role="listitem" key={newsletter.slug}>
           <Link className="newsletter-card" href={`/newsletters/${newsletter.slug}`}>

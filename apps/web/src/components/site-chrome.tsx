@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { PLATFORMS } from '@/lib/site-facts';
+import { PlatformMark } from './platform-mark';
 import { SiteNavigation } from './site-navigation';
 import styles from './site-navigation.module.css';
 
@@ -34,75 +36,112 @@ export function SiteHeader() {
     </header>
   );
 }
-/** Footer groups per the site brief (section 22). The store and numbers pages
- * are added when they have approved content. */
+/** The floor's link groups (D-24), drawn from the site brief (section 22). The
+ * store and numbers pages are added when they have approved content. */
 const FOOTER_GROUPS: [string, [string, string][]][] = [
   [
-    'اكتشف مختلف',
+    'استمع',
     [
+      ['/programmes', 'البرامج'],
+      ['/episodes', 'الحلقات'],
       ['/communities', 'المجتمعات'],
-      ['/programmes', 'برامج البودكاست'],
+      ['/guests', 'الضيوف'],
+    ],
+  ],
+  [
+    'اقرأ وتعلّم',
+    [
       ['/articles', 'المقالات والنشرات'],
       ['/courses', 'الأكاديمية'],
+      ['/presenters', 'مقدّمو مختلف'],
     ],
   ],
   [
-    'عن مختلف',
+    'مختلف',
     [
       ['/about', 'من نحن'],
-      ['/presenters', 'مقدّمو مختلف'],
-      ['/account', 'حسابي'],
-      ['/library', 'مكتبتي'],
+      ['/mission', 'قضيتنا'],
+      ['/services', 'الإنتاج'],
+      ['/work', 'أعمالنا'],
+      ['/join-us', 'انضم لفريقنا'],
     ],
   ],
   [
-    'تعاون وشارك',
+    'تواصل',
     [
-      ['/sponsor', 'الرعايات والمشاريع'],
-      ['/suggest', 'اقترح ضيفًا'],
-      ['/join-us', 'انضم لفريقنا'],
       ['/contact', 'تواصل معنا'],
+      ['/suggest', 'اقترح ضيفًا'],
+      ['/sponsor', 'الرعايات والمشاريع'],
     ],
   ],
 ];
 
+/**
+ * The floor every page stands on (D-06, reshaped by D-24): four link groups,
+ * the listening platforms, the legal line, and the wordmark set large at the
+ * bottom edge.
+ */
 export function SiteFooter() {
   return (
-    <footer className="site-footer">
-      <div className="shell site-footer__inner">
-        <div className="site-footer__grid">
-          <div className="site-footer__brand">
-            <Link href="/" aria-label="مختلف - الرئيسية">
-              <BrandLogo />
-            </Link>
-            <p className="site-footer__tagline">
-              مختلف، شبكة محتوى تفتح لك تجارب ومعارف تساعدك تكتشف مسارًا مهنيًا يشبهك. إحدى شركات
-              ماد قروب.
-            </p>
-            <a className="site-footer__email" href="mailto:Info@mukhtalif.net">
-              <bdi>Info@mukhtalif.net</bdi>
-            </a>
-          </div>
+    <footer className="site-floor floor-scope">
+      <div className="content-container site-floor__inner">
+        <div className="site-floor__cols">
           {FOOTER_GROUPS.map(([title, links]) => (
-            <nav className="site-footer__group" aria-label={title} key={title}>
-              <h2 className="site-footer__heading">{title}</h2>
-              {links.map(([href, label]) => (
-                <Link href={href} key={href}>
-                  {label}
-                </Link>
-              ))}
+            <nav className="site-floor__group" aria-label={title} key={title}>
+              <h2 className="site-floor__heading">{title}</h2>
+              <ul>
+                {links.map(([href, label]) => (
+                  <li key={href}>
+                    <Link href={href}>{label}</Link>
+                  </li>
+                ))}
+                {title === 'تواصل' ? (
+                  <li>
+                    <a href="mailto:Info@mukhtalif.net">
+                      <bdi>Info@mukhtalif.net</bdi>
+                    </a>
+                  </li>
+                ) : null}
+              </ul>
             </nav>
           ))}
         </div>
-        <div className="site-footer__legal">
-          <p className="site-footer__copyright">
-            © {new Date().getFullYear()} مختلف. جميع الحقوق محفوظة.
+        <div className="site-floor__base">
+          <ul className="site-floor__marks" aria-label="مختلف على منصات الاستماع">
+            {PLATFORMS.map((platform) => (
+              <li key={platform.id}>
+                <a
+                  className="site-floor__mark"
+                  href={platform.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${platform.context} على ${platform.label}، يفتح في علامة تبويب جديدة`}
+                >
+                  <PlatformMark id={platform.id} />
+                  <bdi>{platform.label}</bdi>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p className="site-floor__legal">
+            <span>
+              © {new Date().getFullYear()} مختلف، إحدى شركات ماد قروب. جميع الحقوق محفوظة.
+            </span>
+            <span className="site-floor__policies">
+              <Link href="/privacy">سياسة الخصوصية</Link>
+              <Link href="/terms">الشروط والأحكام</Link>
+            </span>
           </p>
-          <nav aria-label="السياسات">
-            <Link href="/privacy">سياسة الخصوصية</Link>
-            <Link href="/terms">الشروط والأحكام</Link>
-          </nav>
         </div>
+        <img
+          className="site-floor__wordmark"
+          src="/handoff/mukhtalif-logo-white.svg"
+          width="556"
+          height="184"
+          alt=""
+          loading="lazy"
+          decoding="async"
+        />
       </div>
     </footer>
   );

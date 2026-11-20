@@ -473,6 +473,32 @@ export const playlistUrl = (programme: Pick<Programme, 'playlist'>) =>
 export const programmeHref = (programme: Pick<Programme, 'slug'>) =>
   `/programmes/${programme.slug}`;
 
+/**
+ * Covers whose own ground is light (D-24). Their page uses the dark cover ink;
+ * every other cover stands on a dark ground. Grounds and accents are tokens
+ * (`--mk-cover-<slug>-ground` / `-accent`).
+ */
+const LIGHT_COVERS = new Set(['amyal', 'anfus', 'bokra', 'deal', 'dynamica', 'qatim', 'wakala']);
+export const coverTone = (programme: Pick<Programme, 'slug'>): 'dark' | 'light' =>
+  LIGHT_COVERS.has(programme.slug) ? 'light' : 'dark';
+
+/**
+ * A programme's name drawn on its own, cut from its cover onto the cover's
+ * ground, for covers whose art would otherwise show its edges on the page.
+ */
+const PROGRAMME_MARKS: Record<string, { src: string; width: number; height: number }> = {
+  petroly: { src: '/communities/programmes/marks/petroly.jpg', width: 570, height: 248 },
+};
+export const programmeMark = (programme: Pick<Programme, 'slug'>) =>
+  PROGRAMME_MARKS[programme.slug];
+
+/** Portraits confirmed for a presenter. Anyone else is shown by name and bio only. */
+const PRESENTER_PHOTOS: Record<string, string> = {
+  'ahmed-attar': '/handoff/team/ahmed-attar.jpg',
+};
+export const presenterPhoto = (presenter: Pick<Presenter, 'slug'>) =>
+  PRESENTER_PHOTOS[presenter.slug];
+
 export function findProgramme(slug: string) {
   for (const community of COMMUNITIES) {
     const programme = community.programmes.find((x) => x.slug === slug);

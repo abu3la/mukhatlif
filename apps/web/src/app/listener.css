@@ -435,21 +435,6 @@ h3 {
   margin-block-end: 0;
 }
 
-.weekly-episodes__track {
-  /* Keep absolutely positioned accessible labels inside this scrollport. */
-  position: relative;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: clamp(280px, 31vw, 360px);
-  gap: 16px;
-  padding: 6px 6px 14px;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
-  scroll-padding-inline: 6px;
-  scroll-snap-type: inline mandatory;
-  scrollbar-color: var(--line) transparent;
-  scrollbar-width: thin;
-}
 
 .weekly-episode-card {
   min-width: 0;

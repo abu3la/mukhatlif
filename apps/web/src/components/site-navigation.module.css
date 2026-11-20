@@ -114,6 +114,35 @@
 .navPanelLink:hover {
   background: var(--surface-hover);
 }
+/* «استمع»: the header's one filled action (D-24). It reads --fg and --bg, so it
+   inverts by itself on the night stage and on a programme's cover. */
+.listen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mk-space-8);
+  min-height: 44px;
+  padding-inline: var(--mk-space-16) var(--mk-space-20);
+  border-radius: var(--mk-radius-pill);
+  background: var(--fg);
+  color: var(--bg);
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background-color var(--mk-duration-fast) ease,
+    color var(--mk-duration-fast) ease;
+}
+.listen:hover {
+  background: color-mix(in srgb, var(--fg) 84%, var(--bg));
+  color: var(--bg);
+}
+.actions .listen svg {
+  width: 14px;
+  height: 14px;
+}
 .search:hover,
 .library:hover,
 .menuToggle:hover,
@@ -243,8 +272,8 @@
 }
 @media (max-width: 760px) {
   .headerInner {
-    grid-template-columns: minmax(0, 1fr) auto auto auto;
-    grid-template-areas: 'brand search library menu';
+    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+    grid-template-areas: 'brand listen search library menu';
     gap: 8px 6px;
     padding-block: 12px;
   }
@@ -256,6 +285,10 @@
   }
   .search {
     grid-area: search;
+  }
+  .listen {
+    grid-area: listen;
+    padding-inline: var(--mk-space-12) var(--mk-space-16);
   }
   .menuToggle {
     grid-area: menu;
@@ -311,6 +344,7 @@
   .navLink,
   .navPanelLink,
   .navGroup .navLink svg,
+  .listen,
   .search,
   .library,
   .menuToggle,

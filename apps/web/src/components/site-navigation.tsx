@@ -6,17 +6,21 @@ import { BrandIcon } from './brand-icon';
 import { ThemeControl } from './theme-control';
 import styles from './site-navigation.module.css';
 
-// Main bar per the site brief of 9 November 2026 (section 2). The logo returns
-// home. Partnerships stay in the menu above appearance (owner rule, 2026-10-17).
+// Main bar of the presentation site (D-24), built on the site brief of 9
+// November 2026 (section 2). The logo returns home; «استمع» is the one way into
+// listening. Partnerships stay in the menu above appearance (owner rule, 2026-10-17).
 const NAVIGATION = [
+  { href: '/programmes', label: 'البرامج' },
   { href: '/communities', label: 'المجتمعات' },
   { href: '/articles', label: 'المقالات والنشرات' },
   { href: '/courses', label: 'الأكاديمية' },
+  { href: '/services', label: 'الإنتاج' },
 ] as const;
 
 // «عن مختلف» opens a short list. «أرقام مختلف» joins it once the page exists.
 const ABOUT_LINKS = [
   { href: '/about', label: 'من نحن' },
+  { href: '/mission', label: 'قضيتنا' },
   { href: '/presenters', label: 'مقدّمو مختلف' },
 ] as const;
 
@@ -36,7 +40,9 @@ const MENU_GROUPS = [
     title: 'عن مختلف',
     links: [
       { href: '/about', label: 'من نحن' },
+      { href: '/mission', label: 'قضيتنا' },
       { href: '/presenters', label: 'مقدّمو مختلف' },
+      { href: '/services', label: 'الإنتاج' },
       { href: '/suggest', label: 'اقترح ضيفًا' },
       { href: '/join-us', label: 'انضم لفريقنا' },
       { href: '/contact', label: 'تواصل معنا' },
@@ -102,6 +108,14 @@ export function SiteNavigation() {
         <NavDisclosure label="عن مختلف" links={ABOUT_LINKS} isCurrent={isCurrent} />
       </nav>
       <div className={styles.actions}>
+        <Link
+          className={styles.listen}
+          href="/episodes"
+          aria-current={isCurrent('/episodes') ? 'page' : undefined}
+        >
+          <BrandIcon name="play" />
+          <span>استمع</span>
+        </Link>
         <Link
           className={styles.search}
           href="/search"

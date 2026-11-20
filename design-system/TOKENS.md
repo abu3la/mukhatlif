@@ -93,7 +93,7 @@ enough. New code uses `--mk-*` directly; do not add new aliases.
 | `--space-lg` / `--space-xl`                                   | `--mk-space-20` / `--mk-space-32`                       | `listener.css :root`                        |
 | `--player-height`                                             | `94px` (`168px` under 600px)                            | `handoff.css`; player geometry, not a token |
 
-Two scopes redefine aliases locally. Inside them a legacy name does not mean
+These scopes redefine aliases locally. Inside them a legacy name does not mean
 the page value, which is why existing code must not be bulk-renamed:
 
 - `.mukhtalif-player-bar`, `.mukhtalif-player-inline` (`listener.css`):
@@ -101,6 +101,13 @@ the page value, which is why existing code must not be bulk-renamed:
 - `.home-newsletter .newsletter-signup` (`listener.css`): the `--night*` names
   become page colours and `--green` becomes `--green-dark`, so the newsletter
   sits on the light page.
+- `.stage-scope` and the header over it (`stage.css`, D-24): `--bg`, `--fg`,
+  `--muted`, `--surface*` and `--border` become the `--mk-stage*` colours.
+- `.floor-scope` (`stage.css`): the same names become the `--mk-footer*`
+  colours, so `.public-primary` on the floor is a light pill.
+- `.cover-stage` and the header over it (`stage.css`): the same names become
+  the programme's cover ground and its tone's ink. The header's menu dialog is
+  reset to the page colours in every scope.
 
 ## Hard-coded values that remain
 
@@ -146,6 +153,81 @@ changing what it looks like is a design decision.
 | `--mk-brand-green-hover` | `#5ce69a` | أخضر البث عند التمرير | Hover fill of green play buttons.                                                                          |
 | `--mk-brand-green-deep`  | `#1fa85d` | أخضر عميق             | Green marks on light grounds where `brandGreen` lacks contrast.                                            |
 | `--mk-brand-green-ink`   | `#14713e` | أخضر نصي              | Green text on light grounds, e.g. premium labels.                                                          |
+
+### Colour: the night stage
+
+| Token                  | Light     | Dark      | Arabic name       | Role                                                                             |
+| ---------------------- | --------- | --------- | ----------------- | -------------------------------------------------------------------------------- |
+| `--mk-stage`           | `#0d0f2e` | `#10120f` | أرضية المسرح      | Night ground of the home hero, manifesto and story; the corners above the sheet. |
+| `--mk-stage-raised`    | `#151845` | `#22251f` | سطح على المسرح    | Hover fill of quiet controls that sit on the stage (header icons).               |
+| `--mk-stage-wall`      | `#1b1e4f` | `#272925` | جدار المتاهة      | Maze walls drawn on the stage. Decorative and deliberately quiet; never text.    |
+| `--mk-stage-ink`       | `#eaebf6` | `#f5f6f3` | نص المسرح         | Headings, links, the route and its diamonds on the stage.                        |
+| `--mk-stage-ink-muted` | `#bfc3df` | `#b8c0b7` | نص المسرح الثانوي | Lead lines and descriptions on the stage; hover fill of the stage pill.          |
+| `--mk-stage-ink-faint` | `#9fa3c8` | `#9aa294` | نص المسرح الخافت  | The story path and its date labels.                                              |
+| `--mk-stage-ink-unlit` | `#767bb0` | `#777f75` | جملة لم تُضأ      | Manifesto phrases the scroll has not lit yet. Still readable at 4.5:1.           |
+
+### Colour: programme covers
+
+| Token                                  | Value                     | Arabic name         | Role                                                           |
+| -------------------------------------- | ------------------------- | ------------------- | -------------------------------------------------------------- |
+| `--mk-cover-ink-on-dark`               | `#ffffff`                 | نص على غلاف داكن    | Every text and control on a dark cover ground.                 |
+| `--mk-cover-ink-on-light`              | `#171a56`                 | نص على غلاف فاتح    | Every text and control on a light cover ground.                |
+| `--mk-cover-raised-on-dark`            | `rgb(255 255 255 / 0.14)` | سطح على غلاف داكن   | Hover fill of quiet controls on a dark cover ground.           |
+| `--mk-cover-raised-on-light`           | `rgb(23 26 86 / 0.08)`    | سطح على غلاف فاتح   | Hover fill of quiet controls on a light cover ground.          |
+| `--mk-cover-amyal-ground`              | `#ffffff`                 | أرضية أميال         | The amyal page ground, from its cover's edge.                  |
+| `--mk-cover-amyal-accent`              | `#0c2454`                 | حبر أميال           | The amyal cover's lettering, for its large count.              |
+| `--mk-cover-anfus-ground`              | `#ffffff`                 | أرضية أنفس          | The anfus page ground, from its cover's edge.                  |
+| `--mk-cover-anfus-accent`              | `#240c24`                 | حبر أنفس            | The anfus cover's lettering, for its large count.              |
+| `--mk-cover-arwiqah-ground`            | `#191919`                 | أرضية أروقة         | The arwiqah page ground, from its cover's edge.                |
+| `--mk-cover-arwiqah-accent`            | `#fcfcfc`                 | حبر أروقة           | The arwiqah cover's lettering, for its large count.            |
+| `--mk-cover-awalim-ground`             | `#082b31`                 | أرضية عوالم         | The awalim page ground, from its cover's edge.                 |
+| `--mk-cover-awalim-accent`             | `#6cfcb4`                 | حبر عوالم           | The awalim cover's lettering, for its large count.             |
+| `--mk-cover-bokra-ground`              | `#73e8f2`                 | أرضية بكرة          | The bokra page ground, from its cover's edge.                  |
+| `--mk-cover-bokra-accent`              | `#0c0c24`                 | حبر بكرة            | The bokra cover's lettering, for its large count.              |
+| `--mk-cover-deal-ground`               | `#ffffff`                 | أرضية ديل           | The deal page ground, from its cover's edge.                   |
+| `--mk-cover-deal-accent`               | `#0c0c0c`                 | حبر ديل             | The deal cover's lettering, for its large count.               |
+| `--mk-cover-dynamica-ground`           | `#ffffff`                 | أرضية ديناميكا      | The dynamica page ground, from its cover's edge.               |
+| `--mk-cover-dynamica-accent`           | `#0c0c0c`                 | حبر ديناميكا        | The dynamica cover's lettering, for its large count.           |
+| `--mk-cover-fintech525-ground`         | `#000e2b`                 | أرضية Fintech525    | The fintech525 page ground, from its cover's edge.             |
+| `--mk-cover-fintech525-accent`         | `#fcfcfc`                 | حبر Fintech525      | The fintech525 cover's lettering, for its large count.         |
+| `--mk-cover-gilaf-ground`              | `#926744`                 | أرضية غلاف          | The gilaf page ground, from its cover's edge.                  |
+| `--mk-cover-gilaf-accent`              | `#ffffff`                 | حبر غلاف            | The gilaf cover's lettering, for its large count.              |
+| `--mk-cover-handas-ground`             | `#656e61`                 | أرضية هنداس         | The handas page ground, from its cover's edge.                 |
+| `--mk-cover-handas-accent`             | `#ffffff`                 | حبر هنداس           | The handas cover's lettering, for its large count.             |
+| `--mk-cover-khuzama-ground`            | `#66457a`                 | أرضية خزامى         | The khuzama page ground, from its cover's edge.                |
+| `--mk-cover-khuzama-accent`            | `#ccccb4`                 | حبر خزامى           | The khuzama cover's lettering, for its large count.            |
+| `--mk-cover-mafi-shay-yidahhik-ground` | `#000000`                 | أرضية مافي شي يضحّك | The mafi-shay-yidahhik page ground, from its cover's edge.     |
+| `--mk-cover-mafi-shay-yidahhik-accent` | `#fce454`                 | حبر مافي شي يضحّك   | The mafi-shay-yidahhik cover's lettering, for its large count. |
+| `--mk-cover-majlis-raim-ground`        | `#1a1914`                 | أرضية مجلس رايم     | The majlis-raim page ground, from its cover's edge.            |
+| `--mk-cover-majlis-raim-accent`        | `#fcfcfc`                 | حبر مجلس رايم       | The majlis-raim cover's lettering, for its large count.        |
+| `--mk-cover-menu-ground`               | `#046f69`                 | أرضية منيو          | The menu page ground, from its cover's edge.                   |
+| `--mk-cover-menu-accent`               | `#9cfc84`                 | حبر منيو            | The menu cover's lettering, for its large count.               |
+| `--mk-cover-munagasha-ground`          | `#060807`                 | أرضية مناقشة        | The munagasha page ground, from its cover's edge.              |
+| `--mk-cover-munagasha-accent`          | `#fcfcfc`                 | حبر مناقشة          | The munagasha cover's lettering, for its large count.          |
+| `--mk-cover-munawib-ground`            | `#0d5852`                 | أرضية مناوب         | The munawib page ground, from its cover's edge.                |
+| `--mk-cover-munawib-accent`            | `#fcfcfc`                 | حبر مناوب           | The munawib cover's lettering, for its large count.            |
+| `--mk-cover-muqawil-ground`            | `#723d26`                 | أرضية مقاول         | The muqawil page ground, from its cover's edge.                |
+| `--mk-cover-muqawil-accent`            | `#fcfcfc`                 | حبر مقاول           | The muqawil cover's lettering, for its large count.            |
+| `--mk-cover-nitaq-ground`              | `#000000`                 | أرضية نطاق          | The nitaq page ground, from its cover's edge.                  |
+| `--mk-cover-nitaq-accent`              | `#fcfcfc`                 | حبر نطاق            | The nitaq cover's lettering, for its large count.              |
+| `--mk-cover-petroly-ground`            | `#000000`                 | أرضية بترولي        | The petroly page ground, from its cover's edge.                |
+| `--mk-cover-petroly-accent`            | `#d2a606`                 | حبر بترولي          | The petroly cover's lettering, for its large count.            |
+| `--mk-cover-qadiyah-ground`            | `#8c1313`                 | أرضية قضية          | The qadiyah page ground, from its cover's edge.                |
+| `--mk-cover-qadiyah-accent`            | `#ffffff`                 | حبر قضية            | The qadiyah cover's lettering, for its large count.            |
+| `--mk-cover-qatim-ground`              | `#ffffff`                 | أرضية قاتم          | The qatim page ground, from its cover's edge.                  |
+| `--mk-cover-qatim-accent`              | `#6c3c0c`                 | حبر قاتم            | The qatim cover's lettering, for its large count.              |
+| `--mk-cover-salasil-ground`            | `#000000`                 | أرضية سلاسل         | The salasil page ground, from its cover's edge.                |
+| `--mk-cover-salasil-accent`            | `#0ccc84`                 | حبر سلاسل           | The salasil cover's lettering, for its large count.            |
+| `--mk-cover-seera-ground`              | `#7b27fe`                 | أرضية سيرة          | The seera page ground, from its cover's edge.                  |
+| `--mk-cover-seera-accent`              | `#fcfcfc`                 | حبر سيرة            | The seera cover's lettering, for its large count.              |
+| `--mk-cover-shaqla-ground`             | `#1c540b`                 | أرضية شغلة          | The shaqla page ground, from its cover's edge.                 |
+| `--mk-cover-shaqla-accent`             | `#e4fc0c`                 | حبر شغلة            | The shaqla cover's lettering, for its large count.             |
+| `--mk-cover-tashreeh-ground`           | `#192c46`                 | أرضية تشريح         | The tashreeh page ground, from its cover's edge.               |
+| `--mk-cover-tashreeh-accent`           | `#cce4e4`                 | حبر تشريح           | The tashreeh cover's lettering, for its large count.           |
+| `--mk-cover-unicorn-ground`            | `#c1076d`                 | أرضية يونيكورن      | The unicorn page ground, from its cover's edge.                |
+| `--mk-cover-unicorn-accent`            | `#fcfcfc`                 | حبر يونيكورن        | The unicorn cover's lettering, for its large count.            |
+| `--mk-cover-wakala-ground`             | `#ffffff`                 | أرضية وكالة         | The wakala page ground, from its cover's edge.                 |
+| `--mk-cover-wakala-accent`             | `#243c54`                 | حبر وكالة           | The wakala cover's lettering, for its large count.             |
 
 ### Colour: broadcast (player)
 
@@ -212,6 +294,14 @@ changing what it looks like is a design decision.
 | `--mk-text-4xl`  | `26px` | عنوان قسم كبير  | Larger section headings.                         |
 | `--mk-text-5xl`  | `30px` | عنوان صفحة صغير | Compact page headings.                           |
 
+### Type: display
+
+| Token                  | Value                         | Arabic name | Role                                                              |
+| ---------------------- | ----------------------------- | ----------- | ----------------------------------------------------------------- |
+| `--mk-display-1`       | `clamp(34px, 4.45vw, 64px)`   | عرض كبير    | Section statements on the stage and the sheet; the story years.   |
+| `--mk-display-2`       | `clamp(28px, 3.34vw, 48px)`   | عرض         | The manifesto, service names and programme-page section headings. |
+| `--mk-display-numeral` | `clamp(120px, 16.7vw, 240px)` | رقم العرض   | The one large count on a programme page. Digits only.             |
+
 ### Type: line height
 
 | Token                  | Value | Arabic name | Role                                         |
@@ -240,30 +330,41 @@ changing what it looks like is a design decision.
 
 ### Radius
 
-| Token                 | Light   | Dark   | Arabic name   | Role                                                            |
-| --------------------- | ------- | ------ | ------------- | --------------------------------------------------------------- |
-| `--mk-radius-card`    | `6px`   | `12px` | زاوية البطاقة | Cards, panels, embeds. Softer in the dark appearance by design. |
-| `--mk-radius-control` | `8px`   | same   | زاوية الحقل   | Inputs, selects and dialog fields.                              |
-| `--mk-radius-media`   | `10px`  | same   | زاوية الصورة  | Images inside cards.                                            |
-| `--mk-radius-dialog`  | `16px`  | same   | زاوية النافذة | Account dialogs.                                                |
-| `--mk-radius-pill`    | `999px` | same   | كبسولة        | Primary actions and filter choices.                             |
-| `--mk-radius-round`   | `50%`   | same   | دائرة         | Round icon buttons, portraits and marks.                        |
+| Token                 | Light                    | Dark   | Arabic name           | Role                                                            |
+| --------------------- | ------------------------ | ------ | --------------------- | --------------------------------------------------------------- |
+| `--mk-radius-card`    | `6px`                    | `12px` | زاوية البطاقة         | Cards, panels, embeds. Softer in the dark appearance by design. |
+| `--mk-radius-control` | `8px`                    | same   | زاوية الحقل           | Inputs, selects and dialog fields.                              |
+| `--mk-radius-media`   | `10px`                   | same   | زاوية الصورة          | Images inside cards.                                            |
+| `--mk-radius-dialog`  | `16px`                   | same   | زاوية النافذة         | Account dialogs.                                                |
+| `--mk-radius-sheet`   | `clamp(28px, 3vw, 44px)` | same   | زاوية الصفحة المنزلقة | The rounded top of the sheet that slides over the stage (D-24). |
+| `--mk-radius-pill`    | `999px`                  | same   | كبسولة                | Primary actions and filter choices.                             |
+| `--mk-radius-round`   | `50%`                    | same   | دائرة                 | Round icon buttons, portraits and marks.                        |
 
 ### Layout
 
-| Token                  | Light                      | Dark                       | Arabic name     | Role                                                      |
-| ---------------------- | -------------------------- | -------------------------- | --------------- | --------------------------------------------------------- |
-| `--mk-gutter`          | `clamp(20px, 4.5vw, 78px)` | `clamp(20px, 5.5vw, 90px)` | الهامش الجانبي  | Page side gutter. Wider in the dark appearance by design. |
-| `--mk-measure`         | `1500px`                   | same                       | عرض المحتوى     | Maximum content width.                                    |
-| `--mk-measure-episode` | `840px`                    | same                       | عرض صفحة الحلقة | Episode detail column.                                    |
-| `--mk-measure-article` | `760px`                    | same                       | عرض المقال      | Article reading column.                                   |
+| Token                  | Light                        | Dark                       | Arabic name     | Role                                                                            |
+| ---------------------- | ---------------------------- | -------------------------- | --------------- | ------------------------------------------------------------------------------- |
+| `--mk-gutter`          | `clamp(20px, 4.5vw, 78px)`   | `clamp(20px, 5.5vw, 90px)` | الهامش الجانبي  | Page side gutter. Wider in the dark appearance by design.                       |
+| `--mk-measure`         | `1500px`                     | same                       | عرض المحتوى     | Maximum content width.                                                          |
+| `--mk-section`         | `clamp(72px, 10.4vw, 150px)` | same                       | فاصل المسرح     | Vertical room around the sections of the stage, the sheet and the floor (D-24). |
+| `--mk-measure-episode` | `840px`                      | same                       | عرض صفحة الحلقة | Episode detail column.                                                          |
+| `--mk-measure-article` | `760px`                      | same                       | عرض المقال      | Article reading column.                                                         |
 
 ### Motion
 
-| Token                | Value   | Arabic name | Role                                       |
-| -------------------- | ------- | ----------- | ------------------------------------------ |
-| `--mk-duration-fast` | `140ms` | سريعة       | Colour and fill state changes on controls. |
-| `--mk-duration-base` | `160ms` | عادية       | Larger state changes.                      |
+| Token                 | Value    | Arabic name      | Role                                                                     |
+| --------------------- | -------- | ---------------- | ------------------------------------------------------------------------ |
+| `--mk-duration-fast`  | `140ms`  | سريعة            | Colour and fill state changes on controls.                               |
+| `--mk-duration-base`  | `160ms`  | عادية            | Larger state changes.                                                    |
+| `--mk-duration-light` | `500ms`  | إضاءة الجملة     | A manifesto phrase changing from unlit to lit as it scrolls in (D-24).   |
+| `--mk-duration-pick`  | `900ms`  | رسم مسار المجتمع | The picker route drawing itself to the chosen community (D-24).          |
+| `--mk-duration-route` | `2400ms` | رسم المسار       | The hero route drawing itself once from the headline’s full stop (D-24). |
+
+### Masks
+
+| Token            | Value                                                                                                                                                                                                                                                                   | Arabic name      | Role                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------- |
+| `--mk-mask-fade` | `linear-gradient(to bottom, rgb(0 0 0) 0%, rgb(0 0 0) 58%, rgb(0 0 0 / 0.92) 63.125%, rgb(0 0 0 / 0.78) 68.25%, rgb(0 0 0 / 0.6) 73.375%, rgb(0 0 0 / 0.42) 78.5%, rgb(0 0 0 / 0.26) 83.625%, rgb(0 0 0 / 0.13) 88.75%, rgb(0 0 0 / 0.05) 93.875%, rgb(0 0 0 / 0) 99%)` | تلاشٍ إلى الأسفل | The hero maze dissolving into the stage below it. |
 
 ### Breakpoints
 

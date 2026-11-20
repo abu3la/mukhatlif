@@ -1,15 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SERVICES as services } from '@/lib/site-facts';
 export const metadata: Metadata = {
   title: 'الإنتاج',
   description: 'طوّر فكرتك مع مختلف إلى بودكاست أو سلسلة مرئية أو قصة علامة.',
   alternates: { canonical: '/services' },
 };
-const services = [
-  ['بودكاست', 'تطوير فكرة البرنامج، محاوره وصوته، ثم تصور التسجيل والمونتاج.'],
-  ['سلسلة مرئية', 'تصور لحلقات مترابطة، معالجة تحريرية، وإطار موحّد للتصوير.'],
-  ['قصة علامة', 'تحديد الرسالة والجمهور، وتطوير معالجة لفيلم قصير.'],
-] as const;
 export default function ServicesPage() {
   return (
     <div className="content-page public-page">

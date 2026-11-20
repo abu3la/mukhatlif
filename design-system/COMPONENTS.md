@@ -106,15 +106,31 @@ decision.
 | Toast after an account action | `.customer-toast`                                         | `customer.css`                                  |
 | Inline status                 | `role="status"` text in muted 13–14px next to the control | per component                                   |
 
+## Presentation pages (D-24)
+
+| Role                      | Use                                                                       | Owner                                               | Notes                                                                               |
+| ------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Programme in a rail       | `ProgrammeTile` inside `ProgrammeRail`                                    | `components/home-stage.tsx`, `stage.css`            | Whole cover, name, two-line approved description, hosts line (slot held when empty) |
+| Home hero, story, credits | `HomeHero`, `HomeStory`, `HomeServices`, `HomeCredits`                    | `components/home-stage.tsx`                         | Server-rendered; copy from `lib/site-facts.ts`                                      |
+| Manifesto                 | `HomeManifesto`                                                           | `components/home-manifesto.tsx`                     | Two phrases lit at rest; the scroll only changes colour                             |
+| Community picker          | `CommunityPicker` (wide) and `CommunitySlides` (≤1000px)                  | `components/community-picker.tsx`, `home-stage.tsx` | Exits are `aria-pressed` buttons; the drawing comes from the server (`PICKER`)      |
+| Platform marks            | `PlatformMark`                                                            | `components/platform-mark.tsx`                      | The marks of `public/handoff/platforms` in `currentColor`                           |
+| Follow beside a primary   | `FollowShowButton variant="text"`                                         | `components/customer-content.tsx`                   | The quiet form where the region already has its one primary action                  |
+| Community stage           | `CommunityHero`                                                           | `components/home-stage.tsx`, `lib/home-maze.ts`     | The route ends at the name's full stop; size and end from `communityHero()`         |
+| Article in a grid         | `ArticleTile` inside `ArticleTiles`                                       | `components/article-tile.tsx`, `stage.css`          | Cover 16:9 (slot held when missing), two-line title, author and date                |
+| Newsletters on a sheet    | `NewsletterCards variant="stage"`                                         | `components/newsletter-cards.tsx`, `stage.css`      | Two-up (three-up for three), at the sheet's scale                                   |
+| Page head on a stage      | `.stage-head` with `__crumbs`, `__title`, `__lede`, `__meta`, `__actions` | `stage.css`                                         | Episode, article and newsletter pages; the accent is the cover's lettering colour   |
+| Picture across the edge   | `.stage-cross` on a `.has-cross` page                                     | `stage.css`                                         | A video or cover hanging a quarter of its width over the sheet                      |
+
 ## Chrome
 
-| Role              | Use                                                                                                   | Owner                                                                             |
-| ----------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Header            | `SiteHeader` / `SiteNavigation`: logo, primary nav, icon search, "مكتبتي", "الشراكات والرعايات", menu | `components/site-chrome.tsx`, `site-navigation.tsx`, `site-navigation.module.css` |
-| Appearance switch | `ThemeControl`, inside the menu only                                                                  | `components/theme-control.tsx`                                                    |
-| Footer            | `SiteFooter` on its own floor (`--mk-footer*`)                                                        | `components/site-chrome.tsx`, `handoff.css`                                       |
-| Player dock       | `PlayerProvider` / `PlayerBar`, broadcast palette                                                     | `components/player.tsx`, `player.module.css`                                      |
-| Newsletter        | `NewsletterSignup` (home places it after the latest articles)                                         | `components/newsletter-signup.tsx`, `listener.css` + `public-pages.css`           |
+| Role              | Use                                                                                                      | Owner                                                                             |
+| ----------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Header            | `SiteHeader` / `SiteNavigation`: logo, primary nav, icon search, "مكتبتي", "الشراكات والرعايات", menu    | `components/site-chrome.tsx`, `site-navigation.tsx`, `site-navigation.module.css` |
+| Appearance switch | `ThemeControl`, inside the menu only                                                                     | `components/theme-control.tsx`                                                    |
+| Footer            | `SiteFooter` on its own floor (`--mk-footer*`): link groups, platform marks, legal line, wordmark (D-24) | `components/site-chrome.tsx`, `stage.css`                                         |
+| Player dock       | `PlayerProvider` / `PlayerBar`, broadcast palette                                                        | `components/player.tsx`, `player.module.css`                                      |
+| Newsletter        | `NewsletterSignup` (home places it after the latest articles)                                            | `components/newsletter-signup.tsx`, `listener.css` + `public-pages.css`           |
 
 ## Duplicates to resolve
 

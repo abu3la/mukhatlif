@@ -28,7 +28,35 @@ Rules:
 - A page head is a title and at most one short lead line. No kicker label above
   it, no second button row.
 - Sections are separated by space (`.content-section` margin), not rules or
-  colour bands.
+  colour bands. The presentation pages are the exception (below).
+
+## Presentation pages (D-24)
+
+The home, programme, community, episode, reading and newsletter pages
+introduce rather than list. Their rhythm is stage, sheet, floor
+(`app/stage.css`):
+
+| Part  | What it is                                                                | Built from                                                      |
+| ----- | ------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Stage | The night ground (home) or the programme's cover ground                   | `.stage-scope` / `.cover-stage`, `--mk-stage*` / `--mk-cover-*` |
+| Sheet | Page-coloured, its rounded top over the stage and its bottom on the floor | `.home-sheet` / `.cover-sheet` + `.home-sheet__surface`         |
+| Floor | Production, credits and the footer on the footer colour                   | `.floor-scope`, `SiteFooter`                                    |
+
+- Scopes redefine the legacy aliases, so shared recipes (primary pill, focus
+  rings, rail arrows, header controls) take the ground's colours without
+  call-site overrides. The header becomes transparent over a stage.
+- Section statements use `.stage-statement` (`--mk-display-1`); text links are
+  `.stage-link` (underlined, no arrow).
+- Rails are `.stage-rail` (edge to edge, first item on the content edge,
+  `RailControls` for arrows, `position: relative` so a card's absolutely placed
+  parts stay inside the rail).
+- Routes are drawn as a trace plus ink; content never waits for them.
+- A page's head on a stage is centred (`.stage-head`): where it belongs, the
+  title, one line, its facts, its actions. A video or cover may cross from the
+  stage onto the sheet (`.has-cross` + `.stage-cross`); the sheet's first
+  section starts below it.
+- Grids on a sheet hold every slot (a tile's title keeps two lines, a missing
+  cover keeps its frame), so rows share their lines.
 
 ## Grids and rails
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { PlayerEpisode } from './player';
 import { usePlayer } from './player';
 import playerStyles from './player.module.css';
@@ -13,7 +13,34 @@ export function RetryContentButton() {
   );
 }
 
-export function RailControls({ target }: { target: string }) {
+/**
+ * Previous / next for a horizontal rail. The pair stays hidden until it knows
+ * the rail overflows (and without JavaScript, where it could not scroll
+ * anyway), and each button is unavailable at its own end of the rail.
+ * `label` names what the rail holds, in the definite plural («الحلقات»).
+ */
+export function RailControls({ target, label = 'الحلقات' }: { target: string; label?: string }) {
+  const [edges, setEdges] = useState<{ start: boolean; end: boolean } | null>(null);
+
+  useEffect(() => {
+    const rail = document.getElementById(target);
+    if (!rail) return;
+    // RTL scroll offsets run from 0 at the start towards negative values.
+    const measure = () => {
+      const offset = Math.abs(rail.scrollLeft);
+      const max = rail.scrollWidth - rail.clientWidth;
+      setEdges({ start: offset <= 1, end: offset >= max - 1 });
+    };
+    measure();
+    rail.addEventListener('scroll', measure, { passive: true });
+    const resize = new ResizeObserver(measure);
+    resize.observe(rail);
+    return () => {
+      rail.removeEventListener('scroll', measure);
+      resize.disconnect();
+    };
+  }, [target]);
+
   function scroll(direction: number) {
     const rail = document.getElementById(target);
     rail?.scrollBy({
@@ -23,14 +50,31 @@ export function RailControls({ target }: { target: string }) {
         : 'smooth',
     });
   }
+
+  const overflows = edges !== null && !(edges.start && edges.end);
   return (
-    <div className="public-rail-controls" aria-label="تصفح الحلقات">
-      <button type="button" onClick={() => scroll(1)} aria-label="الحلقات السابقة">
+    <div
+      className="public-rail-controls"
+      role="group"
+      aria-label={`تصفح ${label}`}
+      hidden={!overflows}
+    >
+      <button
+        type="button"
+        onClick={() => scroll(1)}
+        aria-label={`${label} السابقة`}
+        disabled={edges?.start}
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="m9 5 7 7-7 7" />
         </svg>
       </button>
-      <button type="button" onClick={() => scroll(-1)} aria-label="الحلقات التالية">
+      <button
+        type="button"
+        onClick={() => scroll(-1)}
+        aria-label={`${label} التالية`}
+        disabled={edges?.end}
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="m15 5-7 7 7 7" />
         </svg>

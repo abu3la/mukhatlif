@@ -1,0 +1,1739 @@
+/*
+ * The presentation site (direction C, DECISIONS D-24): the night stage, the
+ * sheet that slides over it, the floor, and the programme cover stage.
+ *
+ * Tokens only. Two things are drawings rather than layout and keep physical
+ * geometry: the hero composition, which scales as one picture through --u
+ * (one design pixel of a 1440px frame) and --up (of a 390px frame), and the
+ * community picker, whose exits are on the maze's real left and right.
+ */
+
+/* ------------------------------------------------------------------ scopes */
+
+/* The legacy aliases take the ground's colours, so the shared recipes
+   (.public-primary, focus rings, rail controls, the header's controls) invert
+   on their own. Same technique as the scopes listed in TOKENS.md. */
+.stage-scope,
+body:has(.stage-page) .site-header {
+  --bg: var(--mk-stage);
+  --page: var(--mk-stage);
+  --fg: var(--mk-stage-ink);
+  --ink: var(--mk-stage-ink);
+  --muted: var(--mk-stage-ink-muted);
+  --secondary: var(--mk-stage-ink-muted);
+  --ink-hover: var(--mk-stage-ink-muted);
+  --surface: var(--mk-stage-raised);
+  --surface-hover: var(--mk-stage-raised);
+  --border: var(--mk-stage-wall);
+  --line: var(--mk-stage-wall);
+  --line-soft: var(--mk-stage-wall);
+  color: var(--fg);
+}
+.floor-scope {
+  --bg: var(--mk-footer);
+  --page: var(--mk-footer);
+  --fg: var(--mk-footer-ink);
+  --ink: var(--mk-footer-ink);
+  --muted: var(--mk-footer-muted);
+  --secondary: var(--mk-footer-muted);
+  --ink-hover: var(--mk-footer-muted);
+  --surface: color-mix(in srgb, var(--mk-footer-ink) 10%, var(--mk-footer));
+  --surface-hover: color-mix(in srgb, var(--mk-footer-ink) 16%, var(--mk-footer));
+  --border: var(--mk-footer-muted);
+  --line: var(--mk-footer-muted);
+  --line-soft: var(--mk-footer-muted);
+  background: var(--mk-footer);
+  color: var(--fg);
+}
+/* The menu keeps the page's own colours wherever the header stands. */
+body:has(.stage-page) .site-header dialog,
+body:has(.cover-stage) .site-header dialog {
+  --bg: var(--mk-page);
+  --page: var(--mk-page);
+  --fg: var(--mk-ink);
+  --ink: var(--mk-ink);
+  --muted: var(--mk-ink-muted);
+  --secondary: var(--mk-ink-muted);
+  --ink-hover: var(--mk-ink-hover);
+  --surface: var(--mk-surface);
+  --surface-hover: var(--mk-surface-hover);
+  --border: var(--mk-border);
+  --line: var(--mk-border);
+  --line-soft: var(--mk-border-soft);
+  color: var(--fg);
+}
+
+/* ------------------------------------------------------- the header on a stage */
+
+body:has(.stage-page) .site-header,
+body:has(.cover-stage) .site-header {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  background: transparent;
+}
+body:has(.stage-page) .site-header .brand-logo--light,
+body:has(.cover-stage[data-tone='dark']) .site-header .brand-logo--light {
+  display: none;
+}
+body:has(.stage-page) .site-header .brand-logo--dark,
+body:has(.cover-stage[data-tone='dark']) .site-header .brand-logo--dark {
+  display: block;
+}
+:root[data-concept='third']
+  body:has(.cover-stage[data-tone='light'])
+  .site-header
+  .brand-logo--light {
+  display: block;
+}
+:root[data-concept='third']
+  body:has(.cover-stage[data-tone='light'])
+  .site-header
+  .brand-logo--dark {
+  display: none;
+}
+
+/* ------------------------------------------------------------- shared pieces */
+
+.stage-page {
+  container-type: inline-size;
+}
+.stage-statement {
+  margin: 0;
+  font-size: var(--mk-display-1);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+  text-wrap: balance;
+}
+/* A text link of the presentation pages: no arrow (the arrows carried no
+   meaning, see the commit «Remove decorative arrows»), a steady underline,
+   and a colour change on hover. */
+.stage-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--fg);
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.35em;
+  transition: color var(--mk-duration-fast) ease;
+}
+.stage-link:hover {
+  color: var(--ink-hover);
+}
+@keyframes stage-route {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* A rail that runs edge to edge while its first item lines up with the page
+   content. Arrows come from RailControls. */
+/* `position: relative` makes the rail the containing block of anything a
+   card positions absolutely, so it is clipped by the rail instead of
+   widening the page. */
+.stage-rail {
+  --rail-item: 296px;
+  position: relative;
+  --rail-edge: max(var(--mk-gutter), calc((100% - var(--mk-measure)) / 2));
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--rail-item);
+  gap: var(--mk-space-24);
+  margin: 0;
+  padding-block: var(--mk-space-40) var(--mk-space-12);
+  padding-inline: var(--rail-edge);
+  list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--rail-edge);
+  scrollbar-width: none;
+}
+.stage-rail::-webkit-scrollbar {
+  display: none;
+}
+.stage-rail:focus-visible {
+  outline-offset: calc(-1 * var(--mk-space-4));
+}
+
+/* ------------------------------------------------------------------- hero */
+
+.stage-hero {
+  --u: min(1px, calc(100cqi / 1440));
+  --up: min(1px, calc(100cqi / 390));
+  /* The diamond's centre below the headline's top, in its own em. */
+  --stop-y: 0.876em;
+  position: relative;
+  height: calc(900 * var(--u));
+  overflow: hidden;
+  background: var(--mk-stage);
+}
+/* Centred physically: a box wider than its container with auto margins would
+   pin to the right edge in RTL. */
+.stage-hero__maze {
+  position: absolute;
+  inset-block-start: 0;
+  left: 50%;
+  translate: -50% 0;
+}
+.stage-hero__maze--wide {
+  width: calc(2832 * var(--u));
+  height: calc(900 * var(--u));
+}
+.stage-hero__maze--phone {
+  display: none;
+  width: calc(858 * var(--up));
+  height: calc(702 * var(--up));
+}
+.stage-hero__maze svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.stage-hero__walls {
+  mask-image: var(--mk-mask-fade);
+}
+.stage-hero__walls path,
+.stage-hero__route path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.stage-hero__walls path {
+  stroke: var(--mk-stage-wall);
+  stroke-width: 20;
+}
+.stage-hero__route path {
+  stroke-width: 7;
+}
+/* A route is always drawn: a faint trace that needs no motion, and the ink
+   that draws itself over it once. Without the animation the ink is simply
+   there; if the animation stalls, the trace still shows the way. */
+.stage-route__trace {
+  stroke: var(--mk-stage-ink-faint);
+}
+.stage-route__ink {
+  stroke: var(--mk-stage-ink);
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.stage-hero__route .stage-route__ink {
+  animation: stage-route var(--mk-duration-route) cubic-bezier(0.45, 0.05, 0.2, 1) 300ms backwards;
+}
+.stage-hero__maze--phone .stage-hero__walls path {
+  stroke-width: 11;
+}
+.stage-hero__maze--phone .stage-hero__route path {
+  stroke-width: 4.5;
+}
+.stage-hero__title {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: calc(408 * var(--u) - var(--stop-y));
+  inset-inline-end: calc(50% - 432 * var(--u) - 0.11em);
+  margin: 0;
+  color: var(--mk-stage-ink);
+  font-size: calc(110 * var(--u));
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+  white-space: nowrap;
+}
+.stage-hero__stop {
+  display: inline-block;
+  width: 0.22em;
+  height: 0.22em;
+  margin-inline-start: 0.08em;
+  fill: currentColor;
+}
+.stage-hero__lede {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: calc(476 * var(--u));
+  inset-inline: 0;
+  max-width: calc(940 * var(--u));
+  margin: 0 auto;
+  padding-inline: var(--mk-space-16);
+  color: var(--mk-stage-ink-muted);
+  font-size: max(var(--mk-text-base), calc(22 * var(--u)));
+  line-height: var(--mk-leading-ui);
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* -------------------------------------------------------------- manifesto */
+
+.home-manifesto {
+  --u: min(1px, calc(100cqi / 1440));
+  --up: min(1px, calc(100cqi / 390));
+  padding-block-end: var(--mk-section);
+  background: var(--mk-stage);
+  text-align: center;
+}
+.home-manifesto__route {
+  display: block;
+  width: calc(40 * var(--u));
+  height: calc(140 * var(--u));
+  margin-inline: auto;
+}
+.home-manifesto__line {
+  fill: none;
+  stroke: var(--mk-stage-ink);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+.home-manifesto__stop {
+  fill: var(--mk-stage-ink);
+}
+.home-manifesto__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mk-space-32);
+  padding-block-start: var(--mk-space-40);
+}
+.home-manifesto__text {
+  max-width: 21em;
+  margin: 0;
+  color: var(--mk-stage-ink-unlit);
+  font-size: var(--mk-display-2);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+  text-wrap: balance;
+}
+.home-manifesto__text span {
+  transition: color var(--mk-duration-light) ease;
+}
+.home-manifesto__text .is-lit {
+  color: var(--mk-stage-ink);
+}
+
+/* ------------------------------------------------------------------ story */
+
+.home-story {
+  padding-block-end: var(--mk-section);
+  background: var(--mk-stage);
+}
+.home-story__title {
+  max-width: 15em;
+  margin-inline: auto;
+  text-align: center;
+}
+.home-story__path {
+  position: relative;
+  margin-block-start: var(--mk-space-96);
+}
+.home-story__line {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  display: block;
+  width: 100%;
+  height: 60px;
+  overflow: visible;
+}
+.home-story__line path,
+.home-story__step path {
+  fill: none;
+  stroke: var(--mk-stage-ink-faint);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.home-story__step {
+  display: none;
+}
+.home-story__stops {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--mk-space-32);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.home-story__stop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-block-start: var(--mk-space-64);
+}
+.home-story__dot {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: 0;
+  width: 22px;
+  height: 22px;
+  fill: var(--mk-stage-ink);
+}
+.home-story__year {
+  margin: 0;
+  color: var(--mk-stage-ink);
+  font-size: var(--mk-display-1);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+  font-variant-numeric: tabular-nums;
+}
+.home-story__when {
+  margin: var(--mk-space-4) 0 0;
+  color: var(--mk-stage-ink-faint);
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+}
+.home-story__text {
+  max-width: 26ch;
+  margin: var(--mk-space-12) 0 0;
+  color: var(--mk-stage-ink-muted);
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-body);
+}
+.home-story__covers {
+  display: flex;
+  gap: var(--mk-space-8);
+  margin: var(--mk-space-16) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.home-story__covers a {
+  display: block;
+  border-radius: var(--mk-radius-control);
+}
+.home-story__covers img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--mk-radius-control);
+}
+
+/* ------------------------------------------------------------------ sheet */
+
+.home-sheet {
+  position: relative;
+  background: var(--mk-footer);
+}
+.home-sheet::before {
+  position: absolute;
+  inset: 0 0 50%;
+  background: var(--mk-stage);
+  content: '';
+}
+.home-sheet__surface {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-section);
+  padding-block: var(--mk-section);
+  border-radius: var(--mk-radius-sheet);
+  background: var(--mk-page);
+  color: var(--mk-ink);
+}
+.home-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-16) var(--mk-space-40);
+}
+.home-head--end {
+  justify-content: flex-start;
+}
+.home-head__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-16);
+}
+
+/* A programme in a rail: the whole cover, then its name, line and hosts. */
+.programme-tile {
+  scroll-snap-align: start;
+}
+.programme-tile__link {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--mk-radius-media);
+  color: var(--fg);
+  text-decoration: none;
+}
+.programme-tile__cover {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: var(--mk-radius-media);
+  object-fit: contain;
+}
+/* A white cover on the white sheet keeps its square through a quiet edge in
+   the surface's own family. */
+.programme-tile[data-tone='light'] .programme-tile__cover,
+.community-picker__covers [data-tone='light'] img {
+  outline: 1px solid var(--mk-border-soft);
+  outline-offset: -1px;
+}
+.programme-tile__name {
+  margin-block-start: var(--mk-space-16);
+  font-size: var(--mk-text-3xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+  transition: color var(--mk-duration-fast) ease;
+}
+.programme-tile__link:hover .programme-tile__name {
+  color: var(--ink-hover);
+}
+.programme-tile__text {
+  display: -webkit-box;
+  min-height: 2lh;
+  margin-block-start: var(--mk-space-4);
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-body);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.programme-tile__hosts {
+  min-height: 1lh;
+  margin-block-start: var(--mk-space-8);
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+}
+
+/* «أي مسار يشبهك؟» */
+.home-ways__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mk-space-16);
+  text-align: center;
+}
+.home-ways__lede {
+  max-width: 40ch;
+  text-wrap: balance;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-body);
+}
+.home-ways__picker {
+  margin-block-start: var(--mk-space-48);
+}
+.home-ways__slides {
+  display: none;
+}
+
+.community-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mk-space-32);
+}
+.community-picker__board {
+  position: relative;
+  width: min(1080px, 100%);
+  aspect-ratio: 1080 / 520;
+}
+.community-picker__board svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.community-picker__walls path {
+  fill: none;
+  stroke: var(--mk-card);
+  stroke-width: 15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.community-picker__route path {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.community-picker__route .stage-route__trace {
+  stroke: var(--mk-border);
+}
+.community-picker__route .stage-route__ink {
+  stroke: var(--mk-ink);
+  animation: stage-route var(--mk-duration-pick) cubic-bezier(0.3, 0.1, 0.2, 1) backwards;
+}
+.community-picker__origin path {
+  fill: var(--mk-ink);
+}
+.community-picker__exit {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: var(--mk-space-8);
+  border: 0;
+  border-radius: var(--mk-radius-control);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--mk-text-xl);
+  font-weight: var(--mk-weight-medium);
+  line-height: var(--mk-leading-heading);
+  white-space: nowrap;
+  cursor: pointer;
+  translate: 0 -50%;
+  transition: color var(--mk-duration-fast) ease;
+}
+/* 40 design pixels past the maze's outer wall (880 of 1080), on its real side. */
+.community-picker__exit[data-side='right'] {
+  left: 81.48%;
+}
+.community-picker__exit[data-side='left'] {
+  right: 81.48%;
+}
+.community-picker__exit:hover,
+.community-picker__exit[aria-pressed='true'] {
+  color: var(--fg);
+}
+.community-picker__exit[aria-pressed='true'] {
+  font-weight: var(--mk-weight-bold);
+}
+.community-picker__detail {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mk-space-32);
+  width: min(720px, 100%);
+  min-height: 220px;
+}
+.community-picker__logo {
+  flex: none;
+  width: 128px;
+  height: 128px;
+  border-radius: var(--mk-radius-media);
+}
+.community-picker__about {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--mk-space-12);
+  min-width: 0;
+}
+.community-picker__name {
+  margin: 0;
+  font-size: var(--mk-text-5xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.community-picker__text {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-body);
+}
+.community-picker__covers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mk-space-8);
+  margin: var(--mk-space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.community-picker__covers a {
+  display: block;
+  border-radius: var(--mk-radius-control);
+}
+.community-picker__covers img {
+  display: block;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--mk-radius-control);
+}
+
+/* The phone and tablet form: one slide per community. */
+.stage-rail--communities {
+  --rail-item: 300px;
+  gap: var(--mk-space-16);
+  padding-block-start: var(--mk-space-24);
+}
+.community-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: var(--mk-space-24);
+  border-radius: var(--mk-radius-dialog);
+  background: var(--mk-surface);
+  scroll-snap-align: start;
+}
+.community-slide__logo {
+  display: block;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--mk-radius-media);
+}
+:root:not([data-concept='third']) .community-slide__logo {
+  mix-blend-mode: multiply;
+}
+.community-slide__name {
+  margin: var(--mk-space-16) 0 0;
+  font-size: var(--mk-text-3xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.community-slide__text {
+  min-height: 3lh;
+  margin: var(--mk-space-8) 0 0;
+  color: var(--muted);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-body);
+}
+.community-slide__covers {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-8);
+  min-height: 44px;
+  margin: var(--mk-space-16) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.community-slide__covers a {
+  display: block;
+  border-radius: var(--mk-radius-control);
+}
+.community-slide__covers img {
+  display: block;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--mk-radius-control);
+}
+.community-slide__more {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--muted);
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-bold);
+}
+.community-slide .stage-link {
+  margin-block-start: auto;
+  padding-block-start: var(--mk-space-8);
+}
+
+/* ------------------------------------------------------------------ floor */
+
+.home-floor {
+  padding-block-start: var(--mk-section);
+}
+.home-services__lede {
+  max-width: 52ch;
+  margin: var(--mk-space-16) 0 0;
+  color: var(--muted);
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-body);
+}
+.home-services__rows {
+  display: flex;
+  flex-direction: column;
+  margin-block-start: var(--mk-space-48);
+}
+.home-service {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 560px) auto;
+  justify-content: start;
+  align-items: baseline;
+  gap: var(--mk-space-12) var(--mk-space-48);
+  padding-block: var(--mk-space-24);
+}
+.home-service__name {
+  margin: 0;
+  font-size: var(--mk-display-2);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.home-service__text {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-body);
+}
+.home-services__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-24);
+  margin-block-start: var(--mk-space-48);
+}
+.home-credits {
+  padding-block: var(--mk-section) var(--mk-space-24);
+}
+.home-credits__title {
+  margin: 0 0 var(--mk-space-40);
+  font-size: var(--mk-text-5xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+  text-align: center;
+}
+.home-credits__list {
+  display: grid;
+  row-gap: var(--mk-space-16);
+  max-width: 900px;
+  margin: 0 auto;
+}
+.home-credits__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: var(--mk-space-40);
+}
+.home-credits__row dt {
+  color: var(--muted);
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-heading);
+  text-align: end;
+}
+.home-credits__row dd {
+  margin: 0;
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+  text-align: start;
+}
+.home-credits__more {
+  margin: var(--mk-space-40) 0 0;
+  text-align: center;
+}
+
+/* The floor every page stands on. */
+.site-floor {
+  overflow: hidden;
+  padding-block-start: var(--mk-space-96);
+}
+.site-floor__cols,
+.site-floor__base {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--mk-space-32);
+}
+.site-floor__heading {
+  margin: 0 0 var(--mk-space-8);
+  color: var(--mk-footer-muted);
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+}
+.site-floor__group ul,
+.site-floor__marks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.site-floor__group a,
+.site-floor__mark,
+.site-floor__policies a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--mk-footer-ink);
+  text-decoration: none;
+  transition: color var(--mk-duration-fast) ease;
+}
+.site-floor__group a {
+  font-size: var(--mk-text-base);
+}
+.site-floor__group a:hover,
+.site-floor__mark:hover,
+.site-floor__policies a:hover {
+  color: var(--mk-footer-muted);
+}
+.site-floor__base {
+  align-items: center;
+  margin-block-start: var(--mk-space-48);
+}
+.site-floor__marks {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: span 2;
+  gap: 0 var(--mk-space-24);
+}
+.site-floor__mark {
+  gap: var(--mk-space-8);
+  font-size: var(--mk-text-md);
+}
+.site-floor__mark svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+.site-floor__legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  grid-column: span 2;
+  gap: 0 var(--mk-space-24);
+  margin: 0;
+  color: var(--mk-footer-muted);
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-ui);
+}
+.site-floor__policies {
+  display: flex;
+  gap: 0 var(--mk-space-16);
+}
+.site-floor__policies a {
+  color: var(--mk-footer-muted);
+}
+.site-floor__policies a:hover {
+  color: var(--mk-footer-ink);
+}
+/* The wordmark stands on the bottom edge and runs a little past it: about a
+   fifth of its baseline stroke, so the word stays whole. */
+.site-floor__wordmark {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-block: var(--mk-space-64) -2.4%;
+}
+
+/* ----------------------------------------------------- programme cover stage */
+
+/* A programme page stands on its cover's ground (tokens --mk-cover-<slug>-*,
+   set on .cover-page by the page). All text on it is the tone's one ink; the
+   large count takes the cover's lettering colour. */
+.cover-page {
+  --cover-ink: var(--mk-cover-ink-on-dark);
+  --cover-raised: var(--mk-cover-raised-on-dark);
+}
+.cover-page:has(.cover-stage[data-tone='light']) {
+  --cover-ink: var(--mk-cover-ink-on-light);
+  --cover-raised: var(--mk-cover-raised-on-light);
+}
+.cover-stage {
+  --bg: var(--cover-ground);
+  --page: var(--cover-ground);
+  --fg: var(--cover-ink);
+  --ink: var(--cover-ink);
+  --muted: var(--cover-ink);
+  --secondary: var(--cover-ink);
+  --ink-hover: color-mix(in srgb, var(--cover-ink) 72%, var(--cover-ground));
+  --surface: var(--cover-raised);
+  --surface-hover: var(--cover-raised);
+  --border: var(--cover-ink);
+  --line: var(--cover-ink);
+  --line-soft: var(--cover-raised);
+  --action-ink: var(--cover-ground);
+  padding-block: calc(var(--mk-space-96) + var(--mk-space-32)) var(--mk-section);
+  background: var(--cover-ground);
+  color: var(--fg);
+  text-align: center;
+}
+/* The header over a cover: one ink per tone (it cannot read the cover's own
+   ground), and the «استمع» label in indigo on dark covers, white on light. */
+body:has(.cover-stage[data-tone='dark']) .site-header {
+  --fg: var(--mk-cover-ink-on-dark);
+  --ink: var(--mk-cover-ink-on-dark);
+  --bg: var(--mk-cover-ink-on-light);
+  --ink-hover: color-mix(in srgb, var(--mk-cover-ink-on-dark) 72%, transparent);
+  --surface: var(--mk-cover-raised-on-dark);
+  --surface-hover: var(--mk-cover-raised-on-dark);
+  --border: var(--mk-cover-raised-on-dark);
+  color: var(--fg);
+}
+body:has(.cover-stage[data-tone='light']) .site-header {
+  --fg: var(--mk-cover-ink-on-light);
+  --ink: var(--mk-cover-ink-on-light);
+  --bg: var(--mk-cover-ink-on-dark);
+  --ink-hover: var(--mk-ink-hover);
+  --surface: var(--mk-cover-raised-on-light);
+  --surface-hover: var(--mk-cover-raised-on-light);
+  --border: var(--mk-cover-raised-on-light);
+  color: var(--fg);
+}
+.cover-stage__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.cover-stage__title {
+  margin: 0;
+}
+/* The whole cover on the ground taken from its edge: where the edge is one
+   colour the square disappears and the lettering stands alone; where it is a
+   gradient the cover reads as the object it is. */
+.cover-stage__art {
+  display: block;
+  width: min(520px, 100%);
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: var(--mk-radius-media);
+}
+.cover-stage__mark {
+  display: block;
+  width: min(570px, 100%);
+  height: auto;
+  margin-block: var(--mk-space-32);
+}
+.cover-stage__line {
+  max-width: 26em;
+  margin: var(--mk-space-24) 0 0;
+  font-size: var(--mk-text-5xl);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+  text-wrap: balance;
+}
+.cover-stage__credit {
+  margin: var(--mk-space-12) 0 0;
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-ui);
+}
+.cover-stage__credit a {
+  color: inherit;
+  font-weight: var(--mk-weight-semibold);
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.35em;
+}
+.cover-stage__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mk-space-16) var(--mk-space-24);
+  margin-block-start: var(--mk-space-32);
+}
+.cover-stage__count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: var(--mk-section) 0 0;
+}
+.cover-stage__number {
+  color: var(--cover-accent);
+  font-size: var(--mk-display-numeral);
+  font-weight: var(--mk-weight-bold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.cover-stage__unit {
+  margin-block-start: var(--mk-space-16);
+  font-size: var(--mk-text-5xl);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+}
+.cover-sheet {
+  position: relative;
+  background: var(--mk-footer);
+}
+.cover-sheet::before {
+  position: absolute;
+  inset: 0 0 50%;
+  background: var(--cover-ground);
+  content: '';
+}
+.cover-section__title {
+  margin: 0;
+  font-size: var(--mk-display-2);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+  text-wrap: balance;
+}
+.cover-section__body {
+  margin-block-start: var(--mk-space-32);
+}
+.stage-rail--episodes {
+  --rail-item: 380px;
+  align-items: stretch;
+}
+.stage-rail--episodes > * {
+  scroll-snap-align: start;
+}
+.programme-hosts {
+  display: grid;
+  gap: var(--mk-space-48);
+  margin-block-start: var(--mk-space-40);
+}
+.programme-host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: var(--mk-space-24) var(--mk-space-48);
+}
+.programme-host--photo {
+  grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+}
+.programme-host__photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: var(--mk-radius-dialog);
+  object-fit: cover;
+}
+.programme-host__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--mk-space-12);
+}
+.programme-host__name {
+  margin: 0;
+  font-size: var(--mk-text-5xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.programme-host__bio {
+  max-width: 44ch;
+  margin: 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-body);
+}
+
+/* ------------------------------------------------------------ community page */
+
+/* The route that left the home headline arrives at the community's name and
+   ends at its full stop (communityHero in lib/home-maze.ts sets the name's
+   size through --hero-fs and --hero-fs-phone, in design pixels). The text
+   below the name is in the flow, so a longer description makes the stage
+   taller instead of running into anything. */
+.community-hero {
+  --u: min(1px, calc(100cqi / 1440));
+  --up: min(1px, calc(100cqi / 390));
+  --stop-y: 0.876em;
+  position: relative;
+  min-height: calc(640 * var(--u));
+  overflow: hidden;
+  background: var(--mk-stage);
+}
+.community-hero .stage-hero__maze--wide {
+  height: calc(640 * var(--u));
+}
+.community-hero .stage-hero__maze--phone {
+  height: calc(560 * var(--up));
+}
+.community-hero__title {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: calc(312 * var(--u) - var(--stop-y));
+  inset-inline: 0;
+  margin: 0;
+  color: var(--mk-stage-ink);
+  font-size: calc(var(--hero-fs) * var(--u));
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+  text-align: center;
+  white-space: nowrap;
+}
+.community-hero__body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mk-space-24);
+  padding-block: calc(380 * var(--u)) var(--mk-space-64);
+  padding-inline: var(--mk-gutter);
+  text-align: center;
+}
+.community-hero__lede {
+  max-width: calc(780 * var(--u));
+  margin: 0;
+  color: var(--mk-stage-ink-muted);
+  font-size: max(var(--mk-text-base), calc(22 * var(--u)));
+  line-height: var(--mk-leading-ui);
+  text-wrap: balance;
+}
+.community-hero__fact {
+  color: var(--mk-stage-ink);
+  font-weight: var(--mk-weight-semibold);
+}
+/* A platform's own mark before a link to it. */
+.stage-link__mark {
+  width: 1.25em;
+  height: 1.25em;
+  flex: none;
+  margin-inline-end: var(--mk-space-8);
+}
+/* Every programme whole, three to a row; each row's names, lines and hosts
+   share a line because the tile reserves their heights. */
+.community-programmes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-48) var(--mk-space-32);
+  margin: var(--mk-space-40) 0 0;
+  padding: 0;
+  list-style: none;
+}
+/* Newsletters two to a row, at the sheet's scale. */
+.newsletter-cards--stage {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.newsletter-cards--stage[data-count='3'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.newsletter-cards--stage .newsletter-card {
+  gap: var(--mk-space-12);
+  padding: var(--mk-space-32);
+  border-radius: var(--mk-radius-dialog);
+}
+.newsletter-cards--stage .newsletter-card__name {
+  font-size: var(--mk-text-5xl);
+}
+.newsletter-cards--stage .newsletter-card__frequency {
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+}
+.newsletter-cards--stage .newsletter-card__text {
+  max-width: 48ch;
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-body);
+}
+.newsletter-cards--stage .community-card__action {
+  font-size: var(--mk-text-lg);
+}
+/* A newsletter's programme, drawn above its name. */
+.newsletter-stage__mark {
+  display: block;
+  width: min(420px, 80%);
+  height: auto;
+  margin-block-end: var(--mk-space-24);
+}
+.newsletter-stage__art {
+  display: block;
+  width: min(280px, 64%);
+  height: auto;
+  aspect-ratio: 1;
+  margin-block-end: var(--mk-space-24);
+  border-radius: var(--mk-radius-media);
+}
+.cover-invite {
+  gap: var(--mk-space-24) var(--mk-space-48);
+  padding: var(--mk-space-40);
+  border-radius: var(--mk-radius-dialog);
+}
+/* The action follows its words instead of waiting at the far edge. */
+.cover-invite > div {
+  flex: 0 1 auto;
+}
+.cover-invite .community-invite__title {
+  font-size: var(--mk-text-5xl);
+  line-height: var(--mk-leading-heading);
+}
+.cover-invite p {
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-body);
+}
+
+/* ------------------------------------------------- stage heads and crossings */
+
+/* The head of a page that stands on a stage or a cover (an episode, an
+   article): where it belongs, its title, a line, its facts and its actions,
+   centred. */
+.stage-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.stage-head__crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0 var(--mk-space-20);
+  margin: 0;
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+}
+.stage-head__crumbs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.35em;
+  transition: color var(--mk-duration-fast) ease;
+}
+.stage-head__crumbs a:hover {
+  color: var(--ink-hover);
+}
+.stage-head__accent {
+  color: var(--cover-accent, var(--muted));
+}
+.stage-head__title {
+  max-width: 15em;
+  margin: var(--mk-space-8) 0 0;
+  font-size: var(--mk-display-1);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+  text-wrap: balance;
+}
+.stage-head__lede {
+  max-width: 34em;
+  margin: var(--mk-space-20) 0 0;
+  color: var(--muted);
+  font-size: var(--mk-text-2xl);
+  line-height: var(--mk-leading-body);
+  text-wrap: balance;
+}
+.stage-head__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--mk-space-8) var(--mk-space-24);
+  margin: var(--mk-space-20) 0 0;
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-ui);
+}
+.stage-head__icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-8);
+}
+.stage-head__icon-text svg {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+}
+.stage-head__strong {
+  font-weight: var(--mk-weight-semibold);
+}
+.stage-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--mk-space-12) var(--mk-space-16);
+  margin-block-start: var(--mk-space-32);
+}
+.stage-head__actions .episode-library-actions {
+  display: flex;
+  align-items: center;
+}
+/* On a cover the play pill takes the cover's ink in both appearances, like
+   every other action standing on it. */
+:root .cover-stage .mukhtalif-player-button {
+  background: var(--fg);
+  color: var(--bg);
+}
+:root .cover-stage .mukhtalif-player-button:hover:not(:disabled) {
+  background: var(--ink-hover);
+}
+.stage-head__note {
+  max-width: 34em;
+  margin: var(--mk-space-24) 0 0;
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-body);
+}
+
+/* A picture that crosses from the stage onto the sheet: an episode's video,
+   an article's cover. It is there from the start, about a quarter of its
+   width hangs over the sheet, and the sheet's first section starts below
+   it. Pages with one carry .has-cross. */
+.has-cross {
+  --cross-w: min(1100px, 100cqi - 2 * var(--mk-gutter));
+  --overlap: calc(var(--cross-w) * 0.27);
+}
+.has-cross .cover-stage,
+.has-cross .reading-stage {
+  padding-block-end: 0;
+}
+.has-cross .home-sheet__surface {
+  padding-block-start: calc(var(--overlap) + var(--mk-section));
+}
+.stage-cross {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: var(--cross-w);
+  margin: var(--mk-space-64) auto calc(-1 * var(--overlap));
+}
+.stage-cross > section {
+  margin: 0;
+}
+/* The raised surface holds the picture's place while it loads. */
+.stage-cross img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--mk-radius-dialog);
+  background: var(--surface);
+  object-fit: cover;
+}
+
+/* ------------------------------------------------------------- episode page */
+
+.episode-page {
+  container-type: inline-size;
+}
+/* The notes at a reading measure. */
+.episode-read {
+  max-width: calc(var(--mk-measure-article) + 2 * var(--gutter));
+}
+.episode-read__body p {
+  margin: var(--mk-space-20) 0 0;
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-reading);
+}
+
+/* ------------------------------------------------------------- reading pages */
+
+/* The articles and an article stand on the night stage. */
+.reading-stage {
+  padding-block: calc(var(--mk-space-96) + var(--mk-space-32)) var(--mk-section);
+  background: var(--mk-stage);
+  text-align: center;
+}
+.reading-stage .stage-statement {
+  max-width: 14em;
+}
+/* The newest article, introduced under its cover. */
+.reading-feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: calc(var(--mk-measure-article) + 2 * var(--gutter));
+  text-align: center;
+}
+.reading-feature__date,
+.reading-feature__by {
+  margin: 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-ui);
+}
+.reading-feature__title {
+  margin: var(--mk-space-8) 0 0;
+  font-size: var(--mk-display-2);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+  text-wrap: balance;
+}
+.reading-feature__title a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--mk-duration-fast) ease;
+}
+.reading-feature__title a:hover {
+  color: var(--mk-ink-hover);
+}
+.reading-feature__text {
+  margin: var(--mk-space-12) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-body);
+}
+.reading-feature__by {
+  margin-block: var(--mk-space-12) var(--mk-space-8);
+}
+.reading-search {
+  max-width: 720px;
+  margin-block: var(--mk-space-32) 0;
+}
+/* Articles three to a row: the cover, then the title held to two lines and
+   who wrote it, so every row shares its lines. */
+.article-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-48) var(--mk-space-32);
+  margin: var(--mk-space-40) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.article-tile__link {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--mk-radius-media);
+  color: var(--fg);
+  text-decoration: none;
+}
+.article-tile__cover {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-surface);
+  object-fit: cover;
+}
+.article-tile__title {
+  display: -webkit-box;
+  min-height: 2lh;
+  margin: var(--mk-space-16) 0 0;
+  overflow: hidden;
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  transition: color var(--mk-duration-fast) ease;
+}
+.article-tile__link:hover .article-tile__title {
+  color: var(--ink-hover);
+}
+.article-tile__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--mk-space-16);
+  margin-block-start: var(--mk-space-8);
+  color: var(--muted);
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-ui);
+}
+.reading-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--mk-space-32);
+  margin: var(--mk-space-24) 0 0;
+  padding: 0;
+  list-style: none;
+}
+/* An article's body on the sheet, at its reading measure. */
+.article-read {
+  max-width: calc(var(--mk-measure-article) + 2 * var(--gutter));
+}
+/* The prose recipe one step up for the sheet's scale; «كبّر النص» still
+   enlarges it (#article-body.public-reading-large). */
+.article-read .prose {
+  margin-block-start: 0;
+  font-size: var(--mk-text-2xl);
+}
+.article-read .prose h2 {
+  font-size: var(--mk-text-5xl);
+  line-height: var(--mk-leading-heading);
+}
+.article-read .prose h3 {
+  font-size: var(--mk-text-3xl);
+  line-height: var(--mk-leading-heading);
+}
+.article-read__by {
+  margin: var(--mk-space-40) 0 0;
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+}
+/* ------------------------------------------------------------- breakpoints */
+
+@media (max-width: 1000px) {
+  .home-ways__picker {
+    display: none;
+  }
+  .home-ways__slides {
+    display: block;
+    margin-block-start: var(--mk-space-24);
+  }
+  .home-story__line {
+    display: none;
+  }
+  .home-story__stops {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mk-space-48);
+    padding-inline-start: calc(var(--mk-space-40) + var(--mk-space-4));
+  }
+  .home-story__stop {
+    padding-block-start: 0;
+  }
+  .home-story__dot {
+    inset-block-start: 22px;
+    inset-inline-start: -33px;
+    width: 18px;
+    height: 18px;
+  }
+  .home-story__step {
+    position: absolute;
+    inset-block: 31px calc(-1 * (var(--mk-space-48) + 31px));
+    inset-inline-start: -44px;
+    display: block;
+    width: 40px;
+    height: auto;
+    overflow: visible;
+  }
+  .home-story__step path {
+    stroke-width: 3;
+  }
+  .site-floor__cols,
+  .site-floor__base {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .article-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .newsletter-cards--stage[data-count='3'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .stage-hero {
+    height: calc(702 * var(--up));
+  }
+  .stage-hero__maze--wide {
+    display: none;
+  }
+  .stage-hero__maze--phone {
+    display: block;
+  }
+  .stage-hero__title {
+    inset-block-start: calc(403 * var(--up) - var(--mk-leading-tight) * 1em - var(--stop-y));
+    inset-inline: 0;
+    font-size: calc(52 * var(--up));
+    white-space: normal;
+  }
+  .stage-hero__line {
+    display: block;
+    text-align: center;
+  }
+  .stage-hero__line--end {
+    padding-inline-end: calc(50% - 78 * var(--up) - 0.11em);
+    text-align: end;
+  }
+  .stage-hero__lede {
+    inset-block-start: calc(442 * var(--up));
+    max-width: calc(300 * var(--up));
+    padding-inline: 0;
+    font-size: var(--mk-text-base);
+  }
+  .home-manifesto__route {
+    width: calc(25.7 * var(--up));
+    height: calc(90 * var(--up));
+  }
+  .home-manifesto__body {
+    padding-block-start: var(--mk-space-24);
+  }
+  .home-service {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mk-space-8);
+    padding-block: var(--mk-space-20);
+  }
+  .stage-rail--programmes {
+    --rail-item: 232px;
+    gap: var(--mk-space-16);
+    padding-block-start: var(--mk-space-24);
+  }
+  .community-picker__detail {
+    min-height: 0;
+  }
+  .cover-stage__line {
+    font-size: var(--mk-text-2xl);
+  }
+  .cover-stage__unit {
+    font-size: var(--mk-text-3xl);
+  }
+  .programme-host--photo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .programme-host__photo {
+    max-width: 320px;
+  }
+  .stage-rail--episodes {
+    --rail-item: 300px;
+  }
+  .community-hero {
+    min-height: calc(560 * var(--up));
+  }
+  .community-hero__title {
+    inset-block-start: calc(299 * var(--up) - var(--stop-y));
+    font-size: calc(var(--hero-fs-phone) * var(--up));
+  }
+  .community-hero__body {
+    padding-block-start: calc(330 * var(--up));
+  }
+  .community-hero__lede {
+    max-width: calc(300 * var(--up));
+    font-size: var(--mk-text-base);
+    line-height: var(--mk-leading-body);
+  }
+  .community-programmes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--mk-space-32) var(--mk-space-16);
+    margin-block-start: var(--mk-space-24);
+  }
+  .community-programmes .programme-tile__name {
+    margin-block-start: var(--mk-space-12);
+    font-size: var(--mk-text-2xl);
+  }
+  .community-programmes .programme-tile__text {
+    font-size: var(--mk-text-sm);
+  }
+  .community-programmes .programme-tile__hosts {
+    font-size: var(--mk-text-xs);
+  }
+  .newsletter-cards--stage,
+  .newsletter-cards--stage[data-count='3'] {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mk-space-16);
+  }
+  .newsletter-cards--stage .newsletter-card {
+    padding: var(--mk-space-24);
+  }
+  .newsletter-cards--stage .newsletter-card__name {
+    font-size: var(--mk-text-3xl);
+  }
+  .newsletter-cards--stage .newsletter-card__text {
+    font-size: var(--mk-text-base);
+  }
+  .cover-invite {
+    padding: var(--mk-space-24);
+  }
+  .cover-invite .community-invite__title {
+    font-size: var(--mk-text-3xl);
+  }
+  .cover-invite p {
+    font-size: var(--mk-text-base);
+  }
+}
+
+@media (max-width: 600px) {
+  .home-credits__row {
+    column-gap: var(--mk-space-20);
+  }
+  .home-credits__row dt {
+    font-size: var(--mk-text-sm);
+  }
+  .home-credits__row dd {
+    font-size: var(--mk-text-base);
+  }
+  .site-floor__marks,
+  .site-floor__legal {
+    grid-column: 1 / -1;
+  }
+  .article-tiles {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mk-space-40);
+  }
+  /* One to a row: no neighbour to line up with, so no reserved second line. */
+  .article-tile__title {
+    min-height: 0;
+  }
+  .article-read .prose {
+    font-size: var(--mk-text-xl);
+  }
+  .article-read .prose h2 {
+    font-size: var(--mk-text-3xl);
+  }
+  .article-read .prose h3 {
+    font-size: var(--mk-text-2xl);
+  }
+  .episode-read__body p {
+    font-size: var(--mk-text-lg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-route__ink {
+    animation: none;
+  }
+  .home-manifesto__text span,
+  .stage-link,
+  .programme-tile__name,
+  .community-picker__exit,
+  .site-floor__group a,
+  .site-floor__mark,
+  .site-floor__policies a {
+    transition: none;
+  }
+}

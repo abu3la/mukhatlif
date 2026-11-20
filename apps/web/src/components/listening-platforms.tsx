@@ -1,23 +1,4 @@
-const platforms = [
-  {
-    id: 'youtube',
-    label: 'YouTube',
-    context: 'قناة مختلف',
-    href: 'https://www.youtube.com/@mukhtalif_career',
-  },
-  {
-    id: 'spotify',
-    label: 'Spotify',
-    context: 'بودكاست بترولي',
-    href: 'https://open.spotify.com/show/6m9xb0r6xCBtTvq4UnnYbh',
-  },
-  {
-    id: 'apple-podcasts',
-    label: 'Apple Podcasts',
-    context: 'بودكاست بترولي',
-    href: 'https://podcasts.apple.com/sa/podcast/id1532674246',
-  },
-] as const;
+import { PLATFORMS as platforms } from '@/lib/site-facts';
 
 export function ListeningPlatforms() {
   return (

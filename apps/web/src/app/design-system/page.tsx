@@ -152,7 +152,11 @@ export default async function DesignSystemPage({
                 <ul className={styles.swatches}>
                   {Object.entries(group.tokens as Record<string, ThemedToken>).map(
                     ([name, token]) => (
-                      <Swatch key={name} name={name} token={token} />
+                      <Swatch
+                        key={name}
+                        name={('prefix' in group ? group.prefix : '') + name}
+                        token={token}
+                      />
                     ),
                   )}
                 </ul>
