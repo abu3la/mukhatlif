@@ -109,3 +109,28 @@ describe('the community heroes', () => {
     }
   });
 });
+
+describe('the sign-in stage', () => {
+  it('arrives above the middle of the form and never runs under it', async () => {
+    const { SIGNIN_DRAWINGS, SIGNIN_PHONE, SIGNIN_WIDE } = await import('./auth-maze');
+    // The form keeps its size while the drawing scales, so the wide route keeps
+    // above it, or right of where it can reach at the narrowest wide layout.
+    expect(SIGNIN_WIDE.cells.every(([c, r]) => c >= 17 && c <= 43 && (r <= 3 || c >= 40))).toBe(
+      true,
+    );
+    expect(SIGNIN_PHONE.cells.every(([c]) => c >= 10)).toBe(true);
+    for (const maze of [SIGNIN_WIDE, SIGNIN_PHONE]) {
+      expect(maze.cells.every(([c, r]) => maze.open(c, r))).toBe(true);
+      expect(maze.cells.at(-1)).toEqual(maze.last);
+      expect((maze.last[0] + 0.5) * maze.pitch).toBe(maze.width / 2);
+    }
+    for (let c = 24; c <= 34; c++)
+      for (let r = 4; r < 19; r++) expect(SIGNIN_WIDE.open(c, r)).toBe(false);
+    expect(
+      SIGNIN_DRAWINGS.wide.route.endsWith(`${SIGNIN_WIDE.width / 2} ${SIGNIN_WIDE.stopY}`),
+    ).toBe(true);
+    expect(
+      SIGNIN_DRAWINGS.phone.route.endsWith(`${SIGNIN_PHONE.width / 2} ${SIGNIN_PHONE.stopY}`),
+    ).toBe(true);
+  });
+});

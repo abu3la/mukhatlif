@@ -53,7 +53,7 @@ export default async function ArticlesPage({
   return (
     <div className={'stage-page reading-page' + (featured?.coverUrl ? ' has-cross' : '')}>
       <div className="stage-scope">
-        <section className="reading-stage" aria-labelledby="articles-title">
+        <section className="stage-intro" aria-labelledby="articles-title">
           <div className="content-container stage-head">
             <h1 id="articles-title" className="stage-statement">
               اقرأ من مختلف
@@ -71,21 +71,21 @@ export default async function ArticlesPage({
       <div className="home-sheet">
         <div className="home-sheet__surface reading-sheet">
           {featured ? (
-            <article className="content-container reading-feature" aria-labelledby="featured-title">
+            <article className="content-container stage-feature" aria-labelledby="featured-title">
               {featured.publishedAt ? (
-                <p className="reading-feature__date">
+                <p className="stage-feature__date">
                   <time dateTime={dateTimeAttribute(featured.publishedAt)}>
                     {formatDate(featured.publishedAt)}
                   </time>
                 </p>
               ) : null}
-              <h2 className="reading-feature__title" id="featured-title">
+              <h2 className="stage-feature__title" id="featured-title">
                 <Link href={featuredHref}>{featured.titleAr}</Link>
               </h2>
               {featured.excerptAr ? (
-                <p className="reading-feature__text">{featured.excerptAr}</p>
+                <p className="stage-feature__text">{featured.excerptAr}</p>
               ) : null}
-              <p className="reading-feature__by">{featured.author.displayName}</p>
+              <p className="stage-feature__by">{featured.author.displayName}</p>
               <Link className="stage-link" href={featuredHref}>
                 اقرأ المقال
               </Link>
@@ -161,7 +161,7 @@ export default async function ArticlesPage({
             <h2 className="cover-section__title" id="articles-topics">
               ومن القراءة إلى الحوار
             </h2>
-            <ul className="reading-topics">
+            <ul className="stage-topics">
               {TOPICS.map((topic) => (
                 <li key={topic}>
                   <Link className="stage-link" href={'/search?q=' + encodeURIComponent(topic)}>

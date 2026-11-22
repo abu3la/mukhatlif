@@ -32,8 +32,8 @@ Rules:
 
 ## Presentation pages (D-24)
 
-The home, programme, community, episode, reading and newsletter pages
-introduce rather than list. Their rhythm is stage, sheet, floor
+The home, programme, community, episode, reading, newsletter, listening,
+search, library and sign-in pages introduce rather than list. Their rhythm is stage, sheet, floor
 (`app/stage.css`):
 
 | Part  | What it is                                                                | Built from                                                      |
@@ -57,6 +57,13 @@ introduce rather than list. Their rhythm is stage, sheet, floor
   section starts below it.
 - Grids on a sheet hold every slot (a tile's title keeps two lines, a missing
   cover keeps its frame), so rows share their lines.
+- An index stands on `.stage-intro`: its statement, one line and a fact in
+  the stage's ink. Its newest item crosses onto the sheet and is introduced
+  there (`.stage-feature`); a search, a later page or another order shows the
+  list alone. A choice below the stage (a programme, an order, a page) reloads
+  the list at its anchor (`#all`) so the reader stays at the list.
+- Account pages keep their stage while the account loads; the gate's states
+  sit on the sheet (`CustomerGate bare`).
 
 ## Grids and rails
 

@@ -165,8 +165,8 @@
     "important": 2,
     "line-height": 4,
     "media-width": 2,
-    "radius": 7,
-    "spacing": 116
+    "radius": 6,
+    "spacing": 114
   },
   "apps/web/src/components/episode-video.module.css": {
     "spacing": 1

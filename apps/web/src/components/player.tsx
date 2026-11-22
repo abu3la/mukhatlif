@@ -500,6 +500,8 @@ export interface PlayEpisodeButtonProps {
   variant?: 'label' | 'icon';
   className?: string;
   initialSeconds?: number;
+  /** The label's words before anything plays, e.g. «أكمل الاستماع». */
+  idleLabel?: string;
 }
 
 export function PlayEpisodeButton({
@@ -507,6 +509,7 @@ export function PlayEpisodeButton({
   variant = 'label',
   className,
   initialSeconds = 0,
+  idleLabel = 'استمع الآن',
 }: PlayEpisodeButtonProps) {
   const player = usePlayer();
   const customer = useCustomer();
@@ -521,9 +524,11 @@ export function PlayEpisodeButton({
       ? 'إيقاف الحلقة مؤقتًا'
       : current
         ? 'متابعة الحلقة'
-        : resume >= 15 && (!episode.durationSec || resume < episode.durationSec - 5)
-          ? `أكمل ${episode.title} من ${formatPlaybackTime(resume)}`
-          : `تشغيل ${episode.title}`;
+        : initialSeconds > 0
+          ? `تشغيل ${episode.title} من ${formatPlaybackTime(initialSeconds)}`
+          : resume >= 15 && (!episode.durationSec || resume < episode.durationSec - 5)
+            ? `أكمل ${episode.title} من ${formatPlaybackTime(resume)}`
+            : `تشغيل ${episode.title}`;
 
   return (
     <button
@@ -551,7 +556,7 @@ export function PlayEpisodeButton({
       )}
       {variant === 'label' ? (
         <span>
-          {loading ? 'جار التحميل' : playing ? 'إيقاف مؤقت' : current ? 'متابعة' : 'استمع الآن'}
+          {loading ? 'جار التحميل' : playing ? 'إيقاف مؤقت' : current ? 'متابعة' : idleLabel}
         </span>
       ) : null}
     </button>

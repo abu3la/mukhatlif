@@ -96,6 +96,24 @@ export const NEWSLETTERS_NOUN: CountedNoun = {
   gender: 'feminine',
 };
 
+export const EPISODES_NOUN: CountedNoun = {
+  one: 'حلقة واحدة',
+  two: 'حلقتان',
+  plural: 'حلقات',
+  accusative: 'حلقة',
+  single: 'حلقة',
+  gender: 'feminine',
+};
+
+export const RESULTS_NOUN: CountedNoun = {
+  one: 'نتيجة واحدة',
+  two: 'نتيجتان',
+  plural: 'نتائج',
+  accusative: 'نتيجة',
+  single: 'نتيجة',
+  gender: 'feminine',
+};
+
 /** «389 حلقة», «5 حلقات»: the counted noun after a number, by its last two digits. */
 export function episodesNoun(count: number) {
   const tens = count % 100;

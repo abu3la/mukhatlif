@@ -45,9 +45,11 @@ body:has(.stage-page) .site-header {
   background: var(--mk-footer);
   color: var(--fg);
 }
-/* The menu keeps the page's own colours wherever the header stands. */
+/* The menu keeps the page's own colours wherever the header stands, and so
+   does the sign-in form on its stage. */
 body:has(.stage-page) .site-header dialog,
-body:has(.cover-stage) .site-header dialog {
+body:has(.cover-stage) .site-header dialog,
+.auth-card {
   --bg: var(--mk-page);
   --page: var(--mk-page);
   --fg: var(--mk-ink);
@@ -1339,7 +1341,7 @@ body:has(.cover-stage[data-tone='light']) .site-header {
   --overlap: calc(var(--cross-w) * 0.27);
 }
 .has-cross .cover-stage,
-.has-cross .reading-stage {
+.has-cross .stage-intro {
   padding-block-end: 0;
 }
 .has-cross .home-sheet__surface {
@@ -1383,52 +1385,58 @@ body:has(.cover-stage[data-tone='light']) .site-header {
 
 /* ------------------------------------------------------------- reading pages */
 
-/* The articles and an article stand on the night stage. */
-.reading-stage {
+/* An index page's night stage: the articles, an article, «استمع», search and
+   the library. */
+.stage-intro {
   padding-block: calc(var(--mk-space-96) + var(--mk-space-32)) var(--mk-section);
   background: var(--mk-stage);
   text-align: center;
 }
-.reading-stage .stage-statement {
+.stage-intro .stage-statement {
   max-width: 14em;
 }
-/* The newest article, introduced under its cover. */
-.reading-feature {
+/* What the page holds, in the stage's own ink after its line. */
+.stage-head__fact {
+  color: var(--fg);
+  font-weight: var(--mk-weight-semibold);
+}
+/* The newest article or episode, introduced on the sheet under its picture. */
+.stage-feature {
   display: flex;
   flex-direction: column;
   align-items: center;
   max-width: calc(var(--mk-measure-article) + 2 * var(--gutter));
   text-align: center;
 }
-.reading-feature__date,
-.reading-feature__by {
+.stage-feature__date,
+.stage-feature__by {
   margin: 0;
   color: var(--mk-ink-muted);
   font-size: var(--mk-text-md);
   line-height: var(--mk-leading-ui);
 }
-.reading-feature__title {
+.stage-feature__title {
   margin: var(--mk-space-8) 0 0;
   font-size: var(--mk-display-2);
   font-weight: var(--mk-weight-bold);
   line-height: var(--mk-leading-heading);
   text-wrap: balance;
 }
-.reading-feature__title a {
+.stage-feature__title a {
   color: inherit;
   text-decoration: none;
   transition: color var(--mk-duration-fast) ease;
 }
-.reading-feature__title a:hover {
+.stage-feature__title a:hover {
   color: var(--mk-ink-hover);
 }
-.reading-feature__text {
+.stage-feature__text {
   margin: var(--mk-space-12) 0 0;
   color: var(--mk-ink-muted);
   font-size: var(--mk-text-xl);
   line-height: var(--mk-leading-body);
 }
-.reading-feature__by {
+.stage-feature__by {
   margin-block: var(--mk-space-12) var(--mk-space-8);
 }
 .reading-search {
@@ -1485,7 +1493,7 @@ body:has(.cover-stage[data-tone='light']) .site-header {
   font-size: var(--mk-text-sm);
   line-height: var(--mk-leading-ui);
 }
-.reading-topics {
+.stage-topics {
   display: flex;
   flex-wrap: wrap;
   gap: 0 var(--mk-space-32);
@@ -1516,6 +1524,636 @@ body:has(.cover-stage[data-tone='light']) .site-header {
   font-size: var(--mk-text-lg);
   font-weight: var(--mk-weight-semibold);
 }
+/* ---------------------------------------------------------------- «استمع» */
+
+/* The newest episode at the episode measure, its facts in the sheet's muted
+   ink. */
+.stage-feature--episode {
+  max-width: calc(var(--mk-measure-episode) + 2 * var(--gutter));
+}
+.stage-feature__meta {
+  color: var(--mk-ink-muted);
+}
+.listen-all {
+  scroll-margin-block-start: var(--mk-space-24);
+}
+/* The programmes as their own covers to choose from. The chosen one is ringed
+   in ink and named in bold; «كل البرامج» is four of the covers together. */
+.listen-programmes {
+  --rail-item: 104px;
+  gap: var(--mk-space-20);
+  padding-block-start: var(--mk-space-32);
+}
+.listen-programmes > li {
+  scroll-snap-align: start;
+}
+.listen-programme {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mk-space-12);
+  border-radius: var(--mk-radius-media);
+  color: var(--fg);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-ui);
+  text-align: center;
+  text-decoration: none;
+}
+.listen-programme__cover,
+.listen-programme__all {
+  display: block;
+  width: var(--rail-item);
+  height: var(--rail-item);
+  border-radius: var(--mk-radius-media);
+  object-fit: cover;
+}
+.listen-programme__all {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: var(--mk-space-4);
+  overflow: hidden;
+}
+.listen-programme__all > * {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+}
+/* A show without artwork keeps its place in the row. */
+.listen-programme__blank {
+  background: var(--mk-surface);
+}
+.listen-programmes [data-tone='light'] .listen-programme__cover {
+  outline: 1px solid var(--mk-border-soft);
+  outline-offset: -1px;
+}
+.listen-programme[aria-current] .listen-programme__cover,
+.listen-programme[aria-current] .listen-programme__all {
+  outline: 3px solid var(--mk-ink);
+  outline-offset: 3px;
+}
+.listen-programme[aria-current] {
+  font-weight: var(--mk-weight-bold);
+}
+.listen-programme__name {
+  transition: color var(--mk-duration-fast) ease;
+}
+.listen-programme:hover .listen-programme__name {
+  color: var(--ink-hover);
+}
+/* Search, order and count on one line under the programmes. */
+.listen-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-16) var(--mk-space-40);
+  margin-block-start: var(--mk-space-40);
+}
+.listen-find {
+  position: relative;
+  flex: 0 1 420px;
+}
+.listen-find input {
+  display: block;
+  width: 100%;
+  height: 52px;
+  padding-block: 0;
+  padding-inline: var(--mk-space-16) calc(var(--mk-space-48) + var(--mk-space-8));
+  border: 1px solid var(--mk-border);
+  border-radius: var(--mk-radius-control);
+  background: var(--mk-page);
+  color: var(--mk-ink);
+  font: inherit;
+  font-size: var(--mk-text-base);
+}
+.listen-find input::placeholder {
+  color: var(--mk-ink-muted);
+  opacity: 1;
+}
+.listen-find button {
+  position: absolute;
+  inset-block: var(--mk-space-4);
+  inset-inline-end: var(--mk-space-4);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--mk-radius-control);
+  background: none;
+  color: var(--mk-ink);
+  cursor: pointer;
+  transition: background-color var(--mk-duration-fast) ease;
+}
+.listen-find button:hover {
+  background: var(--mk-surface-hover);
+}
+.listen-sort {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--mk-space-24);
+  font-size: var(--mk-text-base);
+}
+.listen-sort a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--mk-ink-muted);
+  text-decoration: none;
+  transition: color var(--mk-duration-fast) ease;
+}
+.listen-sort a:hover,
+.listen-sort a[aria-current] {
+  color: var(--mk-ink);
+}
+.listen-sort a[aria-current] {
+  font-weight: var(--mk-weight-bold);
+}
+.listen-count {
+  margin: 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-base);
+  line-height: var(--mk-leading-ui);
+}
+.listen-count a {
+  color: var(--mk-ink);
+  font-weight: var(--mk-weight-semibold);
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.35em;
+}
+/* Every card of a row shares its height, so the actions line up. */
+.listen-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-24);
+  margin-block-start: var(--mk-space-40);
+}
+.listen-cards + .pager {
+  margin-block-start: var(--mk-space-48);
+}
+
+/* ------------------------------------------------------------------ search */
+
+/* The question's field stands on the stage: its raised surface, its wall for
+   an edge, and the search action in the stage's ink at the field's end. The
+   kinds of result and their counts sit at the stage's edge. */
+.search-stage {
+  padding-block-end: var(--mk-space-64);
+}
+.search-field {
+  width: min(760px, 100%);
+  margin-block-start: var(--mk-space-40);
+  text-align: start;
+}
+.search-field label {
+  display: block;
+  margin-block-end: var(--mk-space-12);
+  color: var(--muted);
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+}
+.search-field__box {
+  position: relative;
+}
+.search-field input {
+  display: block;
+  width: 100%;
+  height: 64px;
+  padding-block: 0;
+  padding-inline: var(--mk-space-20) calc(var(--mk-space-64) + var(--mk-space-4));
+  border: 1px solid var(--mk-stage-wall);
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-stage-raised);
+  color: var(--mk-stage-ink);
+  font: inherit;
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-semibold);
+}
+.search-field input::placeholder {
+  color: var(--mk-stage-ink-faint);
+  font-weight: var(--mk-weight-regular);
+  opacity: 1;
+}
+.search-field button {
+  position: absolute;
+  inset-block: var(--mk-space-4);
+  inset-inline-end: var(--mk-space-4);
+  display: grid;
+  place-items: center;
+  width: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--mk-radius-control);
+  background: var(--mk-stage-ink);
+  color: var(--mk-stage);
+  cursor: pointer;
+  transition: background-color var(--mk-duration-fast) ease;
+}
+.search-field button:hover {
+  background: var(--mk-stage-ink-muted);
+}
+.search-count {
+  margin: var(--mk-space-20) 0 0;
+  color: var(--muted);
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-ui);
+}
+.search-kinds ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--mk-space-4) var(--mk-space-40);
+  margin: var(--mk-space-48) 0 0;
+  padding-block: 0;
+  padding-inline: var(--mk-gutter);
+  list-style: none;
+}
+.search-kinds a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--mk-space-8);
+  min-height: 44px;
+  padding-block: var(--mk-space-8);
+  color: var(--muted);
+  font-size: var(--mk-text-xl);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+  text-decoration: none;
+  transition: color var(--mk-duration-fast) ease;
+}
+.search-kinds a:hover,
+.search-kinds a[aria-current] {
+  color: var(--fg);
+}
+.search-kinds a[aria-current] {
+  font-weight: var(--mk-weight-bold);
+}
+.search-kinds a[data-empty] {
+  color: var(--mk-stage-ink-faint);
+}
+.search-kinds bdi {
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-medium);
+}
+.search-hint {
+  margin: var(--mk-space-12) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-body);
+}
+/* Guests by name, three to a row; each keeps a two-line slot for what they
+   do, so the rows share their lines. */
+.search-guests {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-40) var(--mk-space-32);
+  margin: var(--mk-space-40) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.search-guest {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-4);
+  border-radius: var(--mk-radius-control);
+  color: var(--mk-ink);
+  text-decoration: none;
+}
+.search-guest__name {
+  font-size: var(--mk-text-3xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+  transition: color var(--mk-duration-fast) ease;
+}
+.search-guest:hover .search-guest__name {
+  color: var(--mk-ink-hover);
+}
+.search-guest__role {
+  display: -webkit-box;
+  min-height: 2lh;
+  overflow: hidden;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-base);
+  line-height: var(--mk-leading-body);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.search-guest__count {
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+}
+
+/* ------------------------------------------------------------------ library */
+
+/* «مكتبتي»: the episode the listener stopped in crosses at a smaller size,
+   with how far they got along its bottom edge. */
+.library-page.has-cross {
+  --cross-w: min(760px, 100cqi - 2 * var(--mk-gutter));
+}
+.library-resume__picture {
+  overflow: hidden;
+  border-radius: var(--mk-radius-dialog);
+}
+.library-resume__track {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 8px;
+  background: color-mix(in srgb, var(--mk-stage) 55%, transparent);
+}
+.library-resume__done {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  background: var(--mk-stage-ink);
+}
+.library-resume__where {
+  margin: var(--mk-space-16) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-base);
+  line-height: var(--mk-leading-ui);
+}
+.library-resume__where bdi {
+  color: var(--mk-ink);
+  font-weight: var(--mk-weight-semibold);
+}
+.library-note {
+  margin: var(--mk-space-16) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-body);
+}
+.library-start .public-primary {
+  margin-block-start: var(--mk-space-24);
+}
+/* Followed programmes by their covers, six to a row. */
+.library-follows {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--mk-space-32);
+  margin: var(--mk-space-40) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.library-follow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-12);
+  border-radius: var(--mk-radius-media);
+  color: var(--mk-ink);
+  font-size: var(--mk-text-xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+  text-decoration: none;
+}
+.library-follow__cover {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: var(--mk-radius-media);
+  object-fit: cover;
+}
+.library-follows [data-tone='light'] .library-follow__cover {
+  outline: 1px solid var(--mk-border-soft);
+  outline-offset: -1px;
+}
+.library-follow__blank {
+  background: var(--mk-surface);
+}
+.library-follow__name {
+  transition: color var(--mk-duration-fast) ease;
+}
+.library-follow:hover .library-follow__name {
+  color: var(--mk-ink-hover);
+}
+/* A text action beside a section's name. */
+.library-new {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-8);
+  min-height: 44px;
+  padding-block: 0;
+  padding-inline: var(--mk-space-4);
+  border: 0;
+  border-radius: var(--mk-radius-control);
+  background: none;
+  color: var(--mk-ink);
+  font: inherit;
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+  cursor: pointer;
+  transition: color var(--mk-duration-fast) ease;
+}
+.library-new svg {
+  width: 1.2em;
+  height: 1.2em;
+}
+.library-new:hover {
+  color: var(--mk-ink-hover);
+}
+/* Playlists four to a row: their stills, name and size. */
+.library-lists {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--mk-space-40) var(--mk-space-32);
+  margin: var(--mk-space-40) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.library-list {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--mk-radius-media);
+  color: var(--mk-ink);
+  text-decoration: none;
+}
+.library-list__art {
+  display: grid;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-surface);
+}
+.library-list__art--four {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: var(--mk-space-4);
+}
+.library-list__art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+}
+/* One line, so every playlist's size sits on the same line. */
+.library-list__name {
+  margin-block-start: var(--mk-space-12);
+  overflow: hidden;
+  font-size: var(--mk-text-2xl);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+  transition: color var(--mk-duration-fast) ease;
+}
+.library-list:hover .library-list__name {
+  color: var(--mk-ink-hover);
+}
+.library-list__count {
+  margin-block-start: var(--mk-space-4);
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-ui);
+}
+/* Moments: where, the listener's note and the episode, and play from there. */
+.library-moments {
+  display: grid;
+  gap: var(--mk-space-12);
+  margin: var(--mk-space-40) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.library-moment {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--mk-space-8) var(--mk-space-32);
+  padding: var(--mk-space-20) var(--mk-space-24);
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-surface);
+}
+.library-moment__at {
+  font-size: var(--mk-text-3xl);
+  font-weight: var(--mk-weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--mk-leading-heading);
+}
+.library-moment__note {
+  margin: 0;
+  font-size: var(--mk-text-xl);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+}
+.library-moment__episode {
+  margin: var(--mk-space-4) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-ui);
+}
+.library-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--mk-space-32);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* A full list under the library's stage keeps the account's own recipes,
+   in the sheet's column. */
+.library-view.customer-page {
+  max-width: calc(var(--mk-measure) + 2 * var(--gutter));
+  padding-block: 0;
+  padding-inline: var(--gutter);
+}
+
+/* ------------------------------------------------------------------ sign-in */
+
+/* The sign-in pages stand on a maze stage whose route arrives at the form
+   (lib/auth-maze.ts). The form is in the flow, so a longer one makes the
+   stage taller. The stage's rounded foot sits on the floor, as the sheet's
+   does elsewhere. */
+.auth-page {
+  background: var(--mk-footer);
+}
+.auth-stage {
+  --u: min(1px, calc(100cqi / 1440));
+  --up: min(1px, calc(100cqi / 390));
+  position: relative;
+  min-height: calc(912 * var(--u));
+  padding-block: calc(192 * var(--u)) calc(160 * var(--u));
+  padding-inline: var(--mk-gutter);
+  overflow: hidden;
+  border-end-start-radius: var(--mk-radius-sheet);
+  border-end-end-radius: var(--mk-radius-sheet);
+  background: var(--mk-stage);
+}
+.auth-stage .stage-hero__maze--wide {
+  height: calc(912 * var(--u));
+}
+.auth-stage .stage-hero__maze--phone {
+  height: calc(338 * var(--up));
+}
+/* The route's last point: the middle of the drawing, above the form. */
+.auth-stage__stop {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: calc(168 * var(--u));
+  left: 50%;
+  width: max(14px, calc(22 * var(--u)));
+  height: max(14px, calc(22 * var(--u)));
+  translate: -50% -50%;
+  fill: var(--mk-stage-ink);
+}
+.auth-card {
+  position: relative;
+  z-index: 1;
+  width: min(528px, 100%);
+  margin-inline: auto;
+  padding: var(--mk-space-48);
+  border-radius: var(--mk-radius-sheet);
+  background: var(--mk-page);
+  text-align: start;
+}
+.auth-card__title {
+  margin: 0;
+  font-size: var(--mk-text-5xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.auth-card__intro {
+  margin: var(--mk-space-8) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-body);
+}
+.auth-card__body,
+.auth-card__body form {
+  display: grid;
+  gap: var(--mk-space-20);
+}
+.auth-card__body {
+  margin-block-start: var(--mk-space-32);
+}
+.auth-card .customer-field input {
+  min-height: 52px;
+  border-radius: var(--mk-radius-control);
+}
+.auth-card .customer-primary {
+  width: 100%;
+}
+.auth-card .customer-form-link {
+  justify-self: start;
+  color: var(--mk-ink);
+  font-weight: var(--mk-weight-semibold);
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.35em;
+  transition: color var(--mk-duration-fast) ease;
+}
+.auth-card .customer-form-link:hover {
+  color: var(--mk-ink-hover);
+}
+.auth-card .customer-auth-switch {
+  font-size: var(--mk-text-base);
+}
+
 /* ------------------------------------------------------------- breakpoints */
 
 @media (max-width: 1000px) {
@@ -1563,6 +2201,18 @@ body:has(.cover-stage[data-tone='light']) .site-header {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .newsletter-cards--stage[data-count='3'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .listen-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .search-guests {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .library-follows {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .library-lists {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1685,6 +2335,121 @@ body:has(.cover-stage[data-tone='light']) .site-header {
   .cover-invite p {
     font-size: var(--mk-text-base);
   }
+  .listen-programmes {
+    --rail-item: 88px;
+    gap: var(--mk-space-16);
+    padding-block-start: var(--mk-space-24);
+  }
+  .listen-programme {
+    font-size: var(--mk-text-sm);
+  }
+  .listen-bar {
+    gap: var(--mk-space-12) var(--mk-space-24);
+    margin-block-start: var(--mk-space-24);
+  }
+  .listen-find {
+    flex: 1 1 100%;
+  }
+  .search-field {
+    margin-block-start: var(--mk-space-32);
+  }
+  .search-field input {
+    height: 56px;
+    padding-inline-end: calc(var(--mk-space-48) + var(--mk-space-12));
+    font-size: var(--mk-text-xl);
+  }
+  .search-field button {
+    width: 48px;
+  }
+  /* The kinds run in one line that scrolls sideways under the field, with
+     room above and below for the focus ring the scrolling would clip. */
+  .search-kinds ul {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: var(--mk-space-4) var(--mk-space-24);
+    margin-block-start: var(--mk-space-24);
+    padding-block: var(--mk-space-8);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .search-kinds ul::-webkit-scrollbar {
+    display: none;
+  }
+  .search-kinds li {
+    flex: none;
+  }
+  .search-kinds a {
+    font-size: var(--mk-text-base);
+  }
+  .search-guests {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mk-space-24);
+    margin-block-start: var(--mk-space-24);
+  }
+  .search-guest__name {
+    font-size: var(--mk-text-2xl);
+  }
+  /* One to a row: no neighbour to line up with. */
+  .search-guest__role {
+    min-height: 0;
+  }
+  .library-follows {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--mk-space-24) var(--mk-space-16);
+    margin-block-start: var(--mk-space-24);
+  }
+  .library-follow {
+    font-size: var(--mk-text-lg);
+  }
+  .library-lists {
+    gap: var(--mk-space-24) var(--mk-space-16);
+    margin-block-start: var(--mk-space-24);
+  }
+  .library-list__name {
+    font-size: var(--mk-text-xl);
+  }
+  .library-moments {
+    margin-block-start: var(--mk-space-24);
+  }
+  .library-moment {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--mk-space-20);
+  }
+  .library-moment__at {
+    font-size: var(--mk-text-2xl);
+  }
+  .library-moment__note {
+    font-size: var(--mk-text-lg);
+  }
+  .library-moment > :last-child {
+    justify-self: start;
+    margin-block-start: var(--mk-space-8);
+  }
+  .library-more {
+    gap: 0 var(--mk-space-24);
+  }
+  /* Phones: the drawing, then the form as the sheet under it. Its corners show
+     the stage above and the floor below. */
+  .auth-stage {
+    min-height: 0;
+    padding-block: calc(338 * var(--up)) 0;
+    padding-inline: 0;
+    border-radius: 0;
+    background: linear-gradient(var(--mk-stage) 50%, var(--mk-footer) 50%);
+  }
+  .auth-stage__stop {
+    inset-block-start: calc(325 * var(--up));
+    width: calc(16 * var(--up));
+    height: calc(16 * var(--up));
+  }
+  .auth-card {
+    width: 100%;
+    padding-block: var(--mk-space-40) var(--mk-space-64);
+    padding-inline: var(--mk-gutter);
+  }
+  .auth-card__title {
+    font-size: var(--mk-text-4xl);
+  }
 }
 
 @media (max-width: 600px) {
@@ -1720,6 +2485,14 @@ body:has(.cover-stage[data-tone='light']) .site-header {
   }
   .episode-read__body p {
     font-size: var(--mk-text-lg);
+  }
+  .listen-cards {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mk-space-16);
+    margin-block-start: var(--mk-space-24);
+  }
+  .library-follows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

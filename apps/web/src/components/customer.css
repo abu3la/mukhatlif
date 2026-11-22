@@ -231,7 +231,7 @@
   position: relative;
 }
 .customer-password input {
-  padding-inline-end: 56px;
+  padding-inline-end: calc(var(--mk-space-64) + var(--mk-space-20));
   text-align: right;
 }
 .customer-field input[type='email'] {
@@ -239,21 +239,25 @@
 }
 .customer-password .customer-password-toggle {
   position: absolute;
-  inset-inline-end: 8px;
-  inset-block-start: 50%;
-  translate: 0 -50%;
-  width: 44px;
-  height: 44px;
-  color: var(--muted);
+  inset-block: var(--mk-space-4);
+  inset-inline-end: var(--mk-space-4);
+  display: inline-flex;
+  align-items: center;
+  min-width: 44px;
+  padding-block: 0;
+  padding-inline: var(--mk-space-12);
   border: 0;
+  border-radius: var(--mk-radius-control);
   background: transparent;
-  border-radius: 8px;
-  line-height: var(--mk-leading-heading);
-  padding-inline: 10px;
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+  cursor: pointer;
+  transition: background-color var(--mk-duration-fast) ease;
 }
 .customer-password .customer-password-toggle:hover {
-  color: var(--fg);
-  background: transparent;
+  background: var(--surface-hover);
 }
 .customer-google {
   width: 100%;

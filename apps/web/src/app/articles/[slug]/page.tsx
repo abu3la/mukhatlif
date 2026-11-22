@@ -101,7 +101,7 @@ export default async function ArticlePage({ params }: Params) {
   return (
     <div className={'stage-page reading-page' + (article.coverUrl ? ' has-cross' : '')}>
       <div className="stage-scope">
-        <section className="reading-stage" aria-labelledby="article-title">
+        <section className="stage-intro" aria-labelledby="article-title">
           <div className="content-container stage-head">
             <p className="stage-head__crumbs">
               <Link href="/articles">اقرأ من مختلف</Link>

@@ -12,13 +12,14 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
 } from 'react';
-import { Wordmark } from './wordmark';
+import { Diamond, MazeDrawing } from './maze-drawing';
+import { SIGNIN_DRAWINGS } from '@/lib/auth-maze';
 import { useCustomer } from './customer-provider';
 
 export function CustomerIcon({
   name,
 }: {
-  name: 'save' | 'check' | 'up' | 'down' | 'close' | 'back' | 'play' | 'queue' | 'eye' | 'eye-off';
+  name: 'save' | 'check' | 'up' | 'down' | 'close' | 'back' | 'play' | 'queue';
 }) {
   const paths = {
     save: 'M6 3h12v18l-6-4-6 4V3Z',
@@ -29,8 +30,6 @@ export function CustomerIcon({
     back: 'm14 5-7 7 7 7',
     play: 'm8 4 12 8-12 8V4Z',
     queue: 'M4 5h16M4 11h16M4 17h8m5-2v6m-3-3h6',
-    eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Zm13 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
-    'eye-off': 'm3 3 18 18M10 5.2A12 12 0 0 1 12 5c6.5 0 10 7 10 7a19 19 0 0 1-3 4M6 6.5A21 21 0 0 0 2 12s3.5 7 10 7a13 13 0 0 0 5-1M9.9 9.9a3 3 0 0 0 4.2 4.2',
   };
   return (
     <svg
@@ -168,11 +167,11 @@ export function CustomerPassword({
         />
         <button
           type="button"
-          className="customer-icon-button customer-password-toggle"
+          className="customer-password-toggle"
           onClick={() => setVisible((value) => !value)}
-          aria-label={`${visible ? 'إخفاء' : 'إظهار'} ${label}`}
         >
-          <CustomerIcon name={visible ? 'eye-off' : 'eye'} />
+          {visible ? 'إخفاء' : 'إظهار'}
+          <span className="visually-hidden"> {label}</span>
         </button>
       </div>
       {!current && <small id={`${id}-hint`}>8 أحرف على الأقل.</small>}
@@ -219,6 +218,11 @@ export function validateCustomerForm(form: HTMLFormElement): Record<string, stri
   return errors;
 }
 
+/**
+ * The sign-in pages on the presentation site (D-24): the maze stage, where the
+ * route that runs through the site arrives at the form. On phones the form is
+ * the sheet under the drawing.
+ */
 export function CustomerAuthFrame({
   title,
   intro,
@@ -229,20 +233,30 @@ export function CustomerAuthFrame({
   children: ReactNode;
 }) {
   return (
-    <div className="page customer-page customer-auth-page">
-      <div className="customer-auth-layout">
-        <section className="customer-auth-context">
-          <Wordmark className="customer-auth-mark" />
-          <h1>{title}</h1>
-          <p>{intro}</p>
-        </section>
-        <section className="customer-form-panel">{children}</section>
-      </div>
+    <div className="stage-page auth-page">
+      <section className="stage-scope auth-stage" aria-labelledby="auth-title">
+        <MazeDrawing maze={SIGNIN_DRAWINGS.wide} variant="wide" />
+        <MazeDrawing maze={SIGNIN_DRAWINGS.phone} variant="phone" />
+        <Diamond className="auth-stage__stop" />
+        <div className="auth-card">
+          <h1 id="auth-title" className="auth-card__title">
+            {title}
+          </h1>
+          <p className="auth-card__intro">{intro}</p>
+          <div className="auth-card__body">{children}</div>
+        </div>
+      </section>
     </div>
   );
 }
 
-export function CustomerGate({ children }: { children: ReactNode }) {
+/**
+ * Shows its children to a signed-in customer. `bare` is for a page that
+ * already has its own heading and frame (the library's stage and sheet): the
+ * waiting, sign-in and error states then sit in its content column with a
+ * second-level heading.
+ */
+export function CustomerGate({ children, bare = false }: { children: ReactNode; bare?: boolean }) {
   const customer = useCustomer();
   const router = useRouter();
   const [destination, setDestination] = useState('/account');
@@ -255,38 +269,31 @@ export function CustomerGate({ children }: { children: ReactNode }) {
         `/login?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`,
       );
   }, [customer.loading, customer.user, router]);
+  const Title = bare ? 'h2' : 'h1';
+  const frame = (content: ReactNode) => (
+    <div className={bare ? 'content-container' : 'page customer-page'}>{content}</div>
+  );
   if (customer.loading)
-    return (
-      <div className="page customer-page">
-        <ContentSkeleton label="تحميل حسابك" variant="account" />
-      </div>
-    );
+    return frame(<ContentSkeleton label="تحميل حسابك" variant="account" />);
   if (!customer.user)
-    return (
-      <div className="page customer-page">
-        <div className="customer-empty">
-          <h1>تسجيل الدخول إلى المكتبة</h1>
-          <p>تسجيل الدخول يتيح حفظ الحلقات ومتابعة الاستماع من أي جهاز.</p>
-          <Link
-            className="customer-primary"
-            href={`/login?next=${encodeURIComponent(destination)}`}
-          >
-            تسجيل الدخول
-          </Link>
-        </div>
-      </div>
+    return frame(
+      <div className="customer-empty">
+        <Title>تسجيل الدخول إلى المكتبة</Title>
+        <p>تسجيل الدخول يتيح حفظ الحلقات ومتابعة الاستماع من أي جهاز.</p>
+        <Link className="customer-primary" href={`/login?next=${encodeURIComponent(destination)}`}>
+          تسجيل الدخول
+        </Link>
+      </div>,
     );
   if (customer.error || !customer.profile)
-    return (
-      <div className="page customer-page">
-        <div className="customer-empty">
-          <h1>تعذر تحميل الحساب</h1>
-          <p role="alert">{customer.error || 'إعادة المحاولة بعد قليل.'}</p>
-          <button className="customer-primary" onClick={() => void customer.refresh()}>
-            إعادة المحاولة
-          </button>
-        </div>
-      </div>
+    return frame(
+      <div className="customer-empty">
+        <Title>تعذر تحميل الحساب</Title>
+        <p role="alert">{customer.error || 'إعادة المحاولة بعد قليل.'}</p>
+        <button className="customer-primary" onClick={() => void customer.refresh()}>
+          إعادة المحاولة
+        </button>
+      </div>,
     );
   return children;
 }

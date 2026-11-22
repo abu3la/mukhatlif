@@ -537,3 +537,13 @@ export function showHref(showSlug: string) {
   const found = communityOfShow(showSlug);
   return found ? programmeHref(found.programme) : `/shows/${encodeURIComponent(showSlug)}`;
 }
+
+/** A catalogue show as the presentation site draws it: its programme's name and cover when it is one of the 27. */
+export function showFace(show: { slug: string; titleAr: string; artworkUrl?: string } | undefined) {
+  const programme = show ? communityOfShow(show.slug)?.programme : undefined;
+  return {
+    name: programme?.name ?? show?.titleAr ?? '',
+    cover: programme ? programmeCover(programme) : show?.artworkUrl,
+    tone: programme ? coverTone(programme) : ('dark' as const),
+  };
+}

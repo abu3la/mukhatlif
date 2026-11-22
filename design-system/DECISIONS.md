@@ -125,9 +125,10 @@ Format: `D-nn · date · decision · why / source`.
   the third direction of the redesign canvas
   (https://claude.ai/artifact/44WWRh2CUhAHRiw1CsEpDS): the site introduces
   Mukhtalif before it plays media. Built on the home, the header, the footer,
-  the programme, community, episode, articles, article and newsletter pages;
-  the other templates (episodes index, search, account, academy) keep their
-  current look until they are redrawn in this language.
+  the programme, community, episode, articles, article and newsletter pages,
+  then «استمع», search, «مكتبتي» and the sign-in pages; account settings
+  («حسابي») and the academy keep their current look until they are redrawn in
+  this language.
   - **The night stage, the sheet, the floor.** A page may open on a night stage
     (`--mk-stage*`: indigo night in light, the footer's green-black in dark),
     continue on a white sheet whose rounded top (`--mk-radius-sheet`) slides
@@ -181,6 +182,24 @@ Format: `D-nn · date · decision · why / source`.
     newsletter page stands on its programme's cover with the programme's mark
     or cover (the general one on the night stage); subscription still happens
     on each list's current page.
+  - **Indexes and the account (third round, canvas version 21).** «استمع»
+    stands on the night stage with the catalogue in a fact («847 حلقة من 16
+    برنامجًا»); the newest episode's large still crosses onto the sheet, where
+    it is introduced, then the whole catalogue: the programmes as their own
+    covers to choose from (the select is gone), a search, the order as words
+    and the pages. Each choice reloads the list at `#all`. Search asks its
+    question on the stage with the kinds of result and their counts at its
+    edge (a kind with nothing is muted, all of them hidden when nothing is
+    found); answers follow by kind, programmes from the 27 of the
+    communities, guests by name and role without initials. «مكتبتي» keeps its
+    stage while the account loads: the episode the listener stopped in crosses
+    with how far they got, then saves, follows, playlists (four stills),
+    moments with «استمع من هنا» and saved reading; each full list
+    («سجل الاستماع», «اهتماماتي»…) is its own view under the same stage, so
+    the tab strip is gone. The sign-in pages stand on the maze: the route
+    arrives at the diamond above the form (`lib/auth-maze.ts`, tested to stay
+    clear of the form at every wide size); on phones the form is the sheet.
+    The password field says «إظهار» and «إخفاء» instead of drawing an eye.
   - **Header and footer.** The bar gains «البرامج» and «الإنتاج», «قضيتنا»
     joins «عن مختلف», and «استمع» is the bar's one filled action; search,
     «مكتبتي» and the menu stay as the owner's rules require. Over a stage the
@@ -197,7 +216,10 @@ Format: `D-nn · date · decision · why / source`.
     the older `.home-*` rules in `listener.css`; since the second round,
     `CommunityCrate`, `InlineEpisodePlayer` and the rules for
     `.community-head`, `.episode-detail__*`, `.public-episode-detail`,
-    `.article-detail__header`, `.article-author*` and `.newsletter-landing*`.
+    `.article-detail__header`, `.article-author*` and `.newsletter-landing*`;
+    since the third round, the `.customer-library-tabs`,
+    `.customer-auth-layout`, `.customer-auth-context`, `.customer-auth-perks`,
+    `.customer-auth-mark` and `.customer-form-panel` rules.
 
 ## Open questions for the owner
 

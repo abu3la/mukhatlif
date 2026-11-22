@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  EPISODES_NOUN,
   NEWSLETTERS_NOUN,
   PROGRAMMES_NOUN,
+  RESULTS_NOUN,
   countInWords,
   dateTimeAttribute,
   formatDate,
@@ -56,5 +58,14 @@ describe('countInWords', () => {
     expect(countInWords(100, PROGRAMMES_NOUN)).toBe('100 برنامج');
     expect(countInWords(103, PROGRAMMES_NOUN)).toBe('103 برامج');
     expect(countInWords(27, NEWSLETTERS_NOUN)).toBe('27 نشرة');
+  });
+
+  it('counts episodes and search results', () => {
+    expect(countInWords(847, EPISODES_NOUN)).toBe('847 حلقة');
+    expect(countInWords(8, EPISODES_NOUN)).toBe('ثماني حلقات');
+    expect(countInWords(1, EPISODES_NOUN)).toBe('حلقة واحدة');
+    expect(countInWords(19, RESULTS_NOUN)).toBe('19 نتيجة');
+    expect(countInWords(3, RESULTS_NOUN)).toBe('ثلاث نتائج');
+    expect(countInWords(2, RESULTS_NOUN)).toBe('نتيجتان');
   });
 });

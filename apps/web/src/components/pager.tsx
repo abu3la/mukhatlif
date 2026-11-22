@@ -27,13 +27,16 @@ export function Pager({
   pageInfo,
   basePath,
   query,
+  hash = '',
 }: {
   pageInfo: PageInfo;
   basePath: string;
   query?: Readonly<Record<string, string | undefined>>;
+  /** Where the next page opens, e.g. `#all`, when the list sits below a stage. */
+  hash?: string;
 }) {
   if (pageInfo.totalPages <= 1) return null;
-  const href = (page: number) => pageHref(basePath, page, query);
+  const href = (page: number) => pageHref(basePath, page, query) + hash;
 
   return (
     <nav className="pager" aria-label="تنقل بين الصفحات">

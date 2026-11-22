@@ -1,5 +1,7 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { pageHref, parsePage } from './pager';
+import { Pager, pageHref, parsePage } from './pager';
 
 describe('parsePage', () => {
   it('defaults to the first page for anything a reader might paste', () => {
@@ -25,5 +27,27 @@ describe('pageHref', () => {
       '/guests?search=%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9+%D8%A7%D9%84%D9%85%D9%86%D8%AA%D8%AC%D8%A7%D8%AA',
     );
     expect(pageHref('/guests', 2, { search: 'نورة' })).toContain('&page=2');
+  });
+});
+
+describe('Pager', () => {
+  it('opens the next page where the list stands', () => {
+    const html = renderToStaticMarkup(
+      createElement(Pager, {
+        pageInfo: {
+          page: 2,
+          perPage: 12,
+          total: 40,
+          totalPages: 4,
+          hasNextPage: true,
+          hasPreviousPage: true,
+        },
+        basePath: '/episodes',
+        query: { showId: 'shw-petroly' },
+        hash: '#all',
+      }),
+    );
+    expect(html).toContain('href="/episodes?showId=shw-petroly#all"');
+    expect(html).toContain('href="/episodes?showId=shw-petroly&amp;page=3#all"');
   });
 });

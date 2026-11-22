@@ -19,8 +19,30 @@ export function RetryContentButton() {
  * anyway), and each button is unavailable at its own end of the rail.
  * `label` names what the rail holds, in the definite plural («الحلقات»).
  */
-export function RailControls({ target, label = 'الحلقات' }: { target: string; label?: string }) {
+export function RailControls({
+  target,
+  label = 'الحلقات',
+  reveal = false,
+}: {
+  target: string;
+  label?: string;
+  /** Bring the rail's current item (`aria-current`) into view on arrival. */
+  reveal?: boolean;
+}) {
   const [edges, setEdges] = useState<{ start: boolean; end: boolean } | null>(null);
+
+  useEffect(() => {
+    const rail = document.getElementById(target);
+    if (!reveal || !rail) return;
+    const item = rail.querySelector<HTMLElement>('[aria-current]');
+    if (!item) return;
+    // Only the rail moves: scrollIntoView could also scroll the page.
+    const railBox = rail.getBoundingClientRect();
+    const itemBox = item.getBoundingClientRect();
+    if (itemBox.left >= railBox.left && itemBox.right <= railBox.right) return;
+    const edge = parseFloat(getComputedStyle(rail).scrollPaddingInlineStart) || 0;
+    rail.scrollBy({ left: itemBox.right - (railBox.right - edge), behavior: 'instant' });
+  }, [target, reveal]);
 
   useEffect(() => {
     const rail = document.getElementById(target);

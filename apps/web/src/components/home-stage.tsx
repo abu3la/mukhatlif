@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { PlatformMark } from '@/components/platform-mark';
+import { Diamond, MazeDrawing } from '@/components/maze-drawing';
 import { ARRIVAL_PHONE, ARRIVAL_WIDE, HERO_PHONE, HERO_WIDE, communityHero } from '@/lib/home-maze';
 import {
   communityLogo,
@@ -21,43 +22,11 @@ import { SERVICES, STORY, TEAM } from '@/lib/site-facts';
  * manifesto and the community picker are the only client islands.
  */
 
-/** The brand's full stop: a diamond, drawn in the text colour. */
-export function Diamond({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 10 10" aria-hidden="true" focusable="false">
-      <path d="M5 0 10 5 5 10 0 5Z" />
-    </svg>
-  );
-}
-
-interface Drawing {
-  width: number;
-  height: number;
-  walls: string;
-  route: string;
-}
-
-function HeroDrawing({ maze, variant }: { maze: Drawing; variant: 'wide' | 'phone' }) {
-  const viewBox = `0 0 ${maze.width} ${maze.height}`;
-  return (
-    <div className={`stage-hero__maze stage-hero__maze--${variant}`} aria-hidden="true">
-      <svg className="stage-hero__walls" viewBox={viewBox} focusable="false">
-        <path d={maze.walls} />
-      </svg>
-      {/* The trace is always there; the ink draws over it once. */}
-      <svg className="stage-hero__route" viewBox={viewBox} focusable="false">
-        <path className="stage-route__trace" d={maze.route} />
-        <path className="stage-route__ink" d={maze.route} pathLength={1} />
-      </svg>
-    </div>
-  );
-}
-
 export function HomeHero() {
   return (
     <section className="stage-hero" aria-labelledby="home-title">
-      <HeroDrawing maze={HERO_WIDE} variant="wide" />
-      <HeroDrawing maze={HERO_PHONE} variant="phone" />
+      <MazeDrawing maze={HERO_WIDE} variant="wide" />
+      <MazeDrawing maze={HERO_PHONE} variant="phone" />
       <h1 id="home-title" className="stage-hero__title">
         <span className="stage-hero__line">لمسار مهني</span>{' '}
         <span className="stage-hero__line stage-hero__line--end">
@@ -86,8 +55,8 @@ export function CommunityHero({ community, fact }: { community: Community; fact?
   return (
     <section className="community-hero" aria-labelledby="community-title" style={size}>
       {/* Drawn with the home hero's maze pieces, in its two compositions. */}
-      <HeroDrawing maze={{ ...ARRIVAL_WIDE, route: hero.wide }} variant="wide" />
-      <HeroDrawing maze={{ ...ARRIVAL_PHONE, route: hero.phone }} variant="phone" />
+      <MazeDrawing maze={{ ...ARRIVAL_WIDE, route: hero.wide }} variant="wide" />
+      <MazeDrawing maze={{ ...ARRIVAL_PHONE, route: hero.phone }} variant="phone" />
       <h1 id="community-title" className="community-hero__title">
         {community.name}
         <Diamond className="stage-hero__stop" />
@@ -358,3 +327,5 @@ export function HomeCredits() {
     </section>
   );
 }
+
+export { Diamond };
