@@ -160,6 +160,44 @@ describe('course upload size limits', () => {
     expect(oversized.status).toBe(422);
     expect(upstream).not.toHaveBeenCalled();
   });
+  it('passes part numbers and ETags of a direct upload, and rejects malformed ones', async () => {
+    const options = { user: 'usr-admin-1', surface: 'studio' };
+    const sign = await request('/studio/courses/course-1/upload-sign', {
+      ...options,
+      body: { token: 'asset', parts: [1, 2, 3] },
+    });
+    expect(sign.status).toBe(200);
+    expect(upstream.mock.calls[0].slice(1, 3)).toEqual([
+      'studio.upload-sign',
+      { token: 'asset', parts: [1, 2, 3], courseId: 'course-1' },
+    ]);
+    const finish = await request('/studio/courses/course-1/upload-finish', {
+      ...options,
+      body: { token: 'asset', parts: [{ part: 1, etag: '"5d41402abc4b2a76b9719d911017c592"' }] },
+    });
+    expect(finish.status).toBe(200);
+    upstream.mockClear();
+    for (const [path, body] of [
+      ['upload-sign', { token: 'asset', parts: [] }],
+      ['upload-sign', { token: 'asset', parts: [0] }],
+      ['upload-sign', { token: 'asset', parts: Array.from({ length: 65 }, (_, i) => i + 1) }],
+      ['upload-finish', { token: 'asset', parts: [{ part: 1, etag: 'a"b' }] }],
+      ['upload-finish', { token: 'asset', parts: [{ part: 1, etag: 'x', size: 5 }] }],
+    ] as const)
+      expect(
+        (await request(`/studio/courses/course-1/${path}`, { ...options, body })).status,
+      ).toBe(422);
+    expect(
+      (
+        await request('/studio/courses/course-1/upload-sign', {
+          user: 'usr-listener-1',
+          surface: 'studio',
+          body: { token: 'asset', parts: [1] },
+        })
+      ).status,
+    ).toBe(403);
+    expect(upstream).not.toHaveBeenCalled();
+  });
   it('allows multipart offsets beyond 512 MiB without increasing chunk size', async () => {
     const response = await request('/studio/courses/course-1/upload-chunk', {
       user: 'usr-admin-1',

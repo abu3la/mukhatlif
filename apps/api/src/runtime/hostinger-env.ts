@@ -12,6 +12,7 @@ import {
   type Env,
 } from '../env';
 import { createR2S3Client, R2S3Bucket, type R2S3ClientConfig } from '../storage/r2-s3';
+import { createR2UploadSigner } from '../storage/r2-upload-signer';
 
 export interface HostingerRuntime {
   bindings: Env;
@@ -201,6 +202,8 @@ export function createHostingerRuntime(source: ProcessEnvironment): HostingerRun
   const client = createR2S3Client(r2);
   bindings.AUDIO = new R2S3Bucket(client, r2.audioBucket);
   bindings.MEDIA = new R2S3Bucket(client, r2.mediaBucket);
+  // Course uploads go from the browser to R2 with links signed by the same keys.
+  bindings.MEDIA_UPLOAD_SIGNER = createR2UploadSigner({ ...r2, bucket: r2.mediaBucket });
 
   const portValue = configured(source.PORT) ?? '3000';
   const port = parsePositiveInteger(portValue, 'PORT', 65_535);

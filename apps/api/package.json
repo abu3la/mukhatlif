@@ -26,6 +26,7 @@
     "@mukhtalif/validation": "workspace:*",
     "@noble/hashes": "^1.8.0",
     "@supabase/supabase-js": "^2.55.0",
+    "aws4fetch": "1.0.20",
     "hono": "^4.9.0",
     "zod": "^3.25.0"
   },

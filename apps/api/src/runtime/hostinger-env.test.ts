@@ -46,6 +46,8 @@ describe('Hostinger runtime environment', () => {
     expect(runtime.trustedProxyHops).toBe(1);
     expect(runtime.bindings.AUDIO).toBeInstanceOf(R2S3Bucket);
     expect(runtime.bindings.MEDIA).toBeInstanceOf(R2S3Bucket);
+    expect(runtime.bindings.MEDIA_UPLOAD_SIGNER).toBeDefined();
+    expect(runtime.bindings.R2_SECRET_ACCESS_KEY).toBeUndefined();
     expect(runtime.bindings.CLIENT_ADDRESS).toBeUndefined();
     expect(runtime.bindings.MAILCHIMP_CAMPAIGNS_ENABLED).toBe('false');
   });
