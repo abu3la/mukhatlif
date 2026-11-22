@@ -36,6 +36,8 @@ const course = {
 const saves: { lessons: { video: string; durationSeconds: number }[] }[] = [];
 const calls: { path: string; body: unknown }[] = [];
 let direct = false;
+let courseFixture: typeof course = course;
+let previewFails = false;
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -62,6 +64,8 @@ beforeEach(() => {
   saves.length = 0;
   calls.length = 0;
   direct = false;
+  courseFixture = course;
+  previewFails = false;
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -69,7 +73,11 @@ beforeEach(() => {
       const method = init?.method ?? 'GET';
       if (method === 'POST') calls.push({ path, body: JSON.parse(String(init?.body)) });
       if (method === 'GET' && path === '') return json([summary]);
-      if (method === 'GET' && path === '/c1') return json(course);
+      if (method === 'GET' && path === '/c1') return json(courseFixture);
+      if (path === '/c1/preview')
+        return previewFails
+          ? json({ error: 'تعذّر تجهيز المعاينة.' }, 503)
+          : json({ url: 'http://api.test/courses/media/ticket-1' });
       if (path === '/c1/upload-start')
         return json({ token: 't1', chunkSize: 5 * 1024 * 1024, ...(direct ? { direct } : {}) });
       if (path === '/c1/upload-sign') {
@@ -126,28 +134,87 @@ async function openLesson() {
     </AdminAuthContext.Provider>,
   );
   const user = userEvent.setup();
-  await screen.findByRole('option', { name: /ورشة الراتب/ });
-  await user.selectOptions(screen.getByRole('combobox', { name: 'الدورة' }), 'c1');
+  await user.click(await screen.findByRole('button', { name: /ورشة الراتب/ }));
   await user.click(await screen.findByText('الدروس'));
   return user;
 }
+const durationBox = () => document.querySelector<HTMLElement>('[data-lesson-duration="l1"]')!;
+const save = () => fireEvent.click(screen.getByRole('button', { name: 'حفظ الدورة' }));
+
+describe('course list', () => {
+  it('lists every course as a row and opens one with a click', async () => {
+    render(
+      <AdminAuthContext.Provider value={authValue()}>
+        <CoursesManagement
+          authGateway={{ getAccessToken: () => null } as unknown as AdminAuthGateway}
+          connection={{ baseUrl: 'http://api.test', devUserId: null }}
+        />
+      </AdminAuthContext.Provider>,
+    );
+    const user = userEvent.setup();
+    const row = await screen.findByRole('button', { name: /ورشة الراتب/ });
+    expect(row).toHaveTextContent('درس واحد');
+    expect(row).toHaveTextContent('مجانية');
+    expect(row).toHaveTextContent('مسودة');
+    expect(screen.queryByRole('combobox', { name: 'الدورة' })).not.toBeInTheDocument();
+    await user.click(row);
+    await waitFor(() => expect(row).toHaveAttribute('aria-current', 'true'));
+    expect(await screen.findByText('الدروس')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'دورة جديدة' })).toBeEnabled();
+  });
+});
 
 describe('course lesson video', () => {
-  it('shows the lesson length as hours, minutes and seconds and stores seconds', async () => {
+  it('shows the lesson length read from the video, with nothing to type', async () => {
     await openLesson();
-    const group = screen.getByRole('group', { name: 'مدة الفيديو' });
-    const [hours, minutes, seconds] = within(group).getAllByRole('spinbutton');
-    expect([hours, minutes, seconds].map((input) => (input as HTMLInputElement).value)).toEqual([
-      '0',
-      '1',
-      '0',
-    ]);
-    fireEvent.change(hours, { target: { value: '2' } });
-    fireEvent.change(seconds, { target: { value: '99' } });
-    expect((seconds as HTMLInputElement).value).toBe('59');
-    fireEvent.click(screen.getByRole('button', { name: 'حفظ الدورة' }));
+    expect(durationBox()).toHaveTextContent('1:00');
+    expect(within(durationBox()).queryAllByRole('spinbutton')).toHaveLength(0);
+    expect(within(durationBox()).queryAllByRole('textbox')).toHaveLength(0);
+    save();
     await waitFor(() => expect(saves).toHaveLength(1));
-    expect(saves[0].lessons[0].durationSeconds).toBe(2 * 3600 + 60 + 59);
+    expect(saves[0].lessons[0].durationSeconds).toBe(60);
+  });
+
+  it('measures a lesson video that has no length yet from the stored file', async () => {
+    courseFixture = { ...course, lessons: [{ ...course.lessons[0], durationSeconds: 0 }] };
+    await openLesson();
+    await waitFor(() => expect(durationBox()).toHaveTextContent('1:02:05'));
+    expect(calls).toContainEqual({
+      path: '/c1/preview',
+      body: { file: '/private/files/old.mp4' },
+    });
+    save();
+    await waitFor(() => expect(saves).toHaveLength(1));
+    expect(saves[0].lessons[0].durationSeconds).toBe(3725);
+  });
+
+  it('blocks saving until the length is read, and reads it again on request', async () => {
+    courseFixture = { ...course, lessons: [{ ...course.lessons[0], durationSeconds: 0 }] };
+    previewFails = true;
+    const user = await openLesson();
+    expect(await screen.findByText(/تعذّر قراءة مدة الفيديو/)).toBeInTheDocument();
+    save();
+    expect(await screen.findByText(/لم تُقرأ مدة فيديو «الدرس الأول» بعد/)).toBeInTheDocument();
+    expect(saves).toHaveLength(0);
+    previewFails = false;
+    await user.click(screen.getByRole('button', { name: 'أعد قراءة المدة' }));
+    await waitFor(() => expect(durationBox()).toHaveTextContent('1:02:05'));
+    save();
+    await waitFor(() => expect(saves).toHaveLength(1));
+    expect(saves[0].lessons[0].durationSeconds).toBe(3725);
+  });
+
+  it('measures again when a different stored file is pasted', async () => {
+    await openLesson();
+    expect(durationBox()).toHaveTextContent('1:00');
+    fireEvent.change(screen.getAllByLabelText('مسار الملف').at(-1)!, {
+      target: { value: '/private/files/other.mp4' },
+    });
+    await waitFor(() => expect(durationBox()).toHaveTextContent('1:02:05'));
+    expect(calls.at(-1)).toEqual({
+      path: '/c1/preview',
+      body: { file: '/private/files/other.mp4' },
+    });
   });
 
   it('keeps the new video and its length together after an upload, and previews it', async () => {
@@ -161,13 +228,9 @@ describe('course lesson video', () => {
     expect(await screen.findByText('رُفع الملف. احفظ الدورة لتثبيته.')).toBeInTheDocument();
     expect(screen.getByText('معاينة الملف المرفوع')).toBeInTheDocument();
     expect(screen.getByLabelText('معاينة: فيديو الدرس')).toHaveAttribute('src', 'blob:preview');
-    const group = screen.getByRole('group', { name: 'مدة الفيديو' });
-    expect(
-      within(group)
-        .getAllByRole('spinbutton')
-        .map((input) => (input as HTMLInputElement).value),
-    ).toEqual(['1', '2', '5']);
-    fireEvent.click(screen.getByRole('button', { name: 'حفظ الدورة' }));
+    expect(durationBox()).toHaveTextContent('1:02:05');
+    expect(calls.some(({ path }) => path === '/c1/preview')).toBe(false);
+    save();
     await waitFor(() => expect(saves).toHaveLength(1));
     expect(saves[0].lessons[0]).toMatchObject({
       video: '/private/files/new.mp4',
