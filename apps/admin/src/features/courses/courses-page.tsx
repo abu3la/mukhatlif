@@ -778,6 +778,7 @@ function formatDuration(total: number): string {
   return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 const VIDEO_PATH = /^\/private\/files\/[A-Za-z0-9_.-]+\.(mp4|webm)$/i;
+const STORED_MEDIA = /^\/private\/files\/[A-Za-z0-9_.-]+\.(mp4|webm|mp3)$/i;
 function lessonCount(count: number): string {
   if (count === 0) return 'بلا دروس';
   if (count === 1) return 'درس واحد';
@@ -965,6 +966,41 @@ function AssetField({
       if (mounted.current) setPreviewBusy(false);
     }
   };
+  // A stored video or audio file opens in its player without a click, once its
+  // field is on screen, so a long course does not request every lesson at once.
+  const sectionRef = useRef<HTMLElement>(null);
+  const latestPreview = useRef(openPreview);
+  latestPreview.current = openPreview;
+  const autoPreviewed = useRef('');
+  const storedMedia = Boolean(mediaKind) && persisted && !localFile && STORED_MEDIA.test(value);
+  useEffect(() => {
+    if (!storedMedia || remoteUrl || autoPreviewed.current === value) return;
+    let observer: IntersectionObserver | undefined;
+    // A path being typed settles before it is requested.
+    const timer = window.setTimeout(() => {
+      const start = () => {
+        autoPreviewed.current = value;
+        void latestPreview.current();
+      };
+      const node = sectionRef.current;
+      if (!node || typeof IntersectionObserver === 'undefined') return start();
+      // Start just before the field scrolls in, so the first frame is ready.
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            observer?.disconnect();
+            start();
+          }
+        },
+        { rootMargin: '300px 0px' },
+      );
+      observer.observe(node);
+    }, 300);
+    return () => {
+      window.clearTimeout(timer);
+      observer?.disconnect();
+    };
+  }, [storedMedia, remoteUrl, value]);
   const accept =
     kind === 'video' ? '.mp4,.webm' : kind === 'document' ? '.pdf' : '.pdf,.mp4,.webm,.mp3';
   const formats =
@@ -1085,7 +1121,7 @@ function AssetField({
     }
   };
   return (
-    <section className="course-asset" aria-label={title}>
+    <section ref={sectionRef} className="course-asset" aria-label={title}>
       <div className="course-asset-heading">
         <strong>{title}</strong>
         <span>{value ? 'ملف مرفق' : 'اختياري'}</span>
