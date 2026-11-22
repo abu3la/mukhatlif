@@ -37,6 +37,12 @@
     // PUBLIC_WEB_URL is deliberately absent: it is one of seven Mailchimp settings
     // that must be configured together, and setting it alone is treated as a
     // configuration error rather than a partial setup.
+    // Direct course uploads: the API signs short-lived R2 part links with these
+    // two values plus the secrets R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY
+    // (a development R2 token, set with `wrangler secret put`). Without the
+    // secrets, course uploads keep sending their pieces through this Worker.
+    "R2_ACCOUNT_ID": "bb4abee6bf877ef411dc803b3be96373",
+    "R2_MEDIA_BUCKET": "mukhtalif-media",
   },
   // Versioned preview URLs would publish this same API, with these same
   // secrets, at additional unpredictable origins. Nothing needs them.

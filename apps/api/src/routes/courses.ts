@@ -142,7 +142,31 @@ const uploads = {
       content: z.string().max(7100000),
     })
     .strict(),
-  'upload-finish': z.object({ token: z.string().max(3000) }).strict(),
+  // Direct uploads: signed links for up to 64 parts at a time.
+  'upload-sign': z
+    .object({
+      token: z.string().max(3000),
+      parts: z.array(z.number().int().min(1).max(10_000)).min(1).max(64),
+    })
+    .strict(),
+  // A direct upload reports every part's ETag; R2 verifies each one on completion.
+  'upload-finish': z
+    .object({
+      token: z.string().max(3000),
+      parts: z
+        .array(
+          z
+            .object({
+              part: z.number().int().min(1).max(10_000),
+              etag: z.string().regex(/^"?[A-Za-z0-9-]{1,128}"?$/),
+            })
+            .strict(),
+        )
+        .min(1)
+        .max(10_000)
+        .optional(),
+    })
+    .strict(),
 };
 for (const [action, schema] of Object.entries(uploads))
   studioCoursesRoute.post(`/:id/${action}`, async (c) => {

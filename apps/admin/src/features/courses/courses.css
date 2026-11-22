@@ -9,18 +9,17 @@
 .studio-courses p {
   line-height: 1.8;
 }
-.studio-courses button {
+.studio-courses button:not(.studio-course-row) {
   min-height: 44px;
   padding: 0.5rem 1rem;
   font: inherit;
   cursor: pointer;
 }
-.studio-courses button:disabled {
+.studio-courses button:not(.studio-course-row):disabled {
   cursor: default;
   opacity: 0.6;
 }
 .studio-courses nav,
-.studio-courses-toolbar,
 .studio-course-actions {
   display: flex;
   gap: 1rem;
@@ -45,8 +44,7 @@
 }
 .studio-course-field input,
 .studio-course-field textarea,
-.studio-course-field select,
-.studio-courses-toolbar select {
+.studio-course-field select {
   min-width: 0;
   width: 100%;
   padding: 0.75rem;
@@ -246,13 +244,14 @@
   }
 }
 
-.studio-courses button:not(.studio-course-save):not(.article-rich-editor button) {
+.studio-courses
+  button:not(.studio-course-save):not(.studio-course-row):not(.article-rich-editor button) {
   border: 0;
   border-radius: 7px;
   background: #e8e5f2;
   color: #242147;
 }
-.studio-courses button:not(:disabled):hover {
+.studio-courses button:not(.studio-course-row):not(:disabled):hover {
   background: #dcd7eb;
 }
 .studio-courses nav button[aria-current] {
@@ -298,7 +297,7 @@
 .studio-courses select:focus-visible,
 .studio-course-field input:focus-visible,
 .studio-course-field textarea:focus-visible,
-.studio-courses button:focus-visible {
+.studio-courses button:not(.studio-course-row):focus-visible {
   outline: 2px solid #625783;
   outline-offset: 3px;
 }
@@ -337,17 +336,6 @@
   .studio-courses option:focus {
     background: #f6f4fa;
   }
-}
-.studio-courses-toolbar > label {
-  display: grid;
-  gap: 0.6rem;
-  flex: 1;
-  min-width: 0;
-}
-.studio-courses-toolbar {
-  padding: 1.25rem;
-  background: #fff;
-  border-radius: 14px;
 }
 .course-asset {
   margin-block: 1.5rem;
@@ -444,9 +432,6 @@
     padding: 1rem;
     gap: 1rem;
   }
-  .studio-courses-toolbar {
-    padding: 1rem;
-  }
 }
 
 /* Upload feedback and the save-error band (STUDIO.md tokens). */
@@ -480,52 +465,117 @@
   font-size: var(--st-text-xs);
 }
 
-/* Lesson length as hours, minutes and seconds. */
+/* Lesson length, read from the video; shown, never typed. */
 .studio-course-duration {
-  min-inline-size: 0;
-  margin: var(--st-space-12) 0;
-  padding: 0;
-  border: 0;
-}
-.studio-course-duration legend {
-  margin-block-end: var(--st-space-8);
-  padding: 0;
-}
-.studio-course-duration-parts {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--st-space-12);
-}
-.studio-course-duration-parts label {
-  display: flex;
   align-items: center;
-  gap: var(--st-space-8);
+  gap: var(--st-space-8) var(--st-space-12);
+  min-inline-size: 0;
+  margin: var(--st-space-12) 0;
 }
-.studio-course-duration-parts input {
-  inline-size: 88px;
-  min-block-size: 44px;
-  padding: var(--st-space-8) var(--st-space-12);
-  font: inherit;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  color: inherit;
-  background: var(--st-surface);
-  border: 1px solid var(--st-field-line);
+.studio-course-duration:focus-visible {
+  outline: 2px solid var(--st-focus);
+  outline-offset: 2px;
   border-radius: var(--st-radius-control);
 }
-.studio-course-duration-parts input:hover {
-  border-color: var(--st-ink-soft);
-}
-.studio-course-duration-parts input:invalid {
-  border-color: var(--st-danger);
-}
-.studio-course-duration-parts span {
+.studio-course-duration__label {
   color: var(--st-ink-soft);
   font-size: var(--st-text-xs);
+  font-weight: var(--st-weight-medium);
 }
-.studio-course-duration .studio-course-field-hint {
-  display: block;
-  margin-block-start: var(--st-space-8);
+.studio-course-duration__value {
+  color: var(--st-ink);
+  font-size: var(--st-text-md);
+  font-weight: var(--st-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.studio-course-duration__error {
+  flex-basis: 100%;
+  color: var(--st-danger-ink);
+  font-size: var(--st-text-xs);
+  line-height: var(--st-leading-ui);
+}
+
+/* Course list: the Studio list-row recipe; the open course wears the academy tint. */
+.studio-course-list {
+  margin-block: var(--st-space-16);
+  padding: 0 var(--st-space-24);
+  background: var(--st-surface);
+  border: 1px solid var(--st-line-soft);
+  border-radius: var(--st-radius-card);
+}
+.studio-course-list__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--st-space-16);
+  min-block-size: 58px;
+  border-block-end: 1px solid var(--st-line);
+}
+.studio-course-list__head h2 {
+  margin: 0;
+  color: var(--st-ink);
+  font-size: var(--st-text-lg);
+  font-weight: var(--st-weight-bold);
+}
+.studio-course-list__rows {
+  margin: 0 calc(-1 * var(--st-space-24));
+  padding: 0;
+  list-style: none;
+}
+.studio-course-list__rows > li + li {
+  border-block-start: 1px solid var(--st-line-soft);
+}
+.studio-course-list__rows > li:last-child .studio-course-row {
+  border-end-start-radius: var(--st-radius-card);
+  border-end-end-radius: var(--st-radius-card);
+}
+.studio-course-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--st-space-16);
+  inline-size: 100%;
+  min-block-size: 78px;
+  padding: var(--st-space-12) var(--st-space-24);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--st-duration-fast) ease;
+}
+.studio-course-row:hover {
+  background: color-mix(in srgb, var(--st-sunken) 55%, var(--st-surface));
+}
+.studio-course-row[aria-current] {
+  background: var(--st-academy-tint);
+  cursor: default;
+}
+.studio-course-row[aria-current] .row-copy__title {
+  color: var(--st-academy-ink);
+}
+.studio-course-row[aria-busy='true'] {
+  cursor: progress;
+}
+.studio-course-row:focus-visible {
+  outline: 2px solid var(--st-focus);
+  outline-offset: -2px;
+}
+.studio-course-row__busy {
+  position: relative;
+  inline-size: var(--st-space-24);
+  block-size: var(--st-space-24);
+  color: var(--st-ink-soft);
+}
+.studio-course-list__empty {
+  margin: 0;
+  padding: var(--st-space-24) 0;
+  color: var(--st-muted);
+  font-size: var(--st-text-sm);
+  text-align: center;
 }
 .studio-course-lesson-duration {
   margin-inline-start: var(--st-space-12);
