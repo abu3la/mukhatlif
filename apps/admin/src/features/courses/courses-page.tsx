@@ -17,6 +17,14 @@ import {
 } from '@mukhtalif/types';
 import type { AdminAuthGateway } from '@/data';
 import { useAdminAuth } from '@/application';
+import {
+  CourseRequestError,
+  MissingPartTagError,
+  sendDirect,
+  sendThroughApi,
+  type CourseUploadProgress,
+  type CourseUploadSession,
+} from './course-upload';
 import './courses.css';
 
 type Connection = { baseUrl: string; devUserId: string | null };
@@ -89,9 +97,10 @@ function CourseManager({
         },
         body: body === undefined ? undefined : JSON.stringify(body),
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (!response.ok)
-        throw new Error(
+        throw new CourseRequestError(
+          response.status,
           /[\u0600-\u06ff]/.test(result.error ?? '')
             ? result.error
             : 'تعذّر إكمال الطلب. حاول مجددًا.',
@@ -799,6 +808,11 @@ function AssetField({
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [percent, setPercent] = useState(0);
+  const [retrying, setRetrying] = useState(false);
+  // After a stopped direct upload, the parts already in R2 are kept for this same file.
+  const transfer = useRef<{ file: File; progress: CourseUploadProgress } | null>(null);
+  const [resumable, setResumable] = useState(false);
+  const abort = useRef<AbortController | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<File | null>(null);
@@ -868,6 +882,8 @@ function AssetField({
       setError(`اختر ملفًا غير فارغ، بحجم لا يتجاوز ${limit?.label ?? ''}.`);
       return;
     }
+    transfer.current = null;
+    setResumable(false);
     setSelected(file);
     setLocalFile(file);
   };
@@ -878,46 +894,61 @@ function AssetField({
     mounted.current = true;
     return () => {
       mounted.current = false;
+      abort.current?.abort();
     };
   }, []);
+  // Closing the tab would stop the transfer, so the browser asks first.
+  useEffect(() => {
+    if (!busy) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [busy]);
   const upload = async () => {
     const file = selected;
     if (!file || busy || !persisted) return;
     setError('');
     setStatus('');
     setBusy(true);
+    setRetrying(false);
     setPercent(0);
+    const controller = new AbortController();
+    abort.current = controller;
     try {
       const duration = kind === 'video' ? await readVideoDuration(file) : null;
-      const session = await request<{ token: string; chunkSize: number }>(
-        `/${courseId}/upload-start`,
-        {
-          filename: `${uid()}.${file.name.split('.').pop()?.toLowerCase()}`,
-          size: file.size,
+      const progress =
+        transfer.current?.file === file
+          ? transfer.current.progress
+          : {
+              session: await request<CourseUploadSession>(`/${courseId}/upload-start`, {
+                filename: `${uid()}.${file.name.split('.').pop()?.toLowerCase()}`,
+                size: file.size,
+              }),
+              done: new Map<number, string>(),
+            };
+      // Only a direct upload can resume; the route through the API restarts.
+      transfer.current = progress.session.direct ? { file, progress } : null;
+      const send = progress.session.direct ? sendDirect : sendThroughApi;
+      const result = await send({
+        file,
+        courseId,
+        request,
+        progress,
+        signal: controller.signal,
+        onProgress: (sent) => {
+          if (mounted.current) setPercent((sent / file.size) * 100);
         },
-      );
-      for (let offset = 0; offset < file.size; offset += session.chunkSize) {
-        if (!mounted.current) return;
-        const bytes = new Uint8Array(
-          await file.slice(offset, offset + session.chunkSize).arrayBuffer(),
-        );
-        let binary = '';
-        for (const byte of bytes) binary += String.fromCharCode(byte);
-        await request(`/${courseId}/upload-chunk`, {
-          token: session.token,
-          offset,
-          content: btoa(binary),
-        });
-        setPercent(Math.round((Math.min(file.size, offset + session.chunkSize) / file.size) * 100));
-      }
-      const result = await request<{ file: string }>(`/${courseId}/upload-finish`, {
-        token: session.token,
+        onRetrying: (value) => {
+          if (mounted.current) setRetrying(value);
+        },
       });
+      transfer.current = null;
       if (mounted.current) {
         localMatches.current = result.file;
         latestChange.current(result.file, duration ?? undefined);
         setUploadedName(file.name);
         setSelected(null);
+        setResumable(false);
         setStatus(
           kind === 'video' && !duration
             ? 'رُفع الفيديو. أدخل مدته بالثواني ثم احفظ الدورة.'
@@ -925,9 +956,28 @@ function AssetField({
         );
       }
     } catch (e) {
-      setError((e as Error).message);
+      if (!mounted.current) return;
+      const refused =
+        e instanceof MissingPartTagError ||
+        (e instanceof CourseRequestError && e.status >= 400 && e.status < 500);
+      if (refused) transfer.current = null;
+      const canResume = transfer.current?.file === file;
+      setResumable(canResume);
+      setError(
+        refused
+          ? (e as Error).message
+          : canResume
+            ? 'توقف الرفع قبل اكتماله. اضغط «استئناف الرفع» لإكماله من حيث توقف.'
+            : e instanceof CourseRequestError
+              ? e.message
+              : 'تعذّر رفع الملف. تحقق من اتصالك ثم حاول مجددًا.',
+      );
     } finally {
-      setBusy(false);
+      abort.current = null;
+      if (mounted.current) {
+        setBusy(false);
+        setRetrying(false);
+      }
     }
   };
   return (
@@ -963,7 +1013,7 @@ function AssetField({
             {!persisted
               ? 'بعد الحفظ تقدر ترفع الملفات هنا، ثم تضغط «رفع الملف».'
               : selected
-                ? `${(selected.size / 1024 / 1024).toFixed(1)} ميجابايت، اضغط «رفع الملف» للبدء`
+                ? `${(selected.size / 1024 / 1024).toFixed(1)} ميجابايت، ${resumable ? 'اضغط «استئناف الرفع» للمتابعة' : 'اضغط «رفع الملف» للبدء'}`
                 : formats}
           </span>
           <small>
@@ -997,12 +1047,14 @@ function AssetField({
       {selected && (
         <div className="course-upload-actions">
           <Button aria-busy={busy} type="button" disabled={busy} onClick={() => void upload()}>
-            رفع الملف
+            {resumable ? 'استئناف الرفع' : 'رفع الملف'}
           </Button>
           <button
             type="button"
             disabled={busy}
             onClick={() => {
+              transfer.current = null;
+              setResumable(false);
               setSelected(null);
               setLocalFile(null);
               setError('');
@@ -1012,7 +1064,14 @@ function AssetField({
           </button>
         </div>
       )}
-      {busy && selected && <UploadProgress filename={selected.name} bytes={selected.size} percent={percent} />}
+      {busy && selected && (
+        <UploadProgress
+          filename={selected.name}
+          bytes={selected.size}
+          percent={percent}
+          note={retrying ? 'تعثّر الاتصال، جار إعادة المحاولة تلقائيًا' : undefined}
+        />
+      )}
       {status && <p role="status">{status}</p>}
       {error && <p role="alert">{error}</p>}
       {mediaKind && previewUrl ? (

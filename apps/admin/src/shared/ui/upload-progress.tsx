@@ -1,8 +1,14 @@
 import './upload-progress.css';
 
-type UploadProgressProps = { filename: string; bytes: number; percent: number };
+type UploadProgressProps = {
+  filename: string;
+  bytes: number;
+  percent: number;
+  /** Replaces the usual hint while something needs saying, such as an automatic retry. */
+  note?: string;
+};
 
-export function UploadProgress({ filename, bytes, percent }: UploadProgressProps) {
+export function UploadProgress({ filename, bytes, percent, note }: UploadProgressProps) {
   const value = Math.max(0, Math.min(100, Math.floor(percent)));
   const size = bytes >= 1024 ** 3
     ? `${(bytes / 1024 ** 3).toFixed(1)} GB`
@@ -21,7 +27,9 @@ export function UploadProgress({ filename, bytes, percent }: UploadProgressProps
       <progress className="file-transfer__track" max={100} value={value}
         aria-label={`تقدم رفع ${filename}`} aria-valuetext={`${value}٪`} />
       <div className="file-transfer__details">
-        <span>{value === 100 ? 'اكتمل النقل، ننتظر تأكيد الحفظ' : 'أبق الصفحة مفتوحة حتى يكتمل الرفع'}</span>
+        <span role={note ? 'status' : undefined}>
+          {note ?? (value === 100 ? 'اكتمل النقل، ننتظر تأكيد الحفظ' : 'أبق الصفحة مفتوحة حتى يكتمل الرفع')}
+        </span>
         <span dir="ltr">{size}</span>
       </div>
     </section>

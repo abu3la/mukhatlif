@@ -1,5 +1,6 @@
 import { FORM_SUBMISSION_TYPES, type FormSubmissionType } from '@mukhtalif/types';
 import type { ObjectStorageBucket } from './storage/object-storage';
+import type { R2UploadSigner } from './storage/r2-upload-signer';
 
 export const APP_ENVIRONMENTS = ['development', 'test', 'preview', 'production'] as const;
 export type AppEnvironment = (typeof APP_ENVIRONMENTS)[number];
@@ -56,6 +57,16 @@ export interface Env {
   AUDIO?: ObjectStorageBucket;
   /** R2 bucket for sanitized article images. */
   MEDIA?: ObjectStorageBucket;
+  /** Signs direct browser-to-R2 part uploads for MEDIA. Injected on Hostinger. */
+  MEDIA_UPLOAD_SIGNER?: R2UploadSigner;
+  /**
+   * Development Worker only: R2 S3 credentials that let it sign the same links.
+   * Without all four, course uploads fall back to sending pieces through the API.
+   */
+  R2_ACCOUNT_ID?: string;
+  R2_ACCESS_KEY_ID?: string;
+  R2_SECRET_ACCESS_KEY?: string;
+  R2_MEDIA_BUCKET?: string;
 }
 
 export class ApiConfigurationError extends Error {

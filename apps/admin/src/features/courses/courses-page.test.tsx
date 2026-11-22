@@ -34,6 +34,8 @@ const course = {
   ],
 };
 const saves: { lessons: { video: string; durationSeconds: number }[] }[] = [];
+const calls: { path: string; body: unknown }[] = [];
+let direct = false;
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -58,14 +60,25 @@ const mediaDuration = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype
 
 beforeEach(() => {
   saves.length = 0;
+  calls.length = 0;
+  direct = false;
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input).split('/studio/courses')[1] ?? '';
       const method = init?.method ?? 'GET';
+      if (method === 'POST') calls.push({ path, body: JSON.parse(String(init?.body)) });
       if (method === 'GET' && path === '') return json([summary]);
       if (method === 'GET' && path === '/c1') return json(course);
-      if (path === '/c1/upload-start') return json({ token: 't1', chunkSize: 5 * 1024 * 1024 });
+      if (path === '/c1/upload-start')
+        return json({ token: 't1', chunkSize: 5 * 1024 * 1024, ...(direct ? { direct } : {}) });
+      if (path === '/c1/upload-sign') {
+        const { parts } = JSON.parse(String(init?.body)) as { parts: number[] };
+        return json({
+          urls: parts.map((part) => ({ part, url: `https://r2.test/part-${part}` })),
+          expiresIn: 3600,
+        });
+      }
       if (path === '/c1/upload-chunk') return json({ received: 1 });
       if (path === '/c1/upload-finish') return json({ file: '/private/files/new.mp4' });
       if (method === 'POST' && path === '') {
@@ -160,5 +173,116 @@ describe('course lesson video', () => {
       video: '/private/files/new.mp4',
       durationSeconds: 3725,
     });
+  });
+});
+
+/** Stands in for R2 answering a signed PUT. */
+class FakeR2Request {
+  static succeed = true;
+  static puts: { url: string; size: number }[] = [];
+  readonly upload = new EventTarget();
+  status = 0;
+  timeout = 0;
+  private url = '';
+  private readonly listeners: Record<string, (() => void)[]> = {};
+  open(_method: string, url: string) {
+    this.url = url;
+  }
+  addEventListener(type: string, listener: () => void) {
+    (this.listeners[type] ??= []).push(listener);
+  }
+  getResponseHeader(name: string) {
+    return name === 'ETag' ? `"etag-${this.url.split('-').pop()}"` : null;
+  }
+  send(body: Blob) {
+    FakeR2Request.puts.push({ url: this.url, size: body.size });
+    queueMicrotask(() => {
+      if (!FakeR2Request.succeed) return this.fire('error');
+      this.upload.dispatchEvent(new ProgressEvent('progress', { loaded: body.size }));
+      this.status = 200;
+      this.fire('load');
+    });
+  }
+  abort() {
+    this.fire('abort');
+  }
+  private fire(type: string) {
+    for (const listener of this.listeners[type] ?? []) listener();
+  }
+}
+
+describe('direct course upload', () => {
+  beforeEach(() => {
+    direct = true;
+    FakeR2Request.succeed = true;
+    FakeR2Request.puts = [];
+    vi.stubGlobal('XMLHttpRequest', FakeR2Request);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('sends the file straight to R2 and finishes with the part ETags', async () => {
+    const user = await openLesson();
+    const file = new File([new Uint8Array(32)], 'workshop.mp4', { type: 'video/mp4' });
+    fireEvent.change(screen.getByLabelText('اختيار ملف: فيديو الدرس'), {
+      target: { files: [file] },
+    });
+    await user.click(screen.getByRole('button', { name: 'رفع الملف' }));
+    expect(await screen.findByText('رُفع الملف. احفظ الدورة لتثبيته.')).toBeInTheDocument();
+    expect(FakeR2Request.puts).toEqual([{ url: 'https://r2.test/part-1', size: 32 }]);
+    expect(calls.map(({ path }) => path)).toEqual([
+      '/c1/upload-start',
+      '/c1/upload-sign',
+      '/c1/upload-finish',
+    ]);
+    expect(calls[2].body).toEqual({ token: 't1', parts: [{ part: 1, etag: '"etag-1"' }] });
+    expect(calls.some(({ path }) => path === '/c1/upload-chunk')).toBe(false);
+  });
+
+  it('retries on its own, then offers to resume the same upload without starting over', async () => {
+    const user = await openLesson();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    FakeR2Request.succeed = false;
+    const file = new File([new Uint8Array(32)], 'workshop.mp4', { type: 'video/mp4' });
+    fireEvent.change(screen.getByLabelText('اختيار ملف: فيديو الدرس'), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'رفع الملف' }));
+    expect(
+      await screen.findByText('تعثّر الاتصال، جار إعادة المحاولة تلقائيًا'),
+    ).toBeInTheDocument();
+    await vi.advanceTimersByTimeAsync(61_000);
+    expect(
+      await screen.findByText('توقف الرفع قبل اكتماله. اضغط «استئناف الرفع» لإكماله من حيث توقف.'),
+    ).toBeInTheDocument();
+    expect(FakeR2Request.puts).toHaveLength(7);
+    FakeR2Request.succeed = true;
+    vi.useRealTimers();
+    await user.click(screen.getByRole('button', { name: 'استئناف الرفع' }));
+    expect(await screen.findByText('رُفع الملف. احفظ الدورة لتثبيته.')).toBeInTheDocument();
+    expect(calls.filter(({ path }) => path === '/c1/upload-start')).toHaveLength(1);
+    expect(calls.at(-1)).toEqual({
+      path: '/c1/upload-finish',
+      body: { token: 't1', parts: [{ part: 1, etag: '"etag-1"' }] },
+    });
+  });
+
+  it('shows a refusal from the API and starts fresh next time', async () => {
+    const user = await openLesson();
+    const original = vi.mocked(fetch).getMockImplementation()!;
+    vi.mocked(fetch).mockImplementation(async (input, init) =>
+      String(input).endsWith('/upload-sign')
+        ? json({ error: 'انتهت صلاحية الرفع. ارفع الملف مجددًا.' }, 422)
+        : original(input, init),
+    );
+    const file = new File([new Uint8Array(32)], 'workshop.mp4', { type: 'video/mp4' });
+    fireEvent.change(screen.getByLabelText('اختيار ملف: فيديو الدرس'), {
+      target: { files: [file] },
+    });
+    await user.click(screen.getByRole('button', { name: 'رفع الملف' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'انتهت صلاحية الرفع. ارفع الملف مجددًا.',
+    );
+    expect(screen.getByRole('button', { name: 'رفع الملف' })).toBeEnabled();
+    expect(FakeR2Request.puts).toHaveLength(0);
   });
 });

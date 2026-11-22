@@ -296,7 +296,11 @@ export class R2S3Bucket implements ObjectStorageBucket {
           new CompleteMultipartUploadCommand({
             ...identity,
             MultipartUpload: {
-              Parts: parts.map((part) => ({ PartNumber: part.partNumber, ETag: part.etag })),
+              // Browser uploads report bare ETags; the S3 API expects them quoted.
+              Parts: parts.map((part) => ({
+                PartNumber: part.partNumber,
+                ETag: httpEtag(part.etag),
+              })),
             },
           }),
         );

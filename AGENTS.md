@@ -104,6 +104,17 @@ Production migration 0024 has been applied after a fresh private database/Auth
 and roles backup; the existing content/user fingerprints are unchanged. Do not
 copy development data or rerun the migration. See `docs/PRODUCTION_AUTO_RELEASE.md`.
 
+## Academy direct uploads (2026-11-22)
+
+Course files go from the browser straight to R2 `mukhtalif-media` through
+signed part links (`upload-start` → `upload-sign` → `upload-finish`); the API
+signs, completes and checks size and file type, but no longer carries the bytes.
+Parts stay 5 MiB, four in flight, each retried on its own, resumable while the
+page is open. Runtimes without R2 signing keys fall back to the old route through
+the API. The bucket needs the CORS rule in `docs/ACADEMY_DIRECT_UPLOAD.md`
+**before** this reaches `main`, or production course uploads stop. The
+development Worker signs only after its own R2 token secrets are set.
+
 ## Design system for UI changes (2026-10-29)
 
 Every change to how `apps/web` looks goes through `design-system/README.md`,
