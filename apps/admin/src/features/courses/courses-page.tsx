@@ -1,5 +1,5 @@
 import { UploadProgress } from '@/shared/ui/upload-progress';
-import { Button } from '@/shared/ui/primitives';
+import { Button, StatusBadge } from '@/shared/ui/primitives';
 import { COURSE_UPLOAD_LIMITS, courseUploadLimit } from '@mukhtalif/types';
 import { RichTextEditor } from '../articles/ui/rich-text-editor';
 import { richTextDocumentSchema } from '@mukhtalif/validation';
@@ -117,6 +117,7 @@ function CourseManager({
   const [section, setSection] = useState('basics');
   const [freshLesson, setFreshLesson] = useState('');
   const [busy, setBusy] = useState(false);
+  const [opening, setOpening] = useState('');
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState('');
   const [notice, setNotice] = useState('');
@@ -172,6 +173,27 @@ function CourseManager({
     run(async () => {
       if (course) setRoster(await request<Roster[]>(`/${course.id}/learners`));
     });
+  const courseId = course?.id;
+  // Lesson length comes from the uploaded video itself, through its preview link.
+  const measureVideo = useCallback(
+    async (file: string) => {
+      if (!courseId) return null;
+      const { url } = await request<{ url: string }>(`/${courseId}/preview`, { file });
+      return readVideoDuration(url, 20_000);
+    },
+    [request, courseId],
+  );
+  const openCourse = (id: string) => {
+    setOpening(id);
+    return run(async () => {
+      setCourse(await request<CourseDefinition>(`/${id}`));
+      setDirty(false);
+      setPersisted(true);
+      setTab('content');
+      setSection('basics');
+      setRoster([]);
+    }).finally(() => setOpening(''));
+  };
   return (
     <main className="studio-courses">
       <header>
@@ -191,47 +213,63 @@ function CourseManager({
         </div>
       )}
       {notice && <p role="status">{notice}</p>}
-      <div className="studio-courses-toolbar">
-        <label>
-          الدورة
-          <select
+      <section className="studio-course-list" aria-labelledby="studio-course-list-title">
+        <div className="studio-course-list__head">
+          <h2 id="studio-course-list-title">الدورات</h2>
+          <Button
+            type="button"
             disabled={busy}
-            value={persisted ? (course?.id ?? '') : ''}
-            onChange={(e) => {
-              const id = e.target.value;
-              if (!id) return;
-              void run(async () => {
-                setCourse(await request<CourseDefinition>(`/${id}`));
-                setDirty(false);
-                setPersisted(true);
-                setTab('content');
-                setSection('basics');
-                setRoster([]);
-              });
+            onClick={() => {
+              setCourse(blank());
+              setDirty(false);
+              setPersisted(false);
+              setRoster([]);
+              setTab('content');
+              setSection('basics');
             }}
           >
-            <option value="">اختر دورة</option>
-            {courses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title} {c.published ? '(منشورة)' : '(مسودة)'}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          disabled={busy}
-          onClick={() => {
-            setCourse(blank());
-            setDirty(false);
-            setPersisted(false);
-            setRoster([]);
-            setTab('content');
-            setSection('basics');
-          }}
-        >
-          دورة جديدة
-        </button>
-      </div>
+            دورة جديدة
+          </Button>
+        </div>
+        {courses.length > 0 && (
+          <ul className="studio-course-list__rows">
+            {courses.map((c) => {
+              const current = persisted && course?.id === c.id;
+              return (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    className="studio-course-row"
+                    aria-current={current ? 'true' : undefined}
+                    aria-busy={opening === c.id ? 'true' : undefined}
+                    onClick={() => {
+                      if (!current && !busy) void openCourse(c.id);
+                    }}
+                  >
+                    <span className="row-copy">
+                      <span className="row-copy__title">{c.title || 'دورة بلا اسم'}</span>
+                      <span className="row-copy__meta row-copy__meta--parts">
+                        <span>{lessonCount(c.lessonCount)}</span>
+                        <span>{c.price > 0 ? `${c.price} ر.س` : 'مجانية'}</span>
+                      </span>
+                    </span>
+                    {opening === c.id ? (
+                      <span className="studio-course-row__busy" aria-hidden="true">
+                        <span className="button__spinner" />
+                      </span>
+                    ) : (
+                      <StatusBadge status={c.published ? 'published' : 'draft'} />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {!loading && !loadError && courses.length === 0 && (
+          <p className="studio-course-list__empty">لا توجد دورات بعد. أنشئ أول دورة.</p>
+        )}
+      </section>
       {loading && <p role="status">جار تحميل الدورات…</p>}
       {course && (
         <>
@@ -259,6 +297,26 @@ function CourseManager({
               noValidate
               onSubmit={(e) => {
                 e.preventDefault();
+                const unmeasured = course.lessons.find(
+                  (lesson) => lesson.video && !(lesson.durationSeconds > 0),
+                );
+                if (unmeasured) {
+                  const target = e.currentTarget.querySelector<HTMLElement>(
+                    `[data-lesson-duration="${unmeasured.id}"]`,
+                  );
+                  const parent = target?.closest<HTMLDetailsElement>('[data-course-section]');
+                  if (parent?.dataset.courseSection) {
+                    parent.open = true;
+                    setSection(parent.dataset.courseSection);
+                  }
+                  const lesson = target?.closest<HTMLDetailsElement>('details.studio-course-lesson');
+                  if (lesson) lesson.open = true;
+                  setError(
+                    `لم تُقرأ مدة فيديو «${unmeasured.title || 'درس جديد'}» بعد. انتظر لحظة، أو اضغط «أعد قراءة المدة».`,
+                  );
+                  requestAnimationFrame(() => target?.focus());
+                  return;
+                }
                 const invalid = e.currentTarget.querySelector<HTMLInputElement>(
                   'input:invalid, select:invalid, textarea:invalid',
                 );
@@ -447,26 +505,42 @@ function CourseManager({
                         request={request}
                         // One update for both values: two patches built from the same
                         // render would overwrite each other and drop the new video.
+                        // A different video without a known length is measured again.
                         onChange={(video, durationSeconds) =>
                           patch({
                             lessons: course.lessons.map((x) =>
                               x.id === lesson.id
-                                ? { ...x, video, ...(durationSeconds ? { durationSeconds } : {}) }
+                                ? {
+                                    ...x,
+                                    video,
+                                    durationSeconds:
+                                      durationSeconds ?? (video === x.video ? x.durationSeconds : 0),
+                                  }
                                 : x,
                             ),
                           })
                         }
                       />
-                      <DurationField
+                      <LessonDuration
+                        lessonId={lesson.id}
                         seconds={lesson.durationSeconds}
-                        hasVideo={Boolean(lesson.video)}
-                        onChange={(durationSeconds) =>
-                          patch({
-                            lessons: course.lessons.map((x) =>
-                              x.id === lesson.id ? { ...x, durationSeconds } : x,
-                            ),
-                          })
-                        }
+                        video={lesson.video}
+                        measure={measureVideo}
+                        onMeasured={(durationSeconds) => {
+                          setDirty(true);
+                          setCourse((old) =>
+                            old
+                              ? {
+                                  ...old,
+                                  lessons: old.lessons.map((x) =>
+                                    x.id === lesson.id && x.video === lesson.video
+                                      ? { ...x, durationSeconds }
+                                      : x,
+                                  ),
+                                }
+                              : old,
+                          );
+                        }}
                       />
                       <ResourceEditor
                         courseId={course.id}
@@ -703,82 +777,116 @@ function formatDuration(total: number): string {
   const pad = (value: number) => String(value).padStart(2, '0');
   return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
-const DURATION_PARTS = [
-  { key: 'hours', label: 'ساعة', max: 24, size: 3600 },
-  { key: 'minutes', label: 'دقيقة', max: 59, size: 60 },
-  { key: 'seconds', label: 'ثانية', max: 59, size: 1 },
-] as const;
-/** The lesson length as hours, minutes and seconds; the course still stores seconds. */
-function DurationField({
+const VIDEO_PATH = /^\/private\/files\/[A-Za-z0-9_.-]+\.(mp4|webm)$/i;
+function lessonCount(count: number): string {
+  if (count === 0) return 'بلا دروس';
+  if (count === 1) return 'درس واحد';
+  if (count === 2) return 'درسان';
+  return `${count} ${count <= 10 ? 'دروس' : 'درسًا'}`;
+}
+/**
+ * The lesson length, read from the video itself: from the chosen file before
+ * upload, otherwise from the stored file through its preview link. Nobody types it.
+ */
+function LessonDuration({
+  lessonId,
   seconds,
-  hasVideo,
-  onChange,
+  video,
+  measure,
+  onMeasured,
 }: {
+  lessonId: string;
   seconds: number;
-  hasVideo: boolean;
-  onChange: (seconds: number) => void;
+  video: string;
+  measure: (file: string) => Promise<number | null>;
+  onMeasured: (seconds: number) => void;
 }) {
-  const total = Math.max(0, Math.round(seconds));
-  const parts = {
-    hours: Math.floor(total / 3600),
-    minutes: Math.floor((total % 3600) / 60),
-    seconds: total % 60,
-  };
-  const lastRef = useRef<HTMLInputElement>(null);
-  const missing = hasVideo && total === 0;
-  // The form's own validity flow opens the lesson and focuses this field on save.
+  const [state, setState] = useState<'idle' | 'reading' | 'failed'>('idle');
+  const [retrying, setRetrying] = useState(false);
+  const latest = useRef(onMeasured);
+  latest.current = onMeasured;
+  const mounted = useRef(true);
   useEffect(() => {
-    lastRef.current?.setCustomValidity(missing ? 'أدخل مدة الفيديو.' : '');
-  }, [missing]);
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const read = useCallback(async () => {
+    setState('reading');
+    const value = await measure(video).catch(() => null);
+    if (!mounted.current) return;
+    setRetrying(false);
+    if (value) {
+      setState('idle');
+      latest.current(value);
+    } else setState('failed');
+  }, [measure, video]);
+  const pending = Boolean(video) && !(seconds > 0) && VIDEO_PATH.test(video);
+  useEffect(() => {
+    if (!pending) {
+      setState('idle');
+      return;
+    }
+    // A pasted path settles before it is read.
+    const timer = window.setTimeout(() => void read(), 400);
+    return () => window.clearTimeout(timer);
+  }, [pending, read]);
   return (
-    <fieldset className="studio-course-duration">
-      <legend>مدة الفيديو</legend>
-      <div className="studio-course-duration-parts">
-        {DURATION_PARTS.map((part) => (
-          <label key={part.key}>
-            <input
-              ref={part.key === 'seconds' ? lastRef : undefined}
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={part.max}
-              step={1}
-              required
-              value={parts[part.key]}
-              onChange={(e) => {
-                const value = Math.min(part.max, Math.max(0, Math.floor(Number(e.target.value) || 0)));
-                const next = { ...parts, [part.key]: value };
-                onChange(Math.min(86400, next.hours * 3600 + next.minutes * 60 + next.seconds));
-              }}
-            />
-            <span>{part.label}</span>
-          </label>
-        ))}
-      </div>
-      <small className="studio-course-field-hint">
-        {hasVideo
-          ? 'تُقرأ من ملف الفيديو بعد رفعه، وتقدر تصحّحها يدويًا.'
-          : 'تُملأ تلقائيًا عند رفع فيديو الدرس.'}
-      </small>
-    </fieldset>
+    <div className="studio-course-duration" data-lesson-duration={lessonId} tabIndex={-1}>
+      <span className="studio-course-duration__label">مدة الفيديو</span>
+      {seconds > 0 && video ? (
+        <>
+          <bdi className="studio-course-duration__value" dir="ltr">
+            {formatDuration(seconds)}
+          </bdi>
+          <small className="studio-course-field-hint">قُرئت تلقائيًا من ملف الفيديو.</small>
+        </>
+      ) : !video ? (
+        <small className="studio-course-field-hint">تُحسب تلقائيًا بعد رفع فيديو الدرس.</small>
+      ) : state === 'failed' || retrying ? (
+        <>
+          <small role="alert" className="studio-course-duration__error">
+            تعذّر قراءة مدة الفيديو. إن تكرر ذلك فالملف لا يعمل في المتصفح؛ ارفعه بصيغة MP4.
+          </small>
+          <Button
+            type="button"
+            aria-busy={state === 'reading'}
+            disabled={state === 'reading'}
+            onClick={() => {
+              setRetrying(true);
+              void read();
+            }}
+          >
+            أعد قراءة المدة
+          </Button>
+        </>
+      ) : (
+        <small role="status" className="studio-course-field-hint">
+          جار قراءة المدة من الفيديو
+        </small>
+      )}
+    </div>
   );
 }
 /** Reads a video's length in the browser so the editor never has to type it. */
-function readVideoDuration(file: File): Promise<number | null> {
+function readVideoDuration(source: File | string, timeoutMs = 8000): Promise<number | null> {
   return new Promise((resolve) => {
     if (typeof document === 'undefined') return resolve(null);
     const video = document.createElement('video');
-    const url = URL.createObjectURL(file);
+    const local = typeof source !== 'string';
+    const url = local ? URL.createObjectURL(source) : source;
     let settled = false;
     const done = (value: number | null) => {
       if (settled) return;
       settled = true;
       window.clearTimeout(timer);
-      URL.revokeObjectURL(url);
+      if (local) URL.revokeObjectURL(url);
+      video.removeAttribute('src');
       resolve(value);
     };
     // A file the browser cannot read must never hold the upload back.
-    const timer = window.setTimeout(() => done(null), 8000);
+    const timer = window.setTimeout(() => done(null), timeoutMs);
     video.preload = 'metadata';
     video.onloadedmetadata = () =>
       done(Number.isFinite(video.duration) && video.duration > 0 ? Math.round(video.duration) : null);
@@ -949,11 +1057,7 @@ function AssetField({
         setUploadedName(file.name);
         setSelected(null);
         setResumable(false);
-        setStatus(
-          kind === 'video' && !duration
-            ? 'رُفع الفيديو. أدخل مدته بالثواني ثم احفظ الدورة.'
-            : 'رُفع الملف. احفظ الدورة لتثبيته.',
-        );
+        setStatus('رُفع الملف. احفظ الدورة لتثبيته.');
       }
     } catch (e) {
       if (!mounted.current) return;
