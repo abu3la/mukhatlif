@@ -175,6 +175,33 @@ describe('course lesson video', () => {
     expect(saves[0].lessons[0].durationSeconds).toBe(60);
   });
 
+  it('opens the stored lesson video in its player without a click', async () => {
+    await openLesson();
+    const player = await screen.findByLabelText('معاينة: فيديو الدرس');
+    expect(player).toHaveAttribute('src', 'http://api.test/courses/media/ticket-1');
+    expect(screen.getByText('معاينة الملف المرفوع')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'معاينة الفيديو' })).not.toBeInTheDocument();
+    expect(
+      calls.filter(
+        ({ path, body }) =>
+          path === '/c1/preview' && (body as { file: string }).file === '/private/files/old.mp4',
+      ),
+    ).not.toHaveLength(0);
+  });
+
+  it('keeps the preview button as a retry when the player link fails', async () => {
+    previewFails = true;
+    const user = await openLesson();
+    const retry = await screen.findByRole('button', { name: 'معاينة الفيديو' });
+    expect(await screen.findByText('تعذّر تجهيز المعاينة.')).toBeInTheDocument();
+    previewFails = false;
+    await user.click(retry);
+    expect(await screen.findByLabelText('معاينة: فيديو الدرس')).toHaveAttribute(
+      'src',
+      'http://api.test/courses/media/ticket-1',
+    );
+  });
+
   it('measures a lesson video that has no length yet from the stored file', async () => {
     courseFixture = { ...course, lessons: [{ ...course.lessons[0], durationSeconds: 0 }] };
     await openLesson();
@@ -229,7 +256,13 @@ describe('course lesson video', () => {
     expect(screen.getByText('معاينة الملف المرفوع')).toBeInTheDocument();
     expect(screen.getByLabelText('معاينة: فيديو الدرس')).toHaveAttribute('src', 'blob:preview');
     expect(durationBox()).toHaveTextContent('1:02:05');
-    expect(calls.some(({ path }) => path === '/c1/preview')).toBe(false);
+    // The new file's length came from the file itself, not from a preview link.
+    expect(
+      calls.some(
+        ({ path, body }) =>
+          path === '/c1/preview' && (body as { file: string }).file === '/private/files/new.mp4',
+      ),
+    ).toBe(false);
     save();
     await waitFor(() => expect(saves).toHaveLength(1));
     expect(saves[0].lessons[0]).toMatchObject({
@@ -292,7 +325,7 @@ describe('direct course upload', () => {
     await user.click(screen.getByRole('button', { name: 'رفع الملف' }));
     expect(await screen.findByText('رُفع الملف. احفظ الدورة لتثبيته.')).toBeInTheDocument();
     expect(FakeR2Request.puts).toEqual([{ url: 'https://r2.test/part-1', size: 32 }]);
-    expect(calls.map(({ path }) => path)).toEqual([
+    expect(calls.map(({ path }) => path).filter((path) => path.includes('/upload-'))).toEqual([
       '/c1/upload-start',
       '/c1/upload-sign',
       '/c1/upload-finish',
