@@ -45,17 +45,28 @@ try {
     log += error.message;
   });
   const origin = `http://127.0.0.1:${port}`;
-  let response;
-  for (let attempt = 0; attempt < 60; attempt++) {
+  // Pages render against the live production API, which can answer slowly from
+  // CI runners (46 s to prerender on 2026-11-23 against 2.4 s the day before).
+  // Next streams the page, so the response headers arrive before the body; a
+  // fetch timeout also covers reading that body. This smoke proves the
+  // standalone output serves; it is not an API latency gate.
+  const PAGE_TIMEOUT_MS = 30_000;
+  let started = false;
+  for (let attempt = 0; attempt < 60 && !started; attempt++) {
     if (child.exitCode !== null) throw new Error(`Standalone exited: ${log}`);
     try {
-      response = await fetch(origin, { signal: AbortSignal.timeout(2000) });
-      break;
-    } catch {
-      await delay(250);
+      // Only waits for the server to accept a request; the body is read below.
+      const probe = await fetch(origin, { signal: AbortSignal.timeout(2000) });
+      await probe.body?.cancel();
+      started = true;
+    } catch (error) {
+      // A timeout means the server took the connection and is rendering slowly.
+      if (error?.name === 'TimeoutError') started = true;
+      else await delay(250);
     }
   }
-  assert.ok(response, `Standalone did not start: ${log}`);
+  assert.ok(started, `Standalone did not start: ${log}`);
+  const response = await fetch(origin, { signal: AbortSignal.timeout(PAGE_TIMEOUT_MS) });
   assert.equal(response.status, 200);
   assert.match(response.headers.get('x-robots-tag') ?? '', /noindex/);
   const html = await response.text();
@@ -67,10 +78,6 @@ try {
     ),
   ];
   assert.ok(assets.length > 0, 'No Next.js assets in rendered homepage');
-  // Pages render against the live production API, which can answer slowly from
-  // CI runners (46 s to prerender on 2026-11-23 against 2.4 s the day before).
-  // This smoke proves the standalone output serves; it is not an API latency gate.
-  const PAGE_TIMEOUT_MS = 30_000;
   for (const asset of assets) {
     const result = await fetch(origin + asset, { signal: AbortSignal.timeout(PAGE_TIMEOUT_MS) });
     assert.equal(result.status, 200, `Missing static asset: ${asset}`);
