@@ -143,6 +143,39 @@ export function definition(input: unknown): CourseDefinition {
     durationMinutes: Math.ceil(c.lessons.reduce((n, l) => n + l.durationSeconds, 0) / 60),
   };
 }
+/**
+ * What a learner must do, and in which order: the existing lessons in sequence,
+ * and every quiz and required assignment. Titles, text, videos, files and
+ * lengths are not part of it, so editing them never moves a learner's goalposts.
+ */
+function gates(source: Pick<CourseDefinition, 'quiz' | 'assignment'>) {
+  return {
+    quiz: source.quiz
+      ? {
+          id: source.quiz.id,
+          passPercent: source.quiz.passPercent,
+          maxAttempts: source.quiz.maxAttempts,
+          questions: source.quiz.questions.map((q) => [q.id, q.options.length, q.correct]),
+        }
+      : null,
+    assignment: source.assignment
+      ? { id: source.assignment.id, required: source.assignment.required }
+      : null,
+  };
+}
+/**
+ * True when saving `next` over `previous` would change a learner's requirements.
+ * New lessons may be added after the existing ones: issued certificates are
+ * stored, and learners simply have more to finish.
+ */
+export function requirementsChanged(previous: CourseDefinition, next: CourseDefinition): boolean {
+  if (next.lessons.length < previous.lessons.length) return true;
+  const kept = previous.lessons.map((lesson, index) => {
+    const now = next.lessons[index];
+    return now?.id === lesson.id && JSON.stringify(gates(lesson)) === JSON.stringify(gates(now));
+  });
+  return kept.includes(false) || JSON.stringify(gates(previous)) !== JSON.stringify(gates(next));
+}
 export function summary(c: CourseDefinition) {
   const { lessons: _l, resources: _r, quiz: _q, assignment: _a, trailer, ...rest } = c;
   void _l;

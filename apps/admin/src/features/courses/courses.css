@@ -9,13 +9,13 @@
 .studio-courses p {
   line-height: 1.8;
 }
-.studio-courses button:not(.studio-course-row) {
+.studio-courses button:not(.studio-course-row):not(.studio-lessons__item) {
   min-height: 44px;
   padding: 0.5rem 1rem;
   font: inherit;
   cursor: pointer;
 }
-.studio-courses button:not(.studio-course-row):disabled {
+.studio-courses button:not(.studio-course-row):not(.studio-lessons__item):disabled {
   cursor: default;
   opacity: 0.6;
 }
@@ -245,13 +245,18 @@
 }
 
 .studio-courses
-  button:not(.studio-course-save):not(.studio-course-row):not(.article-rich-editor button) {
+  button:not(.studio-course-save):not(.studio-course-row):not(.studio-lessons__item):not(
+    .button--danger
+  ):not(.article-rich-editor button) {
   border: 0;
   border-radius: 7px;
   background: #e8e5f2;
   color: #242147;
 }
-.studio-courses button:not(.studio-course-row):not(:disabled):hover {
+.studio-courses
+  button:not(.studio-course-row):not(.studio-lessons__item):not(.button--danger):not(
+    :disabled
+  ):hover {
   background: #dcd7eb;
 }
 .studio-courses nav button[aria-current] {
@@ -297,7 +302,7 @@
 .studio-courses select:focus-visible,
 .studio-course-field input:focus-visible,
 .studio-course-field textarea:focus-visible,
-.studio-courses button:not(.studio-course-row):focus-visible {
+.studio-courses button:not(.studio-course-row):not(.studio-lessons__item):focus-visible {
   outline: 2px solid #625783;
   outline-offset: 3px;
 }
@@ -606,4 +611,171 @@
   display: block;
   inline-size: 100%;
   max-inline-size: 640px;
+}
+
+/* Lessons: the list beside the open lesson; one lesson is edited at a time. */
+/* The section body is the query container: a container cannot restyle itself. */
+.studio-course-section-body:has(> .studio-lessons) {
+  container-type: inline-size;
+}
+.studio-lessons {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--st-space-24);
+  margin-block-start: var(--st-space-16);
+}
+.studio-lessons__list {
+  position: sticky;
+  inset-block-start: var(--st-space-16);
+  display: grid;
+  gap: var(--st-space-12);
+}
+.studio-lessons__list ol {
+  display: grid;
+  gap: var(--st-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.studio-lessons__item {
+  display: grid;
+  grid-template-columns: var(--st-space-24) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--st-space-8);
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding: var(--st-space-8) var(--st-space-12);
+  border: 0;
+  border-radius: var(--st-radius-control);
+  background: transparent;
+  color: var(--st-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--st-duration-fast) ease;
+}
+.studio-lessons__item:hover {
+  background: color-mix(in srgb, var(--st-sunken) 55%, var(--st-surface));
+}
+.studio-lessons__item[aria-current] {
+  background: var(--st-academy-tint);
+  color: var(--st-academy-ink);
+  cursor: default;
+}
+.studio-lessons__item:focus-visible {
+  outline: 2px solid var(--st-focus);
+  outline-offset: 2px;
+}
+.studio-lessons__index {
+  color: var(--st-muted);
+  font-size: var(--st-text-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--st-leading-ui);
+  text-align: center;
+}
+.studio-lessons__item[aria-current] .studio-lessons__index {
+  color: inherit;
+}
+.studio-lessons__copy {
+  display: grid;
+  gap: var(--st-space-4);
+  min-inline-size: 0;
+}
+.studio-lessons__title {
+  font-size: var(--st-text-sm);
+  font-weight: var(--st-weight-medium);
+  line-height: var(--st-leading-ui);
+  overflow-wrap: anywhere;
+}
+.studio-lessons__meta {
+  color: var(--st-ink-soft);
+  font-size: var(--st-text-2xs);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--st-leading-ui);
+}
+.studio-lessons__editor {
+  min-inline-size: 0;
+}
+.studio-lessons__empty {
+  margin: 0;
+  padding: var(--st-space-24) 0;
+  color: var(--st-muted);
+  font-size: var(--st-text-sm);
+}
+.studio-lesson__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--st-space-12);
+  margin: 0 0 var(--st-space-12);
+  color: var(--st-ink);
+  font-size: var(--st-text-lg);
+  font-weight: var(--st-weight-bold);
+  overflow-wrap: anywhere;
+}
+.studio-lesson__heading:focus-visible {
+  outline: 2px solid var(--st-focus);
+  outline-offset: 2px;
+  border-radius: var(--st-radius-control);
+}
+.studio-lesson__index {
+  color: var(--st-muted);
+  font-size: var(--st-text-xs);
+  font-weight: var(--st-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+.studio-lesson__step {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--st-space-12);
+  margin-block-start: var(--st-space-16);
+}
+.studio-lesson__step .studio-lesson__next {
+  margin-inline-start: auto;
+}
+@container (max-width: 640px) {
+  .studio-lessons {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .studio-lessons__list {
+    position: static;
+  }
+}
+
+/* Deleting a course: a quiet danger action at the end of the course tabs. */
+.studio-courses nav .studio-course-delete {
+  margin-inline-start: auto;
+}
+.studio-course-dialog {
+  inline-size: min(440px, calc(100vw - 2 * var(--st-space-24)));
+  padding: var(--st-space-24);
+  border: 0;
+  border-radius: var(--st-radius-card);
+  background: var(--st-surface);
+  color: var(--st-ink);
+}
+.studio-course-dialog::backdrop {
+  background: var(--st-scrim);
+}
+.studio-course-dialog h2 {
+  margin: 0 0 var(--st-space-12);
+  font-size: var(--st-text-lg);
+  font-weight: var(--st-weight-bold);
+  overflow-wrap: anywhere;
+}
+.studio-course-dialog p {
+  margin: 0 0 var(--st-space-12);
+  color: var(--st-ink-soft);
+  font-size: var(--st-text-sm);
+  line-height: var(--st-leading-reading);
+}
+.studio-course-dialog p[role='alert'] {
+  color: var(--st-danger-ink);
+}
+.studio-course-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--st-space-12);
+  margin-block-start: var(--st-space-16);
 }
