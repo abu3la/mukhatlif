@@ -139,6 +139,33 @@ describe('studio file preview', () => {
   });
 });
 
+describe('deleting a course from Studio', () => {
+  it('passes the learner count the editor saw, and rejects anything else', async () => {
+    const options = { user: 'usr-admin-1', surface: 'studio' };
+    const ok = await request('/studio/courses/course-1/delete', { ...options, body: { learners: 2 } });
+    expect(ok.status).toBe(200);
+    expect(upstream.mock.calls[0].slice(1, 3)).toEqual([
+      'studio.delete',
+      { learners: 2, courseId: 'course-1' },
+    ]);
+    upstream.mockClear();
+    for (const body of [{}, { learners: -1 }, { learners: 1.5 }, { learners: 1, force: true }])
+      expect(
+        (await request('/studio/courses/course-1/delete', { ...options, body })).status,
+      ).toBe(422);
+    expect(
+      (
+        await request('/studio/courses/course-1/delete', {
+          user: 'usr-listener-1',
+          surface: 'studio',
+          body: { learners: 0 },
+        })
+      ).status,
+    ).toBe(403);
+    expect(upstream).not.toHaveBeenCalled();
+  });
+});
+
 describe('course upload size limits', () => {
   it.each([
     ['video.mp4', 5 * 1024 ** 3],

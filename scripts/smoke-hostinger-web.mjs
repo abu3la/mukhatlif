@@ -67,12 +67,16 @@ try {
     ),
   ];
   assert.ok(assets.length > 0, 'No Next.js assets in rendered homepage');
+  // Pages render against the live production API, which can answer slowly from
+  // CI runners (46 s to prerender on 2026-11-23 against 2.4 s the day before).
+  // This smoke proves the standalone output serves; it is not an API latency gate.
+  const PAGE_TIMEOUT_MS = 30_000;
   for (const asset of assets) {
-    const result = await fetch(origin + asset, { signal: AbortSignal.timeout(5000) });
+    const result = await fetch(origin + asset, { signal: AbortSignal.timeout(PAGE_TIMEOUT_MS) });
     assert.equal(result.status, 200, `Missing static asset: ${asset}`);
     await result.arrayBuffer();
   }
-  const login = await fetch(`${origin}/login`, { signal: AbortSignal.timeout(5000) });
+  const login = await fetch(`${origin}/login`, { signal: AbortSignal.timeout(PAGE_TIMEOUT_MS) });
   assert.equal(login.status, 200, 'Direct route failed');
   console.log(
     `Isolated standalone smoke passed: home, /login, noindex, ${assets.length} JS/CSS assets.`,

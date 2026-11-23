@@ -4,7 +4,15 @@ import { COURSE_UPLOAD_LIMITS, courseUploadLimit } from '@mukhtalif/types';
 import { RichTextEditor } from '../articles/ui/rich-text-editor';
 import { richTextDocumentSchema } from '@mukhtalif/validation';
 import type { RichTextDocument } from '@mukhtalif/types';
-import { useCallback, useEffect, useState, useRef, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+  type ReactNode,
+} from 'react';
 import {
   CLIENT_SURFACE_HEADER,
   type CourseDefinition,
@@ -39,6 +47,16 @@ type Roster = CourseRosterEntry & {
   }[];
 };
 const uid = () => crypto.randomUUID();
+/**
+ * Saves the course when it has never been saved, so a file can be uploaded to a
+ * new course straight away. Resolves false when a required field needs input.
+ */
+const SaveFirstContext = createContext<() => Promise<boolean>>(async () => true);
+function learnerCount(count: number): string {
+  if (count === 1) return 'مشترك واحد';
+  if (count === 2) return 'مشتركان';
+  return `${count} ${count <= 10 ? 'مشتركين' : 'مشتركًا'}`;
+}
 const blank = (): CourseDefinition => ({
   id: uid(),
   title: '',
@@ -115,7 +133,7 @@ function CourseManager({
   const [roster, setRoster] = useState<Roster[]>([]);
   const [tab, setTab] = useState('content');
   const [section, setSection] = useState('basics');
-  const [freshLesson, setFreshLesson] = useState('');
+  const [selectedLesson, setSelectedLesson] = useState('');
   const [busy, setBusy] = useState(false);
   const [opening, setOpening] = useState('');
   const [error, setError] = useState('');
@@ -124,6 +142,33 @@ function CourseManager({
   const [retry, setRetry] = useState(0);
   const [loading, setLoading] = useState(true);
   const [dirty, setDirty] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  // Focus waits until the section and lesson that hold the field are on screen.
+  const pendingFocus = useRef<{ find: () => HTMLElement | null; report: boolean } | null>(null);
+  const [focusTick, setFocusTick] = useState(0);
+  useEffect(() => {
+    const pending = pendingFocus.current;
+    if (!pending) return;
+    pendingFocus.current = null;
+    const element = pending.find();
+    element?.focus();
+    if (pending.report && element && 'reportValidity' in element)
+      (element as HTMLInputElement).reportValidity();
+  });
+  const focusLater = (find: () => HTMLElement | null, report = false) => {
+    pendingFocus.current = { find, report };
+    setFocusTick(focusTick + 1);
+  };
+  const [deleting, setDeleting] = useState<{ learners: number } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!deleting || !dialog || dialog.open) return;
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+  }, [deleting]);
   useEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => {
@@ -191,8 +236,108 @@ function CourseManager({
       setPersisted(true);
       setTab('content');
       setSection('basics');
+      setSelectedLesson('');
       setRoster([]);
     }).finally(() => setOpening(''));
+  };
+  /** Shows the field that needs attention: its section, then its lesson, then focus. */
+  const reveal = (element: HTMLElement | null, report = false) => {
+    if (!element) return;
+    const section = element.closest<HTMLElement>('[data-course-section]')?.dataset.courseSection;
+    if (section) setSection(section);
+    const lesson = element.closest<HTMLElement>('[data-lesson-id]')?.dataset.lessonId;
+    if (lesson) setSelectedLesson(lesson);
+    focusLater(() => element, report);
+  };
+  /** Checks the whole course, then stores it. Resolves true once it is saved. */
+  const saveCourse = async (): Promise<boolean> => {
+    const form = formRef.current;
+    if (!course || !form) return false;
+    const unmeasured = course.lessons.find(
+      (lesson) => lesson.video && !(lesson.durationSeconds > 0),
+    );
+    if (unmeasured) {
+      setError(
+        `لم تُقرأ مدة فيديو «${unmeasured.title || 'درس جديد'}» بعد. انتظر لحظة، أو اضغط «أعد قراءة المدة».`,
+      );
+      reveal(form.querySelector<HTMLElement>(`[data-lesson-duration="${unmeasured.id}"]`));
+      return false;
+    }
+    // Each field's own validity, in document order: the first one that needs input.
+    const invalid = Array.from(form.elements).find(
+      (element): element is HTMLInputElement =>
+        'validity' in element &&
+        (element as HTMLInputElement).willValidate &&
+        !(element as HTMLInputElement).validity.valid,
+    );
+    if (invalid) {
+      reveal(invalid, true);
+      return false;
+    }
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const result = await request<CourseDefinition>('', course);
+      setCourse(result);
+      setDirty(false);
+      setPersisted(true);
+      setNotice('حُفظت الدورة.');
+      setRetry((value) => value + 1);
+      return true;
+    } catch (e) {
+      setError((e as Error).message);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+  const askDelete = async () => {
+    if (!course || deleteBusy) return;
+    setDeleteBusy(true);
+    setError('');
+    try {
+      const learners = await request<Roster[]>(`/${course.id}/learners`);
+      setDeleteError('');
+      setDeleting({ learners: learners.length });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+  const closeDelete = () => {
+    const dialog = dialogRef.current;
+    if (dialog?.open) {
+      if (typeof dialog.close === 'function') dialog.close();
+      else dialog.removeAttribute('open');
+    }
+    setDeleting(null);
+  };
+  const confirmDelete = async () => {
+    if (!course || !deleting || deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError('');
+    try {
+      await request(`/${course.id}/delete`, { learners: deleting.learners });
+      const title = course.title;
+      closeDelete();
+      setCourse(null);
+      setPersisted(false);
+      setDirty(false);
+      setRoster([]);
+      setNotice(`حُذفت الدورة «${title}».`);
+      setRetry((value) => value + 1);
+    } catch (e) {
+      setDeleteError((e as Error).message);
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+  const openLesson = course?.lessons.find((lesson) => lesson.id === selectedLesson) ?? course?.lessons[0];
+  const selectLesson = (id: string) => {
+    setSelectedLesson(id);
+    focusLater(() => document.getElementById(`lesson-heading-${id}`));
   };
   return (
     <main className="studio-courses">
@@ -226,6 +371,7 @@ function CourseManager({
               setRoster([]);
               setTab('content');
               setSection('basics');
+              setSelectedLesson('');
             }}
           >
             دورة جديدة
@@ -290,64 +436,28 @@ function CourseManager({
             >
               المتعلمون والتقييم
             </button>
+            {persisted && (
+              <Button
+                type="button"
+                variant="danger"
+                className="studio-course-delete"
+                aria-busy={deleteBusy && !deleting}
+                disabled={busy}
+                onClick={() => void askDelete()}
+              >
+                حذف الدورة
+              </Button>
+            )}
           </nav>
           {tab === 'content' ? (
+            <SaveFirstContext.Provider value={saveCourse}>
             <form
+              ref={formRef}
               key={course.id}
               noValidate
               onSubmit={(e) => {
                 e.preventDefault();
-                const unmeasured = course.lessons.find(
-                  (lesson) => lesson.video && !(lesson.durationSeconds > 0),
-                );
-                if (unmeasured) {
-                  const target = e.currentTarget.querySelector<HTMLElement>(
-                    `[data-lesson-duration="${unmeasured.id}"]`,
-                  );
-                  const parent = target?.closest<HTMLDetailsElement>('[data-course-section]');
-                  if (parent?.dataset.courseSection) {
-                    parent.open = true;
-                    setSection(parent.dataset.courseSection);
-                  }
-                  const lesson = target?.closest<HTMLDetailsElement>('details.studio-course-lesson');
-                  if (lesson) lesson.open = true;
-                  setError(
-                    `لم تُقرأ مدة فيديو «${unmeasured.title || 'درس جديد'}» بعد. انتظر لحظة، أو اضغط «أعد قراءة المدة».`,
-                  );
-                  requestAnimationFrame(() => target?.focus());
-                  return;
-                }
-                const invalid = e.currentTarget.querySelector<HTMLInputElement>(
-                  'input:invalid, select:invalid, textarea:invalid',
-                );
-                if (invalid) {
-                  const parent = invalid.closest<HTMLDetailsElement>('[data-course-section]');
-                  if (parent?.dataset.courseSection) {
-                    parent.open = true;
-                    setSection(parent.dataset.courseSection);
-                  }
-                  const lesson = invalid.closest<HTMLDetailsElement>(
-                    'details.studio-course-lesson',
-                  );
-                  if (lesson) lesson.open = true;
-                  requestAnimationFrame(() => {
-                    invalid.focus();
-                    invalid.reportValidity();
-                  });
-                  return;
-                }
-                void run(async () => {
-                  const result = await request<CourseDefinition>('', course);
-                  setCourse(result);
-                  setDirty(false);
-                  setPersisted(true);
-                  setNotice(
-                    persisted
-                      ? 'حُفظت الدورة.'
-                      : 'حُفظت الدورة. صار بإمكانك رفع الفيديو والملفات داخل كل درس.',
-                  );
-                  setRetry(retry + 1);
-                });
+                void saveCourse();
               }}
             >
               <fieldset disabled={busy} className="studio-course-fields">
@@ -446,172 +556,242 @@ function CourseManager({
                   open={section === 'lessons'}
                   onToggle={setSection}
                 >
-                  <p>
-                    بعد أول تسجيل، تُقفل متطلبات التعلّم حفاظًا على تقدم المتعلمين. أنشئ دورة جديدة
-                    لتغييرها.
+                  <p className="studio-course-field-hint">
+                    بعد أول تسجيل لا يمكن حذف درس أو تغيير ترتيب الدروس، أما تعديل المحتوى وإضافة
+                    دروس جديدة في آخر الدورة فمتاح دائمًا.
                   </p>
-                  {course.lessons.map((lesson, index) => (
-                    <details
-                      className="studio-course-lesson"
-                      name={`lessons-${course.id}`}
-                      key={lesson.id}
-                      open={freshLesson === lesson.id}
-                    >
-                      <summary>
-                        <span>
-                          {index + 1} / {course.lessons.length}
-                        </span>{' '}
-                        {lesson.title || 'درس جديد'}
-                        {lesson.durationSeconds > 0 ? (
-                          <bdi className="studio-course-lesson-duration" dir="ltr">
-                            {formatDuration(lesson.durationSeconds)}
-                          </bdi>
-                        ) : null}
-                      </summary>
-                      <Field title="اسم الدرس">
-                        <input
-                          required
-                          maxLength={200}
-                          value={lesson.title}
-                          onChange={(e) =>
-                            patch({
-                              lessons: course.lessons.map((x) =>
-                                x.id === lesson.id ? { ...x, title: e.target.value } : x,
-                              ),
-                            })
-                          }
-                        />
-                      </Field>
-                      <CourseTextEditor
-                        disabled={busy}
-                        key={lesson.id}
-                        title="محتوى الدرس"
-                        text={lesson.body}
-                        document={lesson.bodyDocument}
-                        onChange={(body, bodyDocument) =>
-                          patch({
-                            lessons: course.lessons.map((x) =>
-                              x.id === lesson.id ? { ...x, body, bodyDocument } : x,
+                  <div className="studio-lessons">
+                    {/* A plain element with the navigation role: the page's tab rules style <nav>. */}
+                    <div className="studio-lessons__list" role="navigation" aria-label="قائمة الدروس">
+                      {course.lessons.length > 0 && (
+                        <ol>
+                          {course.lessons.map((lesson, index) => (
+                            <li key={lesson.id}>
+                              <button
+                                type="button"
+                                className="studio-lessons__item"
+                                aria-current={lesson.id === openLesson?.id ? 'true' : undefined}
+                                onClick={() => selectLesson(lesson.id)}
+                              >
+                                <span className="studio-lessons__index">{index + 1}</span>
+                                <span className="studio-lessons__copy">
+                                  <span className="studio-lessons__title">
+                                    {lesson.title || 'درس جديد'}
+                                  </span>
+                                  <span className="studio-lessons__meta">
+                                    {!lesson.video ? (
+                                      'بلا فيديو'
+                                    ) : lesson.durationSeconds > 0 ? (
+                                      <bdi dir="ltr">{formatDuration(lesson.durationSeconds)}</bdi>
+                                    ) : (
+                                      'المدة لم تُقرأ بعد'
+                                    )}
+                                  </span>
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          const lesson = newLesson();
+                          patch({ lessons: [...course.lessons, lesson] });
+                          setSelectedLesson(lesson.id);
+                          focusLater(() =>
+                            document.querySelector<HTMLElement>(
+                              `[data-lesson-id="${lesson.id}"] input`,
                             ),
-                          })
-                        }
-                      />
-                      <AssetField
-                        title="فيديو الدرس"
-                        kind="video"
-                        courseId={course.id}
-                        value={lesson.video}
-                        persisted={persisted}
-                        request={request}
-                        // One update for both values: two patches built from the same
-                        // render would overwrite each other and drop the new video.
-                        // A different video without a known length is measured again.
-                        onChange={(video, durationSeconds) =>
-                          patch({
-                            lessons: course.lessons.map((x) =>
-                              x.id === lesson.id
-                                ? {
-                                    ...x,
-                                    video,
-                                    durationSeconds:
-                                      durationSeconds ?? (video === x.video ? x.durationSeconds : 0),
-                                  }
-                                : x,
-                            ),
-                          })
-                        }
-                      />
-                      <LessonDuration
-                        lessonId={lesson.id}
-                        seconds={lesson.durationSeconds}
-                        video={lesson.video}
-                        measure={measureVideo}
-                        onMeasured={(durationSeconds) => {
-                          setDirty(true);
-                          setCourse((old) =>
-                            old
-                              ? {
-                                  ...old,
-                                  lessons: old.lessons.map((x) =>
-                                    x.id === lesson.id && x.video === lesson.video
-                                      ? { ...x, durationSeconds }
-                                      : x,
-                                  ),
-                                }
-                              : old,
                           );
                         }}
-                      />
-                      <ResourceEditor
-                        courseId={course.id}
-                        persisted={persisted}
-                        request={request}
-                        resources={lesson.resources}
-                        onChange={(resources) =>
-                          patch({
-                            lessons: course.lessons.map((x) =>
-                              x.id === lesson.id ? { ...x, resources } : x,
-                            ),
-                          })
-                        }
-                      />
-                      <AssessmentEditor
-                        courseId={course.id}
-                        persisted={persisted}
-                        request={request}
-                        source={lesson}
-                        onChange={(change) =>
-                          patch({
-                            lessons: course.lessons.map((x) =>
-                              x.id === lesson.id ? { ...x, ...change } : x,
-                            ),
-                          })
-                        }
-                      />
-                      <div className="studio-course-actions">
-                        <button
-                          type="button"
-                          disabled={index === 0}
-                          onClick={() => {
-                            const next = [...course.lessons];
-                            [next[index - 1], next[index]] = [next[index], next[index - 1]];
-                            patch({ lessons: next });
-                          }}
+                      >
+                        إضافة درس
+                      </Button>
+                    </div>
+                    <div className="studio-lessons__editor">
+                      {course.lessons.length === 0 && (
+                        <p className="studio-lessons__empty">لا دروس بعد. أضف أول درس من القائمة.</p>
+                      )}
+                      {course.lessons.map((lesson, index) => (
+                        <section
+                          key={lesson.id}
+                          className="studio-lesson"
+                          data-lesson-id={lesson.id}
+                          hidden={lesson.id !== openLesson?.id}
+                          aria-labelledby={`lesson-heading-${lesson.id}`}
                         >
-                          نقل للأعلى
-                        </button>
-                        <button
-                          type="button"
-                          disabled={index === course.lessons.length - 1}
-                          onClick={() => {
-                            const next = [...course.lessons];
-                            [next[index], next[index + 1]] = [next[index + 1], next[index]];
-                            patch({ lessons: next });
-                          }}
-                        >
-                          نقل للأسفل
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            patch({ lessons: course.lessons.filter((x) => x.id !== lesson.id) })
-                          }
-                        >
-                          حذف الدرس
-                        </button>
-                      </div>
-                    </details>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const lesson = newLesson();
-                      setFreshLesson(lesson.id);
-                      patch({ lessons: [...course.lessons, lesson] });
-                    }}
-                  >
-                    إضافة درس
-                  </button>
+                          <h3
+                            id={`lesson-heading-${lesson.id}`}
+                            className="studio-lesson__heading"
+                            tabIndex={-1}
+                          >
+                            <span className="studio-lesson__index">
+                              {index + 1} / {course.lessons.length}
+                            </span>
+                            {lesson.title || 'درس جديد'}
+                          </h3>
+                      <Field title="اسم الدرس">
+                            <input
+                              required
+                              maxLength={200}
+                              value={lesson.title}
+                              onChange={(e) =>
+                                patch({
+                                  lessons: course.lessons.map((x) =>
+                                    x.id === lesson.id ? { ...x, title: e.target.value } : x,
+                                  ),
+                                })
+                              }
+                            />
+                          </Field>
+                          <CourseTextEditor
+                            disabled={busy}
+                            key={lesson.id}
+                            title="محتوى الدرس"
+                            text={lesson.body}
+                            document={lesson.bodyDocument}
+                            onChange={(body, bodyDocument) =>
+                              patch({
+                                lessons: course.lessons.map((x) =>
+                                  x.id === lesson.id ? { ...x, body, bodyDocument } : x,
+                                ),
+                              })
+                            }
+                          />
+                          <AssetField
+                            title="فيديو الدرس"
+                            kind="video"
+                            courseId={course.id}
+                            value={lesson.video}
+                            persisted={persisted}
+                            request={request}
+                            // One update for both values: two patches built from the same
+                            // render would overwrite each other and drop the new video.
+                            // A different video without a known length is measured again.
+                            onChange={(video, durationSeconds) =>
+                              patch({
+                                lessons: course.lessons.map((x) =>
+                                  x.id === lesson.id
+                                    ? {
+                                        ...x,
+                                        video,
+                                        durationSeconds:
+                                          durationSeconds ?? (video === x.video ? x.durationSeconds : 0),
+                                      }
+                                    : x,
+                                ),
+                              })
+                            }
+                          />
+                          <LessonDuration
+                            lessonId={lesson.id}
+                            seconds={lesson.durationSeconds}
+                            video={lesson.video}
+                            measure={measureVideo}
+                            onMeasured={(durationSeconds) => {
+                              setDirty(true);
+                              setCourse((old) =>
+                                old
+                                  ? {
+                                      ...old,
+                                      lessons: old.lessons.map((x) =>
+                                        x.id === lesson.id && x.video === lesson.video
+                                          ? { ...x, durationSeconds }
+                                          : x,
+                                      ),
+                                    }
+                                  : old,
+                              );
+                            }}
+                          />
+                          <ResourceEditor
+                            courseId={course.id}
+                            persisted={persisted}
+                            request={request}
+                            resources={lesson.resources}
+                            onChange={(resources) =>
+                              patch({
+                                lessons: course.lessons.map((x) =>
+                                  x.id === lesson.id ? { ...x, resources } : x,
+                                ),
+                              })
+                            }
+                          />
+                          <AssessmentEditor
+                            courseId={course.id}
+                            persisted={persisted}
+                            request={request}
+                            source={lesson}
+                            onChange={(change) =>
+                              patch({
+                                lessons: course.lessons.map((x) =>
+                                  x.id === lesson.id ? { ...x, ...change } : x,
+                                ),
+                              })
+                            }
+                          />
+                          <div className="studio-course-actions">
+                            <button
+                              type="button"
+                              disabled={index === 0}
+                              onClick={() => {
+                                const next = [...course.lessons];
+                                [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                                patch({ lessons: next });
+                              }}
+                            >
+                              نقل للأعلى
+                            </button>
+                            <button
+                              type="button"
+                              disabled={index === course.lessons.length - 1}
+                              onClick={() => {
+                                const next = [...course.lessons];
+                                [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                                patch({ lessons: next });
+                              }}
+                            >
+                              نقل للأسفل
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const neighbour =
+                                  course.lessons[index + 1] ?? course.lessons[index - 1];
+                                patch({
+                                  lessons: course.lessons.filter((x) => x.id !== lesson.id),
+                                });
+                                setSelectedLesson(neighbour?.id ?? '');
+                              }}
+                            >
+                              حذف الدرس
+                            </button>
+                          </div>
+                          <div className="studio-lesson__step">
+                            {index > 0 && (
+                              <Button
+                                type="button"
+                                className="studio-lesson__previous"
+                                onClick={() => selectLesson(course.lessons[index - 1].id)}
+                              >
+                                الدرس السابق
+                              </Button>
+                            )}
+                            {index < course.lessons.length - 1 && (
+                              <Button
+                                type="button"
+                                className="studio-lesson__next"
+                                onClick={() => selectLesson(course.lessons[index + 1].id)}
+                              >
+                                الدرس التالي
+                              </Button>
+                            )}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  </div>
                 </EditorSection>
                 <EditorSection
                   id="resources"
@@ -676,6 +856,7 @@ function CourseManager({
                 </div>
               </fieldset>
             </form>
+            </SaveFirstContext.Provider>
           ) : (
             <section>
               <h2>التسجيلات والتقييمات</h2>
@@ -712,6 +893,39 @@ function CourseManager({
             </section>
           )}
         </>
+      )}
+      {deleting && course && (
+        <dialog
+          ref={dialogRef}
+          className="studio-course-dialog"
+          aria-labelledby="studio-course-delete-title"
+          onCancel={(event) => {
+            if (deleteBusy) event.preventDefault();
+          }}
+          onClose={() => setDeleting(null)}
+        >
+          <h2 id="studio-course-delete-title">حذف «{course.title || 'دورة بلا اسم'}»؟</h2>
+          <p>
+            {deleting.learners
+              ? `للدورة ${learnerCount(deleting.learners)}، ويُحذف تسجيلهم وتقدمهم مع الدورة وكل ملفاتها.`
+              : 'تُحذف الدورة وكل ملفاتها.'}{' '}
+            لا يمكن التراجع عن الحذف.
+          </p>
+          {deleteError && <p role="alert">{deleteError}</p>}
+          <div className="studio-course-dialog__actions">
+            <Button
+              type="button"
+              variant="danger"
+              aria-busy={deleteBusy}
+              onClick={() => void confirmDelete()}
+            >
+              حذف نهائي
+            </Button>
+            <Button type="button" disabled={deleteBusy} onClick={closeDelete}>
+              إلغاء
+            </Button>
+          </div>
+        </dialog>
       )}
     </main>
   );
@@ -914,6 +1128,7 @@ function AssetField({
   request: Request;
 }) {
   const [busy, setBusy] = useState(false);
+  const ensureSaved = useContext(SaveFirstContext);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [percent, setPercent] = useState(0);
@@ -1011,10 +1226,6 @@ function AssetField({
         : 'مستند PDF، فيديو MP4 أو WebM، صوت MP3';
   const choose = (file?: File) => {
     if (!file || busy) return;
-    if (!persisted) {
-      setError('احفظ الدورة أولًا، ثم ارفع الملف.');
-      return;
-    }
     setError('');
     setStatus('');
     if (!accept.split(',').includes(`.${file.name.split('.').pop()?.toLowerCase()}`)) {
@@ -1050,7 +1261,7 @@ function AssetField({
   }, [busy]);
   const upload = async () => {
     const file = selected;
-    if (!file || busy || !persisted) return;
+    if (!file || busy) return;
     setError('');
     setStatus('');
     setBusy(true);
@@ -1059,6 +1270,8 @@ function AssetField({
     const controller = new AbortController();
     abort.current = controller;
     try {
+      // A new course is saved first, so the file has somewhere to belong.
+      if (!persisted && !(await ensureSaved())) return;
       const duration = kind === 'video' ? await readVideoDuration(file) : null;
       const progress =
         transfer.current?.file === file
@@ -1141,18 +1354,14 @@ function AssetField({
       >
         <div className="course-upload-copy">
           <strong>
-            {!persisted
-              ? 'احفظ الدورة أولًا'
-              : selected
-                ? selected.name
-                : value
-                  ? uploadedName || 'الملف الحالي جاهز'
-                  : 'اسحب الملف هنا أو اختره'}
+            {selected
+              ? selected.name
+              : value
+                ? uploadedName || 'الملف الحالي جاهز'
+                : 'اسحب الملف هنا أو اختره'}
           </strong>
           <span>
-            {!persisted
-              ? 'بعد الحفظ تقدر ترفع الملفات هنا، ثم تضغط «رفع الملف».'
-              : selected
+            {selected
                 ? `${(selected.size / 1024 / 1024).toFixed(1)} ميجابايت، ${resumable ? 'اضغط «استئناف الرفع» للمتابعة' : 'اضغط «رفع الملف» للبدء'}`
                 : formats}
           </span>
@@ -1169,18 +1378,14 @@ function AssetField({
           type="file"
           hidden
           accept={accept}
-          disabled={!persisted || busy}
+          disabled={busy}
           aria-label={`اختيار ملف: ${title}`}
           onChange={(e) => {
             choose(e.target.files?.[0]);
             e.target.value = '';
           }}
         />
-        <button
-          type="button"
-          disabled={!persisted || busy}
-          onClick={() => inputRef.current?.click()}
-        >
+        <button type="button" disabled={busy} onClick={() => inputRef.current?.click()}>
           {selected || value ? 'اختيار ملف آخر' : 'اختيار ملف'}
         </button>
       </div>

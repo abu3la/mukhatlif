@@ -69,7 +69,11 @@ beforeEach(() => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const path = String(input).split('/studio/courses')[1] ?? '';
+      // Any course id answers like c1, so a new, just-saved course can upload too.
+      const path = (String(input).split('/studio/courses')[1] ?? '').replace(
+        /^\/[^/]+(?=\/)/,
+        '/c1',
+      );
       const method = init?.method ?? 'GET';
       if (method === 'POST') calls.push({ path, body: JSON.parse(String(init?.body)) });
       if (method === 'GET' && path === '') return json([summary]);
@@ -88,6 +92,9 @@ beforeEach(() => {
         });
       }
       if (path === '/c1/upload-chunk') return json({ received: 1 });
+      if (method === 'GET' && path === '/c1/learners')
+        return json([{ member: 'u1', name: 'متعلم', enrollment: {}, submissions: [] }]);
+      if (path === '/c1/delete') return json({ deleted: 'c1' });
       if (path === '/c1/upload-finish') return json({ file: '/private/files/new.mp4' });
       if (method === 'POST' && path === '') {
         const body = JSON.parse(String(init?.body));
@@ -380,5 +387,174 @@ describe('direct course upload', () => {
     );
     expect(screen.getByRole('button', { name: 'رفع الملف' })).toBeEnabled();
     expect(FakeR2Request.puts).toHaveLength(0);
+  });
+});
+
+const threeLessons = {
+  ...course,
+  lessons: [
+    course.lessons[0],
+    { id: 'l2', title: 'الدرس الثاني', body: '', video: '', durationSeconds: 0, resources: [] },
+    {
+      id: 'l3',
+      title: 'الدرس الثالث',
+      body: '',
+      video: '/private/files/third.mp4',
+      durationSeconds: 3725,
+      resources: [],
+    },
+  ],
+};
+const lessonItems = () =>
+  within(screen.getByRole('navigation', { name: 'قائمة الدروس' }))
+    .getAllByRole('button')
+    .filter((button) => button.classList.contains('studio-lessons__item'));
+const lessonHeading = (name: RegExp) => screen.getByRole('heading', { level: 3, name });
+
+describe('browsing lessons', () => {
+  it('lists every lesson and edits one at a time, with previous and next', async () => {
+    courseFixture = threeLessons;
+    const user = await openLesson();
+    const items = lessonItems();
+    expect(items).toHaveLength(3);
+    expect(items[0]).toHaveTextContent('الدرس الأول');
+    expect(items[0]).toHaveTextContent('1:00');
+    expect(items[1]).toHaveTextContent('بلا فيديو');
+    expect(items[2]).toHaveTextContent('1:02:05');
+    expect(items[0]).toHaveAttribute('aria-current', 'true');
+    expect(lessonHeading(/الدرس الأول/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 3, name: /الدرس الثاني/ })).toBeNull();
+
+    await user.click(items[1]);
+    expect(items[1]).toHaveAttribute('aria-current', 'true');
+    await waitFor(() => expect(lessonHeading(/الدرس الثاني/)).toHaveFocus());
+    expect(screen.queryByRole('heading', { level: 3, name: /الدرس الأول/ })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'الدرس التالي' }));
+    await waitFor(() => expect(lessonHeading(/الدرس الثالث/)).toHaveFocus());
+    expect(screen.queryByRole('button', { name: 'الدرس التالي' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'الدرس السابق' }));
+    await waitFor(() => expect(lessonHeading(/الدرس الثاني/)).toHaveFocus());
+  });
+
+  it('adds a lesson and opens it ready for its name', async () => {
+    const user = await openLesson();
+    await user.click(screen.getByRole('button', { name: 'إضافة درس' }));
+    expect(lessonItems()).toHaveLength(2);
+    expect(lessonItems()[1]).toHaveAttribute('aria-current', 'true');
+    await waitFor(() => expect(lessonHeading(/درس جديد/)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getAllByLabelText('اسم الدرس').find((input) => !input.closest('[hidden]')),
+      ),
+    );
+  });
+
+  it('opens the lesson that holds a missing field when saving', async () => {
+    courseFixture = {
+      ...threeLessons,
+      lessons: threeLessons.lessons.map((lesson) =>
+        lesson.id === 'l3' ? { ...lesson, title: '' } : lesson,
+      ),
+    };
+    await openLesson();
+    save();
+    await waitFor(() => expect(lessonItems()[2]).toHaveAttribute('aria-current', 'true'));
+    await waitFor(() => expect(document.activeElement).toHaveValue(''));
+    expect(document.activeElement?.closest('[data-lesson-id]')).toHaveAttribute(
+      'data-lesson-id',
+      'l3',
+    );
+    expect(saves).toHaveLength(0);
+  });
+});
+
+describe('uploading to a course that was never saved', () => {
+  async function newCourse() {
+    render(
+      <AdminAuthContext.Provider value={authValue()}>
+        <CoursesManagement
+          authGateway={{ getAccessToken: () => null } as unknown as AdminAuthGateway}
+          connection={{ baseUrl: 'http://api.test', devUserId: null }}
+        />
+      </AdminAuthContext.Provider>,
+    );
+    const user = userEvent.setup();
+    await screen.findByRole('button', { name: /ورشة الراتب/ });
+    await user.click(screen.getByRole('button', { name: 'دورة جديدة' }));
+    return user;
+  }
+
+  it('saves the course first, then uploads, with no separate save step', async () => {
+    const user = await newCourse();
+    await user.type(screen.getByLabelText('اسم الدورة'), 'ورشة جديدة');
+    await user.click(screen.getByText('الدروس'));
+    await user.click(screen.getByRole('button', { name: 'إضافة درس' }));
+    await user.type(
+      screen.getAllByLabelText('اسم الدرس').find((input) => !input.closest('[hidden]'))!,
+      'المقدمة',
+    );
+    const file = new File([new Uint8Array(32)], 'intro.mp4', { type: 'video/mp4' });
+    fireEvent.change(screen.getByLabelText('اختيار ملف: فيديو الدرس'), {
+      target: { files: [file] },
+    });
+    await user.click(screen.getByRole('button', { name: 'رفع الملف' }));
+    expect(await screen.findByText('رُفع الملف. احفظ الدورة لتثبيته.')).toBeInTheDocument();
+    const order = calls.map(({ path }) => path);
+    expect(order.indexOf('')).toBeGreaterThanOrEqual(0);
+    expect(order.indexOf('')).toBeLessThan(order.indexOf('/c1/upload-start'));
+    expect(saves[0]).toMatchObject({ title: 'ورشة جديدة' });
+  });
+
+  it('keeps the chosen file and points to the course name when it is missing', async () => {
+    const user = await newCourse();
+    await user.click(screen.getByText('المقطع التعريفي', { selector: 'strong' }));
+    const file = new File([new Uint8Array(32)], 'trailer.mp4', { type: 'video/mp4' });
+    fireEvent.change(screen.getByLabelText('اختيار ملف: المقطع التعريفي'), {
+      target: { files: [file] },
+    });
+    await user.click(screen.getByRole('button', { name: 'رفع الملف' }));
+    await waitFor(() => expect(screen.getByLabelText('اسم الدورة')).toHaveFocus());
+    expect(saves).toHaveLength(0);
+    expect(calls.some(({ path }) => path.endsWith('/upload-start'))).toBe(false);
+    expect(screen.getByRole('button', { name: 'رفع الملف' })).toBeEnabled();
+  });
+});
+
+describe('deleting a course', () => {
+  async function openCourse() {
+    render(
+      <AdminAuthContext.Provider value={authValue()}>
+        <CoursesManagement
+          authGateway={{ getAccessToken: () => null } as unknown as AdminAuthGateway}
+          connection={{ baseUrl: 'http://api.test', devUserId: null }}
+        />
+      </AdminAuthContext.Provider>,
+    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /ورشة الراتب/ }));
+    await user.click(await screen.findByRole('button', { name: 'حذف الدورة' }));
+    return user;
+  }
+
+  it('says how many learners lose their enrollment, then deletes for that count', async () => {
+    const user = await openCourse();
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('للدورة مشترك واحد');
+    expect(dialog).toHaveTextContent('لا يمكن التراجع عن الحذف.');
+    await user.click(within(dialog).getByRole('button', { name: 'حذف نهائي' }));
+    expect(await screen.findByText('حُذفت الدورة «ورشة الراتب».')).toBeInTheDocument();
+    expect(calls).toContainEqual({ path: '/c1/delete', body: { learners: 1 } });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'حفظ الدورة' })).toBeNull();
+  });
+
+  it('cancels without deleting anything', async () => {
+    const user = await openCourse();
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'إلغاء' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(calls.some(({ path }) => path === '/c1/delete')).toBe(false);
+    expect(screen.getByRole('button', { name: 'حفظ الدورة' })).toBeInTheDocument();
   });
 });
