@@ -66,10 +66,24 @@ try {
     }
   }
   assert.ok(started, `Standalone did not start: ${log}`);
-  const response = await fetch(origin, { signal: AbortSignal.timeout(PAGE_TIMEOUT_MS) });
+  // The home page renders per request against the live API, which once took
+  // over 30 s from a runner (2026-11-23) minutes after answering in 2 s. Only a
+  // timeout is retried; any other failure or status still fails at once.
+  let response;
+  let html;
+  for (let attempt = 1; html === undefined; attempt++) {
+    try {
+      response = await fetch(origin, { signal: AbortSignal.timeout(PAGE_TIMEOUT_MS) });
+      html = await response.text();
+    } catch (error) {
+      if (error?.name !== 'TimeoutError' || attempt === 3) throw error;
+      console.log(
+        `Home page took over ${PAGE_TIMEOUT_MS / 1000} s (attempt ${attempt}); retrying.`,
+      );
+    }
+  }
   assert.equal(response.status, 200);
   assert.match(response.headers.get('x-robots-tag') ?? '', /noindex/);
-  const html = await response.text();
   const assets = [
     ...new Set(
       [...html.matchAll(/(?:src|href)="([^"?#]+\.(?:js|css))(?:\?[^" ]*)?"/g)]
