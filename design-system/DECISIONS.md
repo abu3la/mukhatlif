@@ -120,6 +120,16 @@ Format: `D-nn · date · decision · why / source`.
   breadcrumb, switch, text links) reaches 44px; disabled is a solid tonal step;
   focus rings are ink, not green (D-04); metadata is spaced, not dotted (the
   owner's standing rule). The avatar is ink with an on-ink initial.
+- **D-25 · 2026-11-24 · Course videos on Video.js 10.** Abdulrahman suggested
+  Plyr for the course player; Plyr is deprecated by its author (security fixes
+  only) and points to Video.js 10, which the owner chose. Lesson videos and the
+  course trailer use `CoursePlayer` with the Compat skin (no backdrop blur, per
+  D-07) and Arabic labels. The brand goes in only through the skin's public
+  custom properties: brand green accent with broadcast-ground ink, the
+  Mukhtalif font, the media radius, controls visible before playback. Cast and
+  AirPlay show only when a device is reachable. In RTL the controls keep their
+  order and the timeline runs left to right, as in native players. The episode
+  dock (D-09) is unchanged. (D-24 is reserved by PR 39.)
 
 ## Open questions for the owner
 

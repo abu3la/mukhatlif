@@ -114,6 +114,7 @@ decision.
 | Appearance switch | `ThemeControl`, inside the menu only                                                                  | `components/theme-control.tsx`                                                    |
 | Footer            | `SiteFooter` on its own floor (`--mk-footer*`)                                                        | `components/site-chrome.tsx`, `handoff.css`                                       |
 | Player dock       | `PlayerProvider` / `PlayerBar`, broadcast palette                                                     | `components/player.tsx`, `player.module.css`                                      |
+| Course video      | `CoursePlayer` (Video.js 10 Compat skin, D-25) for lessons and the trailer                            | `components/courses/player.tsx`, `courses/courses.css`                            |
 | Newsletter        | `NewsletterSignup` (home places it after the latest articles)                                         | `components/newsletter-signup.tsx`, `listener.css` + `public-pages.css`           |
 
 ## Duplicates to resolve

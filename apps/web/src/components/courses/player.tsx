@@ -1,9 +1,60 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import '@videojs/react/video/compat-skin.css';
+// Registers the Arabic labels with the bundle so the first frame is already Arabic.
+import '@videojs/react/i18n/locales/ar/register';
+import { I18nProvider, type Translations } from '@videojs/react/i18n';
+import { CompatVideoSkin, Video, VideoPlayer } from '@videojs/react/video';
+import { useCallback, useEffect, useRef, useState, type Ref } from 'react';
 import type { CourseEnrollment, CourseLesson } from '@mukhtalif/types';
 import { BusyButton } from '../busy-button';
 import { BrandIcon } from '../brand-icon';
 import { useCoursesApi } from './api';
+
+// House copy: «جار» without tanween, and the skin's 10-second seek takes «ثوانٍ», not «ثانية».
+const translations = {
+  cast: { connecting: 'جار الاتصال' },
+  seek: { forward: 'تقديم {seconds} ثوانٍ', backward: 'ترجيع {seconds} ثوانٍ' },
+} satisfies Partial<Translations>;
+
+/**
+ * Video.js 10 with its Compat skin: flat surfaces with no backdrop blur (D-07),
+ * Arabic labels, and the brand applied only through the skin's public custom
+ * properties in courses.css. In RTL the controls keep their order and the
+ * timeline keeps its left-to-right scale, as media players do.
+ */
+export function CoursePlayer({
+  src,
+  label,
+  mediaRef,
+  onError,
+}: {
+  src: string;
+  label: string;
+  mediaRef?: Ref<HTMLVideoElement>;
+  onError?: () => void;
+}) {
+  return (
+    // Deterrents only: no download control and no video context menu. Not DRM.
+    <div className="course-player" onContextMenu={(event) => event.preventDefault()}>
+      <VideoPlayer>
+        <I18nProvider locale="ar" translations={translations}>
+          <CompatVideoSkin className="course-player-skin">
+            <Video
+              ref={mediaRef}
+              src={src}
+              aria-label={label}
+              controlsList="nodownload"
+              playsInline
+              preload="metadata"
+              onError={onError}
+              fallback={null}
+            />
+          </CompatVideoSkin>
+        </I18nProvider>
+      </VideoPlayer>
+    </div>
+  );
+}
 
 export function CourseVideo({
   courseId,
@@ -19,7 +70,13 @@ export function CourseVideo({
   onSaved: (state: CourseEnrollment) => void;
 }) {
   const api = useCoursesApi();
-  const video = useRef<HTMLVideoElement>(null);
+  const video = useRef<HTMLVideoElement | null>(null);
+  // State as well as a ref: progress tracking starts once the player has mounted its <video>.
+  const [element, setElement] = useState<HTMLVideoElement | null>(null);
+  const attach = useCallback((node: HTMLVideoElement | null) => {
+    video.current = node;
+    setElement(node);
+  }, []);
   const initial = useRef(initialPosition);
   const saved = useRef(onSaved);
   saved.current = onSaved;
@@ -60,7 +117,6 @@ export function CourseVideo({
     return () => controller.abort();
   }, [api, courseId, lesson.video, retry]);
   useEffect(() => {
-    const element = video.current;
     if (!element || !url) return;
     let start = element.currentTime,
       previous = start,
@@ -132,23 +188,34 @@ export function CourseVideo({
       element.removeEventListener('ended', pause);
       document.removeEventListener('visibilitychange', visibility);
     };
-  }, [api, courseId, lesson.id, lesson.durationSeconds, url]);
+  }, [api, courseId, element, lesson.id, lesson.durationSeconds, url]);
   return (
     <div className="course-video">
       {url ? (
-        <video
-          ref={video}
+        <CoursePlayer
           src={url}
-          controls
-          controlsList="nodownload"
-          onContextMenu={(event) => event.preventDefault()}
-          aria-label={`فيديو الدرس: ${lesson.title}`}
-          playsInline
-          preload="metadata"
+          label={`فيديو الدرس: ${lesson.title}`}
+          mediaRef={attach}
           onError={() => setError('تعذّر تشغيل الفيديو. أعد تحميله.')}
         />
       ) : (
         !error && <p role="status">جار تحميل الفيديو…</p>
+      )}
+      {/* The recovery sits next to the player: a fresh link fixes an expired one. */}
+      {error && (
+        <div className="course-video-status" role="alert">
+          <p>{error}</p>
+          <button
+            type="button"
+            className="course-control"
+            onClick={() => {
+              initial.current = video.current?.currentTime ?? initial.current;
+              setRetry(retry + 1);
+            }}
+          >
+            أعد تحميل الفيديو
+          </button>
+        </div>
       )}
       <div className="course-bookmark-controls">
         <button className="course-control" disabled={!url || bookmarkBusy} onClick={() => {
@@ -181,19 +248,6 @@ export function CourseVideo({
               <button className="course-control" aria-label="تعديل الملاحظة" title="تعديل الملاحظة" disabled={bookmarkBusy} onClick={() => { setBookmarkError(''); setDraft({ id, position: mark.position, note: mark.note }); }}><BrandIcon name="edit" /></button>
             </div>
           ))}
-        </div>
-      )}
-      {error && (
-        <div role="alert">
-          <p>{error}</p>
-          <button
-            onClick={() => {
-              initial.current = video.current?.currentTime ?? initial.current;
-              setRetry(retry + 1);
-            }}
-          >
-            أعد تحميل الفيديو
-          </button>
         </div>
       )}
     </div>
