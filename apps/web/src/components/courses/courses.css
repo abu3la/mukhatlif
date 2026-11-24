@@ -166,14 +166,36 @@
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
-.course-video video {
+.course-player {
+  /* Video.js skin: the brand goes in through its public custom properties only. */
+  --media-accent-color: var(--mk-brand-green);
+  --media-accent-text-color: var(--mk-broadcast-ground);
+  --media-border-color: transparent;
+  --media-border-radius: var(--mk-radius-media);
+  --media-font-family: var(--mk-font);
+  --media-controls-before-start: visible;
+  /* The skin sizes everything from this unit; its 36px buttons become the 44px targets the design law requires. */
+  --media-scale-unit: calc(var(--mk-space-16) * 44 / 36);
+}
+.course-player-skin {
+  display: block;
   width: 100%;
-  max-height: 70vh;
-  background: #111;
+  aspect-ratio: 16 / 9;
+  background: var(--mk-broadcast-ground);
+}
+/* Cast and AirPlay appear only when a device is reachable, as native controls do,
+   instead of a dimmed button that does nothing (documented data attribute). */
+.course-player [role='button'][data-availability='unavailable'] {
+  display: none;
+}
+/* The site's unlayered resets would beat the skin's layered icon sizing. */
+.course-player svg {
+  display: revert-layer;
+  max-width: revert-layer;
+  height: revert-layer;
 }
 .course-video-status {
   display: flex;
-  justify-content: space-between;
   gap: 1rem;
   padding-block: 0.6rem;
 }
@@ -452,11 +474,6 @@
 }
 .course-step-nav button:disabled {
   opacity: 0.4;
-}
-.course-video video {
-  display: block;
-  aspect-ratio: 16 / 9;
-  border-radius: 10px;
 }
 .course-video-status {
   align-items: center;
@@ -938,13 +955,6 @@
 .course-trailer {
   margin-bottom: 2rem;
 }
-.course-trailer video {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  background: #111;
-  border-radius: 10px;
-}
 .course-purchase-facts {
   display: grid;
   gap: 0.8rem;
@@ -1236,18 +1246,13 @@
 .course-lesson-body { background: var(--bg); border-radius: 8px; padding: 1.25rem; }
 .course-lesson .course-video { margin: -1.25rem -1.25rem 1.25rem; }
 .course-lesson .course-video-status { padding-inline: 1.25rem; }
-.course-lesson .course-video video { border-radius: 8px 8px 0 0; }
+.course-lesson .course-player { --media-border-radius: var(--mk-radius-control) var(--mk-radius-control) 0 0; }
 @media (max-width: 760px) {
   .course-outline { padding: .9rem; }
   .course-outline-summary { margin-bottom: 0; }
   .course-lesson-heading-title h2 { font-size: 1.15rem; }
   .course-lesson-body { padding: 1rem; }
   .course-lesson .course-video { margin: -1rem -1rem 1rem; }
-}
-/* Keep native playback controls inside the bounded lesson pane at short viewports. */
-.course-lesson .course-video video {
-  max-height: none;
-  object-fit: contain;
 }
 
 .course-certificate-disclosure {

@@ -21,6 +21,7 @@
     "@mukhtalif/design-tokens": "workspace:*",
     "@mukhtalif/types": "workspace:*",
     "@supabase/supabase-js": "^2.55.0",
+    "@videojs/react": "10.6.0",
     "next": "^16.3.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

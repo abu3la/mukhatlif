@@ -14,7 +14,7 @@ import type {
 import { useCustomer } from '../customer-provider';
 import { useCoursesApi, CourseApiError } from './api';
 import { BrandIcon } from '../brand-icon';
-import { CourseVideo } from './player';
+import { CoursePlayer, CourseVideo } from './player';
 import './courses.css';
 
 const sectionIcons = {
@@ -1000,12 +1000,9 @@ function CourseTrailer({ courseId }: { courseId: string }) {
     <section className="course-trailer" aria-label="المقطع التعريفي">
       <h2>شاهد مقدمة الدورة</h2>
       {url && !error ? (
-        <video
+        <CoursePlayer
           src={url}
-          controls
-          playsInline
-          preload="metadata"
-          aria-label="المقطع التعريفي للدورة"
+          label="المقطع التعريفي للدورة"
           onError={() => setError('تعذّر تشغيل المقطع التعريفي.')}
         />
       ) : (
