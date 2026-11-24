@@ -106,6 +106,15 @@ studioCoursesRoute.get('/:id/learners', (c) =>
   call(c, 'studio.learners', { courseId: id.parse(c.req.param('id')) }),
 );
 studioCoursesRoute.post('/', async (c) => call(c, 'studio.save', await c.req.json()));
+// Deleting a course states how many learners lose their enrollment; see delete-course.ts.
+studioCoursesRoute.post('/:id/delete', async (c) => {
+  const parsed = z
+    .object({ learners: z.number().int().min(0).max(1_000_000) })
+    .strict()
+    .safeParse(await c.req.json());
+  if (!parsed.success) return c.json({ error: 'راجع البيانات وحاول مجددًا.' }, 422);
+  return call(c, 'studio.delete', { ...parsed.data, courseId: id.parse(c.req.param('id')) });
+});
 studioCoursesRoute.post('/:id/grade', async (c) => {
   const parsed = z
     .object({ submissionId: id, status: z.enum(['Pass', 'Fail']), comments: z.string().max(10000) })

@@ -9,6 +9,7 @@ import {
   publicState,
   updateState,
   assertVideoAccess,
+  requirementsChanged,
   LearningError,
   type State,
 } from './domain';
@@ -26,7 +27,7 @@ export function checkDb(error: { message: string } | null) {
     if (error.message.includes('learning_curriculum_locked'))
       throw new LearningError(
         409,
-        'للدورة مشتركون. أنشئ نسخة جديدة لتعديل المحتوى أو شروط الإكمال.',
+        'للدورة مشتركون، فلا يمكن حذف درس أو تغيير ترتيب الدروس أو شروط الاختبارات. الفيديو والنصوص والملفات وإضافة دروس جديدة في آخر الدورة متاحة دائمًا.',
       );
     throw new LearningError(503, 'تعذّر حفظ بيانات الدورة. حاول مجددًا.');
   }
@@ -63,6 +64,33 @@ export async function learningRequest(
     checkDb(owned.error);
     if (files(c).some((f) => !owned.data?.some((a) => `/private/files/${a.id}` === f)))
       throw new LearningError(422, 'ارفع الملف لهذه الدورة أولًا.');
+    const current = await db
+      .from('learning_courses')
+      .select('definition,revision')
+      .eq('id', c.id)
+      .maybeSingle();
+    checkDb(current.error);
+    // Content edits leave every learner's requirements as they were, so they are
+    // saved even when the course has learners. The revision guards a concurrent save.
+    if (current.data && !requirementsChanged(current.data.definition as CourseDefinition, c)) {
+      const saved = await db
+        .from('learning_courses')
+        .update({
+          definition: c,
+          revision: Number(current.data.revision) + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', c.id)
+        .eq('revision', current.data.revision)
+        .select('id');
+      checkDb(saved.error);
+      if (!saved.data?.length)
+        throw new LearningError(
+          409,
+          'حُفظت الدورة من نافذة أخرى للتو. حدّث الصفحة ثم احفظ تعديلاتك.',
+        );
+      return c;
+    }
     const { data, error } = await db.rpc('learning_save_course', { p_definition: c });
     checkDb(error);
     return data;
@@ -96,6 +124,10 @@ export async function learningRequest(
       lessons: c.lessons.map(({ id, title, durationSeconds }) => ({ id, title, durationSeconds })),
     };
   if (action === 'studio.detail') return c;
+  if (action === 'studio.delete') {
+    const { deleteCourse } = await import('./delete-course');
+    return deleteCourse(env, c.id, Number(p.learners));
+  }
   if (action.startsWith('studio.upload-')) {
     const { upload } = await import('./uploads');
     return upload(env, c.id, action, p, actor!);
