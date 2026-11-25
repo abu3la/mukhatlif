@@ -15,7 +15,14 @@ import { CustomerEmpty, CustomerIcon } from './customer-ui';
 import { PlayEpisodeButton, type PlayerEpisode } from './player';
 import { formatDuration } from './formatting';
 
-export function FollowShowButton({ showId }: { showId: string }) {
+/** `text` is the quiet form for a region that already has its one primary action. */
+export function FollowShowButton({
+  showId,
+  variant = 'primary',
+}: {
+  showId: string;
+  variant?: 'primary' | 'text';
+}) {
   const customer = useCustomer();
   const [busy, setBusy] = useState(false);
   const followed = customer.library.followedShowIds.includes(showId);
@@ -23,7 +30,7 @@ export function FollowShowButton({ showId }: { showId: string }) {
     <BusyButton loadingMode="replace"
       aria-busy={Boolean(busy)}
       type="button"
-      className="customer-primary customer-follow"
+      className={`${variant === 'text' ? 'customer-text-button' : 'customer-primary'} customer-follow`}
       aria-pressed={followed}
       disabled={busy || customer.loading}
       onClick={async () => {

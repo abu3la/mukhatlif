@@ -1,23 +1,29 @@
 'use client';
 
+import { ArticleTiles, type TileArticle } from './article-tile';
 import { BrandIcon } from './brand-icon';
-
 import { BusyButton } from './busy-button';
-
 import { ContentSkeleton } from './content-skeleton';
+import { EpisodeCardView } from './episode-card';
+import { EpisodeLibraryActions } from './episode-library-actions';
+import { RailControls } from './public-content-controls';
+import { YouTubeStill } from './youtube-still';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
-import type {
-  CustomerBookmark,
-  CustomerPlaylist,
-  Episode,
-  PaginatedList,
-  PublishedArticle,
-  Show,
+import {
+  isYouTubeVideoId,
+  youtubeThumbnailUrl,
+  type CustomerBookmark,
+  type CustomerPlaylist,
+  type Episode,
+  type PaginatedList,
+  type PublishedArticle,
+  type Show,
 } from '@mukhtalif/types';
 import { CUSTOMER_TOPICS, customerError, episodeCount } from '@/lib/customer-utils';
+import { showFace, showHref } from '@/lib/communities';
 import { useCustomer } from './customer-provider';
 import {
   CustomerDialog,
@@ -33,42 +39,553 @@ import {
   customerPlayerEpisode,
   useCustomerEpisodes,
 } from './customer-content';
-import { usePlayer } from './player';
+import { PlayEpisodeButton, usePlayer } from './player';
 import { formatPlaybackTime } from './player-utils';
+import { formatDuration, formatNumber } from './formatting';
 
 const tabs = [
   ['saved', 'المحفوظات'],
-  ['followed', 'البرامج المتابعة'],
+  ['followed', 'برامج تتابعها'],
   ['history', 'سجل الاستماع'],
   ['playlists', 'قوائم التشغيل'],
   ['interests', 'اهتماماتي'],
 ] as const;
 export type CustomerLibraryTab = (typeof tabs)[number][0];
 
-export function CustomerLibraryPage({ tab = 'saved' }: { tab?: string }) {
-  const activeTab = tabs.some(([key]) => key === tab) ? (tab as CustomerLibraryTab) : 'saved';
+/**
+ * «مكتبتي» on the presentation site (D-24). The overview stands on the night
+ * stage: the episode the listener stopped in crosses onto the sheet with how
+ * far they got, then what they saved, follow, collected and marked. Each full
+ * list («سجل الاستماع», «اهتماماتي»…) is its own view under the same stage.
+ */
+export function CustomerLibraryPage({ tab }: { tab?: string }) {
+  const view = tabs.find(([key]) => key === tab);
+  return view ? <LibraryView tab={view[0]} title={view[1]} /> : <LibraryOverview />;
+}
+
+function LibraryView({ tab, title }: { tab: CustomerLibraryTab; title: string }) {
   return (
-    <CustomerGate>
-      <div className="page customer-page">
-        <header className="customer-page-head">
-          <h1>المكتبة</h1>
-          <p>ما حفظته وتابعته، في مكان واحد.</p>
-        </header>
-        <nav className="customer-library-tabs" aria-label="أقسام المكتبة">
-          <Link href="/library/courses">دوراتي</Link>
-          {tabs.map(([key, title]) => (
-            <Link
-              key={key}
-              href={key === 'saved' ? '/library' : `/library?tab=${key}`}
-              aria-current={activeTab === key ? 'page' : undefined}
-            >
+    <div className="stage-page library-page">
+      <div className="stage-scope">
+        <section className="stage-intro" aria-labelledby="library-title">
+          <div className="content-container stage-head">
+            <p className="stage-head__crumbs">
+              <Link href="/library">مكتبتي</Link>
+            </p>
+            <h1 id="library-title" className="stage-head__title">
               {title}
-            </Link>
-          ))}
-        </nav>
-        <LibraryContent tab={activeTab} />
+            </h1>
+          </div>
+        </section>
       </div>
-    </CustomerGate>
+      <div className="home-sheet">
+        <div className="home-sheet__surface">
+          <CustomerGate bare>
+            <div className="content-container customer-page library-view">
+              <LibraryContent tab={tab} />
+            </div>
+          </CustomerGate>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** What the overview shows, with every episode it needs fetched once. */
+function useLibraryOverview() {
+  const { library } = useCustomer();
+  // The newest progress past the player's resume point; finished ones are skipped below.
+  const candidates = [...library.progress]
+    .filter((item) => item.positionSec >= 15)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .slice(0, 3);
+  const saved = library.savedEpisodeIds.slice(0, 10);
+  const moments = [...library.bookmarks]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 4);
+  const lists = library.playlists.slice(0, 4);
+  const ids = [
+    ...new Set([
+      ...candidates.map((item) => item.episodeId),
+      ...saved,
+      ...moments.map((item) => item.episodeId),
+      ...lists.flatMap((list) => list.episodeIds.slice(0, 4)),
+    ]),
+  ];
+  const result = useCustomerEpisodes(ids);
+  const byId = new Map(result.episodes.map((episode) => [episode.id, episode]));
+  const showOf = (episode: Episode) => result.shows.find((show) => show.id === episode.showId);
+  const found = candidates
+    .map((item) => ({ item, episode: byId.get(item.episodeId) }))
+    .find(
+      ({ item, episode }) =>
+        episode && (!episode.durationSec || item.positionSec < episode.durationSec - 5),
+    );
+  const resume =
+    found && found.episode
+      ? { episode: found.episode, show: showOf(found.episode), positionSec: found.item.positionSec }
+      : null;
+  return { ...result, byId, showOf, resume, saved, moments, lists };
+}
+type LibraryOverviewData = ReturnType<typeof useLibraryOverview>;
+
+function LibraryOverview() {
+  const customer = useCustomer();
+  const data = useLibraryOverview();
+  const resume = customer.user ? data.resume : null;
+  const crosses = Boolean(
+    resume && !resume.episode.premium && isYouTubeVideoId(resume.episode.youtubeVideoId),
+  );
+  const done =
+    resume && resume.episode.durationSec
+      ? Math.min(100, (resume.positionSec / resume.episode.durationSec) * 100)
+      : 0;
+  return (
+    <div className={'stage-page library-page' + (crosses ? ' has-cross' : '')}>
+      <div className="stage-scope">
+        <section className="stage-intro" aria-labelledby="library-title">
+          <div className="content-container stage-head">
+            <h1 id="library-title" className="stage-statement">
+              مكتبتي
+            </h1>
+            <p className="stage-head__lede">ما حفظته وتابعته، في مكان واحد.</p>
+          </div>
+          {crosses && resume ? (
+            <Link
+              className="stage-cross library-resume__picture"
+              href={`/episodes/${encodeURIComponent(resume.episode.id)}`}
+              tabIndex={-1}
+              aria-hidden="true"
+            >
+              <YouTubeStill videoId={resume.episode.youtubeVideoId} priority />
+              <span className="library-resume__track">
+                <span className="library-resume__done" style={{ width: `${done}%` }} />
+              </span>
+            </Link>
+          ) : null}
+        </section>
+      </div>
+      <div className="home-sheet">
+        <div className="home-sheet__surface">
+          <CustomerGate bare>
+            <LibrarySheet data={data} />
+          </CustomerGate>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LibrarySheet({ data }: { data: LibraryOverviewData }) {
+  const customer = useCustomer();
+  const { library } = customer;
+  const [creating, setCreating] = useState(false);
+  const apiOrigin = customer.config.apiOrigin;
+  if (data.loading)
+    return (
+      <div className="content-container">
+        <ContentSkeleton label="تحميل مكتبتك" variant="cards" />
+      </div>
+    );
+  const savedEpisodes = data.saved
+    .map((id) => data.byId.get(id))
+    .filter((episode): episode is Episode => Boolean(episode));
+  const moments = data.moments.filter((moment) => data.byId.has(moment.episodeId));
+  const empty =
+    !data.resume &&
+    !savedEpisodes.length &&
+    !library.followedShowIds.length &&
+    !moments.length &&
+    !library.savedArticleIds.length &&
+    !library.playlists.length;
+  const audio = (id: string) =>
+    apiOrigin ? `${apiOrigin}/episodes/${encodeURIComponent(id)}/audio` : null;
+
+  return (
+    <>
+      {empty ? (
+        <section className="content-container library-start" aria-labelledby="library-start">
+          <h2 className="cover-section__title" id="library-start">
+            لم تحفظ شيئًا بعد
+          </h2>
+          <p className="library-note">احفظ حلقة أو قراءة، أو تابع برنامجًا، وستجده هنا.</p>
+          <Link className="public-primary" href="/episodes">
+            تصفح الحلقات
+          </Link>
+        </section>
+      ) : null}
+
+      {data.resume ? <LibraryResume resume={data.resume} apiOrigin={apiOrigin} /> : null}
+
+      {savedEpisodes.length ? (
+        <section aria-labelledby="library-saved">
+          <div className="content-container home-head">
+            <h2 className="cover-section__title" id="library-saved">
+              المحفوظات
+            </h2>
+            <div className="home-head__tools">
+              <Link className="stage-link" href="/library?tab=saved">
+                كل المحفوظات
+              </Link>
+              <RailControls target="library-saved-rail" label="المحفوظات" />
+            </div>
+          </div>
+          <div
+            id="library-saved-rail"
+            className="stage-rail stage-rail--episodes"
+            role="list"
+            tabIndex={0}
+            aria-label="حلقات محفوظة"
+          >
+            {savedEpisodes.map((episode) => {
+              const show = data.showOf(episode);
+              return (
+                <EpisodeCardView
+                  key={episode.id}
+                  episode={episode}
+                  showName={showFace(show).name || undefined}
+                  showArtwork={show?.artworkUrl}
+                  audioSrc={audio(episode.id)}
+                />
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {library.followedShowIds.length ? <FollowedOverview /> : null}
+
+      <section className="content-container" aria-labelledby="library-lists">
+        <div className="home-head">
+          <h2 className="cover-section__title" id="library-lists">
+            قوائم التشغيل
+          </h2>
+          <div className="home-head__tools">
+            {library.playlists.length > data.lists.length ? (
+              <Link className="stage-link" href="/library?tab=playlists">
+                كل القوائم
+              </Link>
+            ) : null}
+            <button type="button" className="library-new" onClick={() => setCreating(true)}>
+              <BrandIcon name="plus" />
+              قائمة جديدة
+            </button>
+          </div>
+        </div>
+        {data.lists.length ? (
+          <ul className="library-lists">
+            {data.lists.map((list) => (
+              <li key={list.id}>
+                <Link className="library-list" href={`/playlists/${encodeURIComponent(list.id)}`}>
+                  <PlaylistMosaic ids={list.episodeIds.slice(0, 4)} byId={data.byId} />
+                  <span className="library-list__name">{list.name}</span>
+                  <span className="library-list__count">
+                    {episodeCount(list.episodeIds.length)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="library-note">اجمع حلقات تستمع إليها بالترتيب.</p>
+        )}
+      </section>
+
+      {moments.length ? (
+        <section className="content-container" aria-labelledby="library-moments">
+          <div className="home-head">
+            <h2 className="cover-section__title" id="library-moments">
+              لحظاتك
+            </h2>
+            {library.bookmarks.length > moments.length ? (
+              <Link className="stage-link" href="/library?tab=saved">
+                كل اللحظات
+              </Link>
+            ) : null}
+          </div>
+          <ul className="library-moments">
+            {moments.map((moment) => (
+              <LibraryMoment
+                key={moment.id}
+                moment={moment}
+                episode={data.byId.get(moment.episodeId)!}
+                show={data.showOf(data.byId.get(moment.episodeId)!)}
+                apiOrigin={apiOrigin}
+              />
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {library.savedArticleIds.length ? <SavedReadsOverview /> : null}
+
+      <nav className="content-container" aria-label="المزيد في حسابك">
+        <ul className="library-more">
+          <li>
+            <Link className="stage-link" href="/library?tab=history">
+              سجل الاستماع
+            </Link>
+          </li>
+          <li>
+            <Link className="stage-link" href="/library?tab=interests">
+              اهتماماتي
+            </Link>
+          </li>
+          <li>
+            <Link className="stage-link" href="/library/courses">
+              دوراتي
+            </Link>
+          </li>
+          <li>
+            <Link className="stage-link" href="/account">
+              إعدادات الحساب
+            </Link>
+          </li>
+        </ul>
+      </nav>
+
+      {creating ? <PlaylistNameDialog onClose={() => setCreating(false)} /> : null}
+    </>
+  );
+}
+
+/** The episode the listener stopped in, introduced under its picture. */
+function LibraryResume({
+  resume,
+  apiOrigin,
+}: {
+  resume: NonNullable<LibraryOverviewData['resume']>;
+  apiOrigin: string | null | undefined;
+}) {
+  const { episode, show, positionSec } = resume;
+  const href = `/episodes/${encodeURIComponent(episode.id)}`;
+  const name = showFace(show).name;
+  const left = formatDuration(Math.max(0, episode.durationSec - positionSec));
+  const playable =
+    apiOrigin && !episode.premium ? customerPlayerEpisode(episode, show, apiOrigin) : null;
+  return (
+    <article
+      className="content-container stage-feature stage-feature--episode"
+      aria-labelledby="library-resume"
+    >
+      <h2 className="stage-feature__title" id="library-resume">
+        <Link href={href}>{episode.titleAr}</Link>
+      </h2>
+      <p className="library-resume__where">
+        {name ? `${name}، ` : ''}الحلقة {formatNumber(episode.episodeNumber)}. وصلت إلى{' '}
+        <bdi>{formatPlaybackTime(positionSec)}</bdi>
+        {left ? (
+          <>
+            {' '}
+            وبقي <bdi>{left}</bdi>
+          </>
+        ) : null}
+      </p>
+      <div className="stage-head__actions">
+        {playable ? (
+          <>
+            <PlayEpisodeButton episode={playable} variant="label" idleLabel="أكمل الاستماع" />
+            <EpisodeLibraryActions episode={playable} compact />
+          </>
+        ) : (
+          <Link className="public-primary" href={href}>
+            تفاصيل الحلقة
+          </Link>
+        )}
+      </div>
+    </article>
+  );
+}
+
+/** A playlist's first four stills, or its first when it holds fewer. */
+function PlaylistMosaic({ ids, byId }: { ids: string[]; byId: Map<string, Episode> }) {
+  const stills = ids
+    .map((id) => byId.get(id))
+    .map((episode) =>
+      episode && !episode.premium ? youtubeThumbnailUrl(episode.youtubeVideoId) : null,
+    )
+    .filter((src): src is string => Boolean(src));
+  const shown = stills.length >= 4 ? stills.slice(0, 4) : stills.slice(0, 1);
+  return (
+    <span
+      className={'library-list__art' + (shown.length === 4 ? ' library-list__art--four' : '')}
+      aria-hidden="true"
+    >
+      {shown.map((src, index) => (
+        <img key={`${src}-${index}`} src={src} alt="" loading="lazy" decoding="async" />
+      ))}
+    </span>
+  );
+}
+
+function LibraryMoment({
+  moment,
+  episode,
+  show,
+  apiOrigin,
+}: {
+  moment: CustomerBookmark;
+  episode: Episode;
+  show: Show | undefined;
+  apiOrigin: string | null | undefined;
+}) {
+  const name = showFace(show).name;
+  const at = Math.floor(moment.positionSec);
+  return (
+    <li className="library-moment">
+      <span className="library-moment__at">
+        <bdi>{formatPlaybackTime(at)}</bdi>
+      </span>
+      <div className="library-moment__body">
+        <p className="library-moment__note">{moment.label || episode.titleAr}</p>
+        <p className="library-moment__episode">
+          {name ? `${name}، ` : ''}الحلقة {formatNumber(episode.episodeNumber)}
+          {moment.label ? `: ${episode.titleAr}` : ''}
+        </p>
+      </div>
+      {apiOrigin && !episode.premium ? (
+        <PlayEpisodeButton
+          episode={customerPlayerEpisode(episode, show, apiOrigin)}
+          variant="label"
+          initialSeconds={at}
+          idleLabel="استمع من هنا"
+        />
+      ) : (
+        <Link className="stage-link" href={`/episodes/${encodeURIComponent(episode.id)}?t=${at}`}>
+          افتح الحلقة
+        </Link>
+      )}
+    </li>
+  );
+}
+
+function useShows() {
+  const { publicRead } = useCustomer();
+  const [shows, setShows] = useState<Show[] | null>(null);
+  useEffect(() => {
+    let active = true;
+    void publicRead<Show[]>('/shows')
+      .then((value) => {
+        if (active) setShows(value);
+      })
+      .catch(() => {
+        if (active) setShows([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [publicRead]);
+  return shows;
+}
+
+function FollowedOverview() {
+  const customer = useCustomer();
+  const shows = useShows();
+  const followed = shows
+    ? customer.library.followedShowIds
+        .map((id) => shows.find((show) => show.id === id))
+        .filter((show): show is Show => Boolean(show))
+    : [];
+  if (shows && !followed.length) return null;
+  return (
+    <section className="content-container" aria-labelledby="library-follows">
+      <div className="home-head">
+        <h2 className="cover-section__title" id="library-follows">
+          برامج تتابعها
+        </h2>
+        <Link className="stage-link" href="/programmes">
+          تصفح البرامج
+        </Link>
+      </div>
+      {shows ? (
+        <ul className="library-follows">
+          {followed.map((show) => {
+            const face = showFace(show);
+            return (
+              <li key={show.id} data-tone={face.tone}>
+                <Link className="library-follow" href={showHref(show.slug)}>
+                  {face.cover ? (
+                    <img
+                      className="library-follow__cover"
+                      src={face.cover}
+                      alt=""
+                      width={240}
+                      height={240}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <span className="library-follow__cover library-follow__blank" />
+                  )}
+                  <span className="library-follow__name">{face.name}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <ContentSkeleton label="تحميل البرامج" variant="cards" />
+      )}
+    </section>
+  );
+}
+
+/** Saved articles by id; a removed article comes back as null. */
+function useSavedArticles(articleIds: string[]) {
+  const { publicRead } = useCustomer();
+  const ids = JSON.stringify(articleIds);
+  const [articles, setArticles] = useState<{
+    key: string;
+    rows: Array<{ id: string; article: PublishedArticle | null }>;
+  }>({ key: '', rows: [] });
+  useEffect(() => {
+    let active = true;
+    const parsed = JSON.parse(ids) as string[];
+    void Promise.allSettled(
+      parsed.map((id) => publicRead<PublishedArticle>(`/articles/id/${encodeURIComponent(id)}`)),
+    ).then((results) => {
+      if (active)
+        setArticles({
+          key: ids,
+          rows: results.map((result, index) => ({
+            id: parsed[index],
+            article: result.status === 'fulfilled' ? result.value : null,
+          })),
+        });
+    });
+    return () => {
+      active = false;
+    };
+  }, [ids, publicRead]);
+  return { rows: articles.rows, loading: articles.key !== ids };
+}
+
+function SavedReadsOverview() {
+  const customer = useCustomer();
+  const ids = customer.library.savedArticleIds;
+  const { rows, loading } = useSavedArticles(ids.slice(0, 3));
+  const articles = rows
+    .map((row) => row.article)
+    .filter((article): article is PublishedArticle => Boolean(article)) as TileArticle[];
+  if (!loading && !articles.length) return null;
+  return (
+    <section className="content-container" aria-labelledby="library-reads">
+      <div className="home-head">
+        <h2 className="cover-section__title" id="library-reads">
+          قراءات محفوظة
+        </h2>
+        {ids.length > 3 ? (
+          <Link className="stage-link" href="/library?tab=saved">
+            كل المحفوظات
+          </Link>
+        ) : null}
+      </div>
+      {loading ? (
+        <ContentSkeleton label="تحميل القراءات" variant="cards" />
+      ) : (
+        <ArticleTiles articles={articles} />
+      )}
+    </section>
   );
 }
 
@@ -259,37 +776,12 @@ function FollowedShows() {
 
 function SavedArticles() {
   const customer = useCustomer();
-  const ids = JSON.stringify(customer.library.savedArticleIds);
-  const [articles, setArticles] = useState<{
-    key: string;
-    rows: Array<{ id: string; article: PublishedArticle | null }>;
-  }>({ key: '', rows: [] });
-  useEffect(() => {
-    let active = true;
-    const parsed = JSON.parse(ids) as string[];
-    void Promise.allSettled(
-      parsed.map((id) =>
-        customer.publicRead<PublishedArticle>(`/articles/id/${encodeURIComponent(id)}`),
-      ),
-    ).then((results) => {
-      if (active)
-        setArticles({
-          key: ids,
-          rows: results.map((result, index) => ({
-            id: parsed[index],
-            article: result.status === 'fulfilled' ? result.value : null,
-          })),
-        });
-    });
-    return () => {
-      active = false;
-    };
-  }, [ids, customer.publicRead]);
+  const articles = useSavedArticles(customer.library.savedArticleIds);
   if (!customer.library.savedArticleIds.length) return null;
   return (
     <section className="customer-saved-articles">
       <h2>قراءات محفوظة</h2>
-      {articles.key === ids ? (
+      {!articles.loading ? (
         articles.rows.map(({ id, article }) => (
           <article key={id} className="customer-saved-article">
             {article ? (
@@ -556,39 +1048,145 @@ export function PlaylistNameDialog({
   );
 }
 
-export function CustomerPlaylistPage({ playlistId }: { playlistId: string }) {
+/** Where a playlist belongs: the library, then its playlists. */
+function PlaylistCrumbs() {
   return (
-    <CustomerGate>
-      <PlaylistContent playlistId={playlistId} />
-    </CustomerGate>
+    <p className="stage-head__crumbs">
+      <Link href="/library">مكتبتي</Link>
+      <Link href="/library?tab=playlists">قوائم التشغيل</Link>
+    </p>
   );
 }
 
-function PlaylistContent({ playlistId }: { playlistId: string }) {
+/**
+ * A playlist on the presentation site (D-24), under the library's stage: its
+ * name, size and actions stand on the night stage and its first four stills
+ * cross onto the sheet, where its episodes follow in order with the tools that
+ * move and remove them. While the account loads the stage keeps a placeholder
+ * at the title's size; a playlist that is not this account's says so on the
+ * sheet.
+ */
+export function CustomerPlaylistPage({ playlistId }: { playlistId: string }) {
+  const customer = useCustomer();
+  const ready =
+    !customer.loading && Boolean(customer.user) && Boolean(customer.profile) && !customer.error;
+  const playlist = ready
+    ? customer.library.playlists.find((item) => item.id === playlistId)
+    : undefined;
+  if (playlist) return <PlaylistContent playlist={playlist} />;
+  // While the account loads, the stage keeps the places of the name, the size,
+  // the actions and the stills.
+  const waiting = customer.loading;
+  return (
+    <div className={'stage-page library-page playlist-page' + (waiting ? ' has-cross' : '')}>
+      <div className="stage-scope">
+        <section className="stage-intro" aria-labelledby="playlist-title">
+          <div className="content-container stage-head">
+            <PlaylistCrumbs />
+            <h1 id="playlist-title" className="stage-head__title">
+              {waiting ? (
+                <>
+                  <span className="visually-hidden">قائمة التشغيل</span>
+                  <span className="skeleton stage-skeleton__title" aria-hidden="true" />
+                </>
+              ) : (
+                'قائمة التشغيل'
+              )}
+            </h1>
+            {waiting ? (
+              <>
+                <span
+                  className="skeleton stage-skeleton__lede stage-skeleton__lede--count"
+                  aria-hidden="true"
+                />
+                <span className="skeleton stage-skeleton__action" aria-hidden="true" />
+              </>
+            ) : null}
+          </div>
+          {waiting ? (
+            <span className="skeleton stage-cross stage-skeleton__cross" aria-hidden="true" />
+          ) : null}
+        </section>
+      </div>
+      <div className="home-sheet">
+        <div className="home-sheet__surface">
+          <CustomerGate bare>
+            <div className="content-container playlist-view">
+              <CustomerEmpty
+                title="قائمة التشغيل غير متاحة"
+                href="/library?tab=playlists"
+                action="قوائم التشغيل"
+              >
+                ربما حُذفت القائمة أو أنها مرتبطة بحساب آخر.
+              </CustomerEmpty>
+            </div>
+          </CustomerGate>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The playlist's first four stills, or its first when it holds fewer. While
+ * its episodes load, the raised surface holds their place.
+ */
+function PlaylistCross({ episodes }: { episodes: Episode[] }) {
+  const stills = episodes
+    .filter((episode) => !episode.premium && isYouTubeVideoId(episode.youtubeVideoId))
+    .map((episode) => episode.youtubeVideoId);
+  const shown = stills.length >= 4 ? stills.slice(0, 4) : stills.slice(0, 1);
+  return (
+    <div
+      className={'stage-cross playlist-cross' + (shown.length === 4 ? ' playlist-cross--four' : '')}
+      aria-hidden="true"
+    >
+      {shown.map((videoId, index) => (
+        <YouTubeStill key={`${videoId}-${index}`} videoId={videoId} priority={index === 0} />
+      ))}
+    </div>
+  );
+}
+
+function PlaylistContent({ playlist }: { playlist: CustomerPlaylist }) {
   const customer = useCustomer();
   const player = usePlayer();
   const router = useRouter();
-  const playlist = customer.library.playlists.find((item) => item.id === playlistId);
-  const { episodes, shows, loading, error } = useCustomerEpisodes(playlist?.episodeIds || []);
+  const playlistId = playlist.id;
+  const { episodes, shows, loading, error } = useCustomerEpisodes(playlist.episodeIds);
   const playableEpisodes = loading || error ? [] : episodes.filter((episode) => !episode.premium);
   const [dialog, setDialog] = useState<'rename' | 'add' | 'delete' | null>(null);
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState('');
-  if (!playlist)
-    return (
-      <div className="page customer-page">
-        <CustomerEmpty
-          title="قائمة التشغيل غير متاحة"
-          href="/library?tab=playlists"
-          action="قوائم التشغيل"
-        >
-          ربما حُذفت القائمة أو أنها مرتبطة بحساب آخر.
-        </CustomerEmpty>
-      </div>
-    );
+  const [starting, setStarting] = useState(false);
+  // The stills cross while they load; a playlist with none to show keeps its stage.
+  const crosses =
+    playlist.episodeIds.length > 0 &&
+    (loading ||
+      episodes.some((episode) => !episode.premium && isYouTubeVideoId(episode.youtubeVideoId)));
+
+  async function playAll() {
+    if (!customer.config.apiOrigin || starting) return;
+    setStarting(true);
+    try {
+      await customer.updateQueue(playableEpisodes.slice(1).map((item) => item.id));
+      const first = playableEpisodes[0];
+      player.toggle(
+        customerPlayerEpisode(
+          first,
+          shows.find((show) => show.id === first.showId),
+          customer.config.apiOrigin,
+        ),
+      );
+    } catch (failure) {
+      customer.notify(customerError(failure));
+    } finally {
+      setStarting(false);
+    }
+  }
 
   async function reorder(id: string, direction: number) {
-    if (!playlist || busy) return;
+    if (busy) return;
     const ids = [...playlist.episodeIds];
     const index = ids.indexOf(id);
     const target = index + direction;
@@ -610,7 +1208,7 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
   }
 
   async function remove(id: string) {
-    if (!playlist || busy) return;
+    if (busy) return;
     setBusy(true);
     setPendingAction(`remove:${id}`);
     try {
@@ -627,110 +1225,118 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
   }
 
   return (
-    <div className="page customer-page">
-      <Link className="customer-form-link" href="/library?tab=playlists">
-        قوائم التشغيل
-      </Link>
-      <header className="customer-playlist-detail-head">
-        <PlaylistArt playlist={playlist} />
-        <div>
-          <h1>{playlist.name}</h1>
-          <p>{episodeCount(playlist.episodeIds.length)}</p>
-          <div className="customer-action-row">
-            {!!playableEpisodes.length && customer.config.apiOrigin && (
-              <button
-                className="customer-primary"
-                onClick={async () => {
-                  if (!customer.config.apiOrigin) return;
-                  try {
-                    await customer.updateQueue(playableEpisodes.slice(1).map((item) => item.id));
-                    const first = playableEpisodes[0];
-                    player.toggle(
-                      customerPlayerEpisode(
-                        first,
-                        shows.find((show) => show.id === first.showId),
-                        customer.config.apiOrigin,
-                      ),
-                    );
-                  } catch (failure) {
-                    customer.notify(customerError(failure));
-                  }
-                }}
-              >
-                <CustomerIcon name="play" />
-                تشغيل القائمة
-              </button>
+    <div className={'stage-page library-page playlist-page' + (crosses ? ' has-cross' : '')}>
+      <div className="stage-scope">
+        <section className="stage-intro" aria-labelledby="playlist-title">
+          <div className="content-container stage-head">
+            <PlaylistCrumbs />
+            <h1 id="playlist-title" className="stage-head__title">
+              {playlist.name}
+            </h1>
+            <p className="stage-head__lede">{episodeCount(playlist.episodeIds.length)}</p>
+            <div className="stage-head__actions">
+              {!!playableEpisodes.length && customer.config.apiOrigin && (
+                <BusyButton
+                  type="button"
+                  loadingMode="replace"
+                  aria-busy={starting}
+                  className="public-primary"
+                  onClick={() => void playAll()}
+                >
+                  <CustomerIcon name="play" />
+                  تشغيل القائمة
+                </BusyButton>
+              )}
+              <span className="playlist-actions">
+                <button
+                  type="button"
+                  className="playlist-action"
+                  onClick={() => setDialog('rename')}
+                >
+                  <BrandIcon name="edit" />
+                  تعديل الاسم
+                </button>
+                <button type="button" className="playlist-action" onClick={() => setDialog('add')}>
+                  <BrandIcon name="plus" />
+                  إضافة حلقة
+                </button>
+              </span>
+            </div>
+          </div>
+          {crosses ? <PlaylistCross episodes={episodes} /> : null}
+        </section>
+      </div>
+      <div className="home-sheet">
+        <div className="home-sheet__surface">
+          <div className="content-container playlist-view">
+            {loading ? (
+              <ContentSkeleton label="تحميل الحلقات" variant="rows" />
+            ) : error ? (
+              <p role="alert" className="customer-error">
+                {error}
+              </p>
+            ) : playlist.episodeIds.length ? (
+              <ol className="playlist-rows">
+                {playlist.episodeIds.map((id, index) => {
+                  const episode = episodes.find((item) => item.id === id);
+                  return (
+                    <li className="playlist-row" key={id}>
+                      <span className="playlist-row__number" aria-hidden="true">
+                        {formatNumber(index + 1)}
+                      </span>
+                      {episode ? (
+                        <CustomerEpisodeRow
+                          episode={episode}
+                          show={shows.find((show) => show.id === episode.showId)}
+                        />
+                      ) : (
+                        <p className="playlist-row__missing">هذه الحلقة غير متاحة الآن.</p>
+                      )}
+                      <div className="playlist-row__tools">
+                        <BusyButton
+                          aria-busy={pendingAction === `-1:${id}`}
+                          className="customer-icon-button"
+                          disabled={busy || index === 0}
+                          aria-label={`نقل ${episode?.titleAr || 'الحلقة'} للأعلى`}
+                          onClick={() => void reorder(id, -1)}
+                        >
+                          <CustomerIcon name="up" />
+                        </BusyButton>
+                        <BusyButton
+                          aria-busy={pendingAction === `1:${id}`}
+                          className="customer-icon-button"
+                          disabled={busy || index === playlist.episodeIds.length - 1}
+                          aria-label={`نقل ${episode?.titleAr || 'الحلقة'} للأسفل`}
+                          onClick={() => void reorder(id, 1)}
+                        >
+                          <CustomerIcon name="down" />
+                        </BusyButton>
+                        <BusyButton
+                          aria-busy={pendingAction === `remove:${id}`}
+                          className="customer-icon-button"
+                          disabled={busy}
+                          aria-label={`إزالة ${episode?.titleAr || 'الحلقة'} من القائمة`}
+                          onClick={() => void remove(id)}
+                        >
+                          <CustomerIcon name="close" />
+                        </BusyButton>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : (
+              <CustomerEmpty title="لا توجد حلقات في القائمة">
+                اختيار «إضافة حلقة» يفتح البحث في الحلقات.
+              </CustomerEmpty>
             )}
-            <button className="customer-text-button" onClick={() => setDialog('rename')}>
-              تعديل الاسم
-            </button>
-            <button className="customer-text-button" onClick={() => setDialog('add')}>
-              إضافة حلقة
-            </button>
+            <div className="customer-history-foot">
+              <button className="customer-text-button" onClick={() => setDialog('delete')}>
+                حذف القائمة
+              </button>
+            </div>
           </div>
         </div>
-      </header>
-      {loading ? (
-        <ContentSkeleton label="تحميل الحلقات" variant="rows" />
-      ) : error ? (
-        <p role="alert" className="customer-error">
-          {error}
-        </p>
-      ) : playlist.episodeIds.length ? (
-        playlist.episodeIds.map((id, index) => {
-          const episode = episodes.find((item) => item.id === id);
-          return (
-            <div className="customer-playlist-row" key={id}>
-              <span className="customer-playlist-number">{index + 1}</span>
-              {episode ? (
-                <CustomerEpisodeRow
-                  episode={episode}
-                  show={shows.find((show) => show.id === episode.showId)}
-                />
-              ) : (
-                <p>هذه الحلقة غير متاحة الآن.</p>
-              )}
-              <div className="customer-playlist-tools">
-                <BusyButton
-                  aria-busy={pendingAction === `-1:${id}`}
-                  className="customer-icon-button"
-                  disabled={busy || index === 0}
-                  aria-label={`نقل ${episode?.titleAr || 'الحلقة'} للأعلى`}
-                  onClick={() => void reorder(id, -1)}
-                >
-                  <CustomerIcon name="up" />
-                </BusyButton>
-                <BusyButton
-                  aria-busy={pendingAction === `1:${id}`}
-                  className="customer-icon-button"
-                  disabled={busy || index === playlist.episodeIds.length - 1}
-                  aria-label={`نقل ${episode?.titleAr || 'الحلقة'} للأسفل`}
-                  onClick={() => void reorder(id, 1)}
-                >
-                  <CustomerIcon name="down" />
-                </BusyButton>
-                <BusyButton
-                  aria-busy={pendingAction === `remove:${id}`}
-                  className="customer-icon-button"
-                  disabled={busy}
-                  aria-label={`إزالة ${episode?.titleAr || 'الحلقة'} من القائمة`}
-                  onClick={() => void remove(id)}
-                >
-                  <CustomerIcon name="close" />
-                </BusyButton>
-              </div>
-            </div>
-          );
-        })
-      ) : (
-        <CustomerEmpty title="لا توجد حلقات في القائمة">
-          اختيار «إضافة حلقة» يفتح البحث في الحلقات.
-        </CustomerEmpty>
-      )}
-      <div className="customer-history-foot">
-        <button className="customer-text-button" onClick={() => setDialog('delete')}>
-          حذف القائمة
-        </button>
       </div>
       {dialog === 'rename' && (
         <PlaylistNameDialog playlist={playlist} onClose={() => setDialog(null)} />
@@ -772,10 +1378,12 @@ function PlaylistPicker({
   useEffect(() => {
     let active = true;
     setLoading(true);
+    // The API refuses an empty search, so the first page of all episodes asks without one.
+    const query = search.trim();
     const timer = window.setTimeout(() => {
       void customer
         .publicRead<PaginatedList<Episode>>(
-          `/episodes?page=${page}&perPage=12&search=${encodeURIComponent(search.trim())}`,
+          `/episodes?page=${page}&perPage=12${query ? `&search=${encodeURIComponent(query)}` : ''}`,
         )
         .then((value) => {
           if (active) {

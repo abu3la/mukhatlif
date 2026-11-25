@@ -99,7 +99,7 @@ describe('header navigation', () => {
     expect(panel.hidden).toBe(true);
     expect(
       Array.from(panel.querySelectorAll('a')).map((link) => link.getAttribute('href')),
-    ).toEqual(['/about', '/presenters']);
+    ).toEqual(['/about', '/mission', '/presenters']);
 
     await update(() => about.click());
     expect(about.getAttribute('aria-expanded')).toBe('true');

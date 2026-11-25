@@ -46,3 +46,103 @@ export function formatDuration(seconds: number): string {
   const minutes = totalMinutes % 60;
   return minutes ? `${hours} س ${minutes} د` : `${hours} س`;
 }
+
+/** A noun in each form an Arabic count asks for. */
+export interface CountedNoun {
+  /** «برنامج واحد» */
+  one: string;
+  /** «برنامجان» */
+  two: string;
+  /** After 3 to 10: «برامج». */
+  plural: string;
+  /** After 11 to 99: «برنامجًا». */
+  accusative: string;
+  /** After a round hundred: «برنامج». */
+  single: string;
+  /** The noun's gender; the numbers 3 to 10 take the other one. */
+  gender: 'masculine' | 'feminine';
+}
+
+const UNITS_FOR = {
+  masculine: ['ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة', 'عشرة'],
+  feminine: ['ثلاث', 'أربع', 'خمس', 'ست', 'سبع', 'ثماني', 'تسع', 'عشر'],
+} as const;
+
+/** «تسعة برامج», «نشرتان»: a count in words up to ten, then in digits. */
+export function countInWords(count: number, noun: CountedNoun): string {
+  if (count === 1) return noun.one;
+  if (count === 2) return noun.two;
+  if (count >= 3 && count <= 10) return `${UNITS_FOR[noun.gender][count - 3]} ${noun.plural}`;
+  const tens = count % 100;
+  const form = tens >= 3 && tens <= 10 ? noun.plural : tens >= 11 ? noun.accusative : noun.single;
+  return `${formatNumber(count)} ${form}`;
+}
+
+export const PROGRAMMES_NOUN: CountedNoun = {
+  one: 'برنامج واحد',
+  two: 'برنامجان',
+  plural: 'برامج',
+  accusative: 'برنامجًا',
+  single: 'برنامج',
+  gender: 'masculine',
+};
+
+export const NEWSLETTERS_NOUN: CountedNoun = {
+  one: 'نشرة واحدة',
+  two: 'نشرتان',
+  plural: 'نشرات',
+  accusative: 'نشرة',
+  single: 'نشرة',
+  gender: 'feminine',
+};
+
+export const EPISODES_NOUN: CountedNoun = {
+  one: 'حلقة واحدة',
+  two: 'حلقتان',
+  plural: 'حلقات',
+  accusative: 'حلقة',
+  single: 'حلقة',
+  gender: 'feminine',
+};
+
+export const COMMUNITIES_NOUN: CountedNoun = {
+  one: 'مجتمع واحد',
+  two: 'مجتمعان',
+  plural: 'مجتمعات',
+  accusative: 'مجتمعًا',
+  single: 'مجتمع',
+  gender: 'masculine',
+};
+
+export const LESSONS_NOUN: CountedNoun = {
+  one: 'درس واحد',
+  two: 'درسان',
+  plural: 'دروس',
+  accusative: 'درسًا',
+  single: 'درس',
+  gender: 'masculine',
+};
+
+export const MINUTES_NOUN: CountedNoun = {
+  one: 'دقيقة واحدة',
+  two: 'دقيقتان',
+  plural: 'دقائق',
+  accusative: 'دقيقة',
+  single: 'دقيقة',
+  gender: 'feminine',
+};
+
+export const RESULTS_NOUN: CountedNoun = {
+  one: 'نتيجة واحدة',
+  two: 'نتيجتان',
+  plural: 'نتائج',
+  accusative: 'نتيجة',
+  single: 'نتيجة',
+  gender: 'feminine',
+};
+
+/** «389 حلقة», «5 حلقات»: the counted noun after a number, by its last two digits. */
+export function episodesNoun(count: number) {
+  const tens = count % 100;
+  return tens >= 3 && tens <= 10 ? 'حلقات' : 'حلقة';
+}

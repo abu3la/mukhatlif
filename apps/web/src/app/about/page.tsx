@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { HomeManifesto } from '@/components/home-manifesto';
+import { CommunitySlides, HomeCredits, HomeStory } from '@/components/home-stage';
+import { RailControls } from '@/components/public-content-controls';
 import { COMMUNITIES } from '@/lib/communities';
 
 export const metadata: Metadata = {
@@ -8,100 +11,69 @@ export const metadata: Metadata = {
   alternates: { canonical: '/about' },
 };
 
-const team = [
-  ['محمد بازيد', 'رئيس مجلس الإدارة'],
-  ['أحمد عطار', 'المدير التنفيذي'],
-  ['عماد ناجي', 'المدير الإداري'],
-  ['محمد نعمان غريواتي', 'مدير العمليات'],
-  ['محمد عبدالعزيز', 'مدير المحتوى'],
-  ['عبدالرحمن عثمان', 'مدير التسويق'],
-  ['علاء الدين عثمان', 'مسؤول المنصات'],
-  ['عبدالرحمن معشي', 'معد البرامج'],
-  ['أحمد نور', 'محرر الفيديوهات القصيرة'],
-] as const;
-
+/**
+ * «من نحن» of the presentation site (D-24): who we are on the night stage,
+ * then the cause lit phrase by phrase and the story as stops on the route;
+ * the sheet holds the communities and the way to write to us, and the floor
+ * names the people behind Mukhtalif.
+ */
 export default function AboutPage() {
   return (
-    <div className="content-page public-page">
-      <div className="content-container about-page">
-        <header className="public-page-head">
-          <h1>من نحن</h1>
-          <p>
-            مختلف شبكة محتوى تضم مجتمعات متخصصة وبرامج بودكاست ومقالات ونشرات وورشًا تعليمية. نفتح
-            مساحات للحوار، وننقل تجارب الناس ومعارفهم لمساعدتك على فهم مجالك واكتشاف مسار يشبهك.
-          </p>
-          <p className="about-page__group">مختلف إحدى شركات ماد قروب.</p>
-        </header>
-
-        <section className="public-mission" aria-labelledby="mission-title">
-          <h2 id="mission-title">قضيتنا</h2>
-          <p>
-            نقضي جزءًا كبيرًا من حياتنا في العمل، وتنعكس تجاربنا فيه على حياتنا خارجه. لذلك نهتم
-            بالمهن والناس الذين يمارسونها؛ بأسئلتهم، وتحدياتهم، والقرارات التي تشكّل مساراتهم.
-          </p>
-          <p>
-            نفتح هذه الحوارات لتكتشف ما يناسب قيمك واهتماماتك وظروفك. هذا ما نعنيه بـ«مسار مهني
-            يشبهك».
-          </p>
-        </section>
-
-        <section className="public-about-story" aria-labelledby="story-title">
-          <h2 id="story-title">قصتنا</h2>
-          <div>
-            <p>
-              بدأت قصة مختلف في أكتوبر 2023، وانطلقت رسميًا في 14 أبريل 2024. كانت البداية مع
-              بودكاست بترولي، ثم شغلة وغلاف، وبعدهما بارتشن. وتوسّعت مختلف لاحقًا لتضم أكثر من 30
-              برنامج بودكاست.
+    <div className="stage-page about-stage-page">
+      <div className="stage-scope">
+        <section className="stage-intro about-intro" aria-labelledby="about-title">
+          <div className="content-container stage-head">
+            <h1 id="about-title" className="stage-statement">
+              من نحن
+            </h1>
+            <p className="stage-head__lede">
+              مختلف شبكة محتوى تضم مجتمعات متخصصة وبرامج بودكاست ومقالات ونشرات وورشًا تعليمية. نفتح
+              مساحات للحوار، وننقل تجارب الناس ومعارفهم لمساعدتك على فهم مجالك واكتشاف مسار يشبهك.{' '}
+              <span className="stage-head__fact">مختلف إحدى شركات ماد قروب.</span>
             </p>
-            <p>ومن استوديو مختلف في الرياض، توسّع حضورنا بإضافة استوديو في جدة عام 2025.</p>
           </div>
         </section>
+        <HomeManifesto />
+        <HomeStory />
+      </div>
 
-        <section className="content-section" aria-labelledby="about-communities">
-          <div className="content-section__header">
-            <h2 className="content-section__title" id="about-communities">
-              المجتمعات والبرامج
-            </h2>
-            <Link href="/communities">كل المجتمعات</Link>
-          </div>
-          <ul className="about-communities">
-            {COMMUNITIES.map((community) => (
-              <li key={community.slug}>
-                <Link href={`/communities/${community.slug}`}>
-                  <img src={`/communities/${community.slug}.jpg`} alt="" width="400" height="400" />
-                  <span>{community.name}</span>
+      <div className="home-sheet">
+        <div className="home-sheet__surface">
+          <section aria-labelledby="about-communities">
+            <div className="content-container home-head">
+              <h2 className="cover-section__title" id="about-communities">
+                المجتمعات والبرامج
+              </h2>
+              <div className="home-head__tools">
+                <Link className="stage-link" href="/communities">
+                  كل المجتمعات
                 </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+                <RailControls target="about-communities-rail" label="المجتمعات" />
+              </div>
+            </div>
+            <CommunitySlides communities={COMMUNITIES} id="about-communities-rail" />
+          </section>
 
-        <section id="team" className="public-team" aria-labelledby="team-title">
-          <h2 id="team-title">من وراء مختلف</h2>
-          <div>
-            {team.map(([name, role]) => (
-              <article key={name}>
-                <h3>{name}</h3>
-                <p>{role}</p>
-              </article>
-            ))}
+          <div className="content-container">
+            <section className="community-invite cover-invite" aria-labelledby="about-contact">
+              <div>
+                <h2 className="community-invite__title" id="about-contact">
+                  تواصل معنا
+                </h2>
+                <p>
+                  اكتب لنا على <bdi dir="ltr">Info@mukhtalif.net</bdi>
+                </p>
+              </div>
+              <Link className="public-primary" href="/contact">
+                تواصل مع مختلف
+              </Link>
+            </section>
           </div>
-          <Link className="about-page__link" href="/presenters">
-            تعرّف على مقدّمي برامجنا
-          </Link>
-        </section>
+        </div>
+      </div>
 
-        <section className="content-section about-page__contact" aria-labelledby="about-contact">
-          <h2 className="content-section__title" id="about-contact">
-            تواصل معنا
-          </h2>
-          <p>
-            اكتب لنا على <bdi dir="ltr">Info@mukhtalif.net</bdi>
-          </p>
-          <Link className="public-primary" href="/contact">
-            تواصل مع مختلف
-          </Link>
-        </section>
+      <div className="floor-scope home-floor" id="team">
+        <HomeCredits />
       </div>
     </div>
   );

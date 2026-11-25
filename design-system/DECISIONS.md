@@ -121,6 +121,130 @@ Format: `D-nn · date · decision · why / source`.
   focus rings are ink, not green (D-04); metadata is spaced, not dotted (the
   owner's standing rule). The avatar is ink with an on-ink initial.
 
+- **D-24 · 2026-11-20 · The presentation site (direction C).** The owner chose
+  the third direction of the redesign canvas
+  (https://claude.ai/artifact/44WWRh2CUhAHRiw1CsEpDS): the site introduces
+  Mukhtalif before it plays media. Built on the home, the header, the footer,
+  the programme, community, episode, articles, article and newsletter pages,
+  then «استمع», search, «مكتبتي» and the sign-in pages, and on 24 November
+  (the owner: «ابني كل شي») every remaining page.
+  - **The night stage, the sheet, the floor.** A page may open on a night stage
+    (`--mk-stage*`: indigo night in light, the footer's green-black in dark),
+    continue on a white sheet whose rounded top (`--mk-radius-sheet`) slides
+    over it, and end on the footer's floor. The sheet's edge is the boundary,
+    so these are deliberate breaks, not seams (an exception to D-06's single
+    floor and to "sections are separated by space").
+  - **The maze is the brand pattern.** The rounded-line pattern becomes a real
+    maze (`lib/maze.ts`, fixed seeds in `lib/home-maze.ts`, tested). One route
+    starts at the diamond full stop of «لمسار مهني يشبهك» and runs down the
+    page; «أي مسار يشبهك؟» draws a route to each community. Routes are always
+    drawn as a faint trace; the ink draws itself over it once
+    (`--mk-duration-route`, `--mk-duration-pick`), so nothing depends on
+    motion. The hero is one drawing that scales as a unit (`--u`), the one
+    place layout uses physical geometry.
+  - **The home tells the story** in order: hero, «قضيتنا» lit phrase by phrase
+    (`--mk-stage-ink-unlit` keeps unlit phrases readable), the 2023-to-today
+    stops, a programmes rail, the community picker (slides on phones and
+    tablets), the general newsletter (kept: it is the site's only signup),
+    production, the team as credits. Listening starts from «استمع» in the
+    header (`/episodes`) and from every programme.
+  - **A programme page stands on its cover.** Each programme has a ground
+    sampled from its cover's edge and an accent from its lettering
+    (`--mk-cover-<slug>-*`, tested for contrast); all other text on the cover
+    is one ink per tone. The cover is the title (Petroly uses its calligraphy
+    cut onto black, `public/communities/programmes/marks`). The count is the
+    page's one large number (`--mk-display-numeral`). The latest twelve
+    episodes are a rail; older pages redirect to `/episodes?showId=…`.
+  - **A community page is where the home's route arrives.** The route enters
+    the maze through the gap between the nav and the logo (phones: the right
+    edge) and ends at the full stop of the community's name
+    (`ARRIVAL_WIDE`/`ARRIVAL_PHONE`; each name's measured width,
+    `COMMUNITY_NAME_EM`, keeps it centred; tested). The stage says what the
+    community holds in words («تسعة برامج ونشرتان», `countInWords`), then the
+    sheet shows its programmes whole, three to a row, its latest episodes,
+    its newsletters two-up and the other communities.
+  - **An episode stands on its programme's cover** (the night stage for a show
+    outside the 27). The video is embedded from the start, as before, and
+    crosses onto the sheet by a quarter of its width (`.has-cross`,
+    `.stage-cross`); its «مشاهدة الحلقة» heading stays for screen readers.
+    Listening starts from the player's own pill (`PlayEpisodeButton`), whose
+    bar then carries the timeline, so the page no longer repeats an inline
+    player. Facts are spaced with a bare clock icon, never dotted. The notes
+    are read at the article measure; moments, more episodes and the
+    programme's newsletter follow.
+  - **Reading pages.** The articles index and an article stand on the night
+    stage; the newest article's cover (or the article's own) crosses onto the
+    sheet. Search, pages, the newsletters and the topics stay. An article is
+    read one step up the scale (`--mk-text-2xl`; «كبّر النص» still enlarges
+    it); its byline is plain text (the initial in a circle is gone); more
+    reading, the latest episodes and the general newsletter follow. A
+    newsletter page stands on its programme's cover with the programme's mark
+    or cover (the general one on the night stage); subscription still happens
+    on each list's current page.
+  - **Indexes and the account (third round, canvas version 21).** «استمع»
+    stands on the night stage with the catalogue in a fact («847 حلقة من 16
+    برنامجًا»); the newest episode's large still crosses onto the sheet, where
+    it is introduced, then the whole catalogue: the programmes as their own
+    covers to choose from (the select is gone), a search, the order as words
+    and the pages. Each choice reloads the list at `#all`. Search asks its
+    question on the stage with the kinds of result and their counts at its
+    edge (a kind with nothing is muted, all of them hidden when nothing is
+    found); answers follow by kind, programmes from the 27 of the
+    communities, guests by name and role without initials. «مكتبتي» keeps its
+    stage while the account loads: the episode the listener stopped in crosses
+    with how far they got, then saves, follows, playlists (four stills),
+    moments with «استمع من هنا» and saved reading; each full list
+    («سجل الاستماع», «اهتماماتي»…) is its own view under the same stage, so
+    the tab strip is gone. The sign-in pages stand on the maze: the route
+    arrives at the diamond above the form (`lib/auth-maze.ts`, tested to stay
+    clear of the form at every wide size); on phones the form is the sheet.
+    The password field says «إظهار» and «إخفاء» instead of drawing an eye.
+  - **Everything else (fifth round, from canvas version 23).** «البرامج»: every
+    cover drifts across the stage's edge onto the sheet (one seamless loop that
+    stops while pointed at and holds still with reduced motion); the directory
+    runs community by community in one grid, each community opening with a
+    night tile where a route arrives at its name (`lib/directory-maze.ts`, a
+    seed per community), and a chooser keeps one community. «المجتمعات»: the
+    stage is a map; every route leaves the title's full stop and arrives at a
+    community's name, and the pointed or focused name draws its way
+    (`lib/map-maze.ts`, the most direct seed; the title is part of the drawing
+    on wide screens); the sheet is the map's legend in the same order.
+    «الإنتاج»: the page is the brief's first step; the three forms are a radio
+    group in large type and the chosen one's route walks the maze to «تابع إلى
+    الطلب», which carries the choice to the form (`lib/brief-maze.ts`).
+    «الأكاديمية»: a course has no artwork, so its cover is drawn from its data
+    (skill, title, one stop per lesson) and crosses onto the sheet, where the
+    first course with a description is introduced with its price and one
+    action; «كيف تتعلّم» climbs as a staircase. The course page stands the same
+    cover on its stage and keeps the learning workspace's rules. The five request
+    forms stand on the sign-in stage, where the route arrives at the form.
+    «من نحن» and «قضيتنا» retell the home's pieces around their own text;
+    presenters read as closing credits; guests, work, contact and the legal
+    pages take the index stage; «حسابي», «دوراتي», a playlist and the loading
+    placeholders take the stage and the sheet. The wide drawings run past their
+    frame, so wider screens see more maze; phones and tablets get a composition
+    anchored to the right edge. Seeds are tested (`lib/menu-mazes.test.ts`).
+  - **Header and footer.** The bar gains «البرامج» and «الإنتاج», «قضيتنا»
+    joins «عن مختلف», and «استمع» is the bar's one filled action; search,
+    «مكتبتي» and the menu stay as the owner's rules require. Over a stage the
+    bar is transparent and takes the stage's ink. The footer floor carries
+    four link groups, the platform marks and the wordmark at the bottom edge.
+  - **Type and space.** Display sizes `--mk-display-1`, `-2`, `-numeral`, and
+    `--mk-section` for the room between stage sections (part of Q-03).
+  - **Kept out:** decorative arrows on text links (they were removed on
+    purpose); presenter photos that are not confirmed (only Ahmed Attar's
+    portrait is used); the sentence on Petroly's KFUPM origin, which waits for
+    the owner's confirmation.
+  - Now unused and left for Q-09: `WeeklyEpisodeCard`, `LatestEpisodeAction`,
+    `ListeningPlatforms`, `ContinueListening`, `CommunityCard`'s rail use, and
+    the older `.home-*` rules in `listener.css`; since the second round,
+    `CommunityCrate`, `InlineEpisodePlayer` and the rules for
+    `.community-head`, `.episode-detail__*`, `.public-episode-detail`,
+    `.article-detail__header`, `.article-author*` and `.newsletter-landing*`;
+    since the third round, the `.customer-library-tabs`,
+    `.customer-auth-layout`, `.customer-auth-context`, `.customer-auth-perks`,
+    `.customer-auth-mark` and `.customer-form-panel` rules.
+
 ## Open questions for the owner
 
 These are inconsistencies found while building the system. Each is a visible

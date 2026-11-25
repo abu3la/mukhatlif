@@ -18,12 +18,16 @@ import * as prettier from 'prettier';
 import {
   brandColor,
   broadcastColor,
+  coverColor,
+  stageColor,
   utilityColor,
   webBreakpoints,
   webColor,
+  webDisplay,
   webFont,
   webLayout,
   webLeading,
+  webMask,
   webMotion,
   webRadius,
   webSpace,
@@ -93,16 +97,20 @@ function scale(prefix: string, tokens: Record<string, ScaleToken>, system = 'mk'
 const sections: { title: string; rows: Row[] }[] = [
   { title: 'Colour: roles', rows: themed('', webColor) },
   { title: 'Colour: brand', rows: themed('', brandColor) },
+  { title: 'Colour: the night stage', rows: themed('', stageColor) },
+  { title: 'Colour: programme covers', rows: themed('cover-', coverColor) },
   { title: 'Colour: broadcast (player)', rows: themed('', broadcastColor) },
   { title: 'Colour: feedback and overlays', rows: themed('', utilityColor) },
   { title: 'Type: family', rows: [{ ...scale('', webFont)[0], name: '--mk-font' }] },
   { title: 'Type: weight', rows: scale('weight-', webWeight) },
   { title: 'Type: size', rows: scale('text-', webText) },
+  { title: 'Type: display', rows: scale('display-', webDisplay) },
   { title: 'Type: line height', rows: scale('leading-', webLeading) },
   { title: 'Spacing', rows: scale('space-', webSpace) },
   { title: 'Radius', rows: themed('radius-', webRadius) },
   { title: 'Layout', rows: themed('', webLayout) },
   { title: 'Motion', rows: scale('duration-', webMotion) },
+  { title: 'Masks', rows: scale('mask-', webMask) },
 ];
 
 const st = (prefix: string, tokens: Record<string, ScaleToken>) => scale(prefix, tokens, 'st');

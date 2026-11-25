@@ -294,6 +294,9 @@ button:disabled {
 .handoff-episode-card__art {
   display: block;
   aspect-ratio: 16/9;
+  /* A square programme cover standing in for a video still keeps the 16:9 frame. */
+  min-height: 0;
+  overflow: hidden;
 }
 .handoff-episode-card__art img {
   width: 100%;
@@ -358,14 +361,6 @@ button:disabled {
 }
 .article-card__title {
   line-height: var(--mk-leading-ui);
-}
-.weekly-episodes__track {
-  grid-auto-columns: clamp(280px, 28vw, 365px);
-  padding: 4px 0 14px;
-  gap: 20px;
-}
-.weekly-episodes__track > .handoff-episode-card {
-  scroll-snap-align: start;
 }
 .episode-list,
 .episodes {

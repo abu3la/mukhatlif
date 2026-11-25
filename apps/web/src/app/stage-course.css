@@ -1,0 +1,1208 @@
+/*
+ * Direction C (DECISIONS D-24), continued from stage.css: stage-course.
+ * Tokens only, the same rules as stage.css.
+ */
+
+/* ------------------------------------------------------------- course page */
+
+/* A course stands on the night stage like an article: where it belongs, its
+   title and line, and its cover (drawn from its lessons) crossing onto the
+   sheet, where the trailer and the overview come before the price and the
+   one action (AGENTS.md), then the syllabus. The stage's facts take its own
+   ink. */
+.stage-scope .course-facts-line {
+  color: var(--muted);
+}
+.course-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mk-space-16);
+  margin: 0 auto;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-body);
+  text-align: center;
+}
+.course-state p {
+  margin: 0;
+}
+.course-message {
+  margin: 0;
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-body);
+}
+.course-message--error {
+  color: var(--mk-danger-text);
+}
+.course-alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-12) var(--mk-space-24);
+  margin-block-start: var(--mk-space-16);
+}
+
+/* A secondary action is text in ink with a steady underline (D-16). */
+.course-text-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mk-space-8);
+  min-height: 44px;
+  padding: 0 var(--mk-space-4);
+  border: 0;
+  border-radius: var(--mk-radius-control);
+  background: none;
+  color: var(--mk-ink);
+  font: inherit;
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.35em;
+  cursor: pointer;
+  transition: color var(--mk-duration-fast) ease;
+}
+.course-text-action:hover:not(:disabled) {
+  color: var(--mk-ink-hover);
+}
+.course-text-action:disabled,
+.course-text-action[data-unavailable='true']:disabled {
+  background: none;
+  color: var(--mk-ink-muted);
+  text-decoration: none;
+  cursor: not-allowed;
+}
+.course-text-action svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+/* The sheet's reading column: the overview, then the offer, then the lessons. */
+.course-read {
+  max-width: calc(var(--mk-measure-article) + 2 * var(--gutter));
+}
+.course-text {
+  margin: var(--mk-space-24) 0 0;
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-reading);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.course-text--rich {
+  white-space: normal;
+}
+.course-text--rich p {
+  margin: 0 0 var(--mk-space-16);
+}
+.course-text--rich :is(p, ul, ol, blockquote):last-child {
+  margin-block-end: 0;
+}
+.course-text--rich h2 {
+  margin: var(--mk-space-40) 0 var(--mk-space-12);
+  font-size: var(--mk-text-3xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.course-text--rich h3 {
+  margin: var(--mk-space-32) 0 var(--mk-space-8);
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.course-text--rich ul,
+.course-text--rich ol {
+  margin: 0 0 var(--mk-space-16);
+  padding-inline-start: var(--mk-space-24);
+}
+.course-text--rich li + li {
+  margin-block-start: var(--mk-space-8);
+}
+.course-text--rich blockquote {
+  margin: 0 0 var(--mk-space-16);
+  padding: var(--mk-space-16) var(--mk-space-24);
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-surface);
+}
+.course-text--rich a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.3em;
+}
+.course-read__subtitle {
+  margin: var(--mk-space-48) 0 0;
+  font-size: var(--mk-text-3xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.course-read__subtitle + .course-text {
+  margin-block-start: var(--mk-space-8);
+}
+
+/* The offer under the overview: the facts, then the fee and the one action. */
+.course-buy:not(:first-child) {
+  margin-block-start: var(--mk-space-64);
+}
+.course-buy .course-facts-line {
+  justify-content: flex-start;
+  margin: 0;
+}
+.course-buy__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-16) var(--mk-space-40);
+  margin-block-start: var(--mk-space-24);
+}
+.course-buy__row .academy-price {
+  font-size: inherit;
+  font-weight: inherit;
+}
+.course-buy__note {
+  margin: var(--mk-space-16) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-body);
+}
+.course-buy__checkout {
+  margin-block-start: var(--mk-space-32);
+}
+.course-buy__checkout h3 {
+  margin: 0;
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.course-buy__checkout p {
+  margin: var(--mk-space-4) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-body);
+}
+.course-buy__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-12) var(--mk-space-24);
+  margin-block-start: var(--mk-space-20);
+}
+.course-buy .course-message {
+  margin-block-start: var(--mk-space-20);
+}
+
+/* The syllabus: one stop per lesson, as on the cover; the last is its full
+   stop. Every row keeps the same columns, so titles start on one line. */
+.course-syllabus {
+  display: grid;
+  gap: var(--mk-space-8);
+  margin: var(--mk-space-32) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.course-syllabus__lesson {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--mk-space-16);
+  min-height: 64px;
+  padding: var(--mk-space-12) var(--mk-space-20);
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-surface);
+}
+.course-syllabus__stop {
+  justify-self: center;
+  width: 14px;
+  height: 14px;
+  fill: var(--mk-ink);
+}
+.course-syllabus__lesson:last-child .course-syllabus__stop {
+  width: 19px;
+  height: 19px;
+}
+.course-syllabus__title {
+  font-size: var(--mk-text-xl);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+  overflow-wrap: anywhere;
+}
+.course-syllabus__time {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-8);
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-ui);
+  white-space: nowrap;
+}
+.course-syllabus__time svg {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+}
+
+/* The trailer, first on the sheet, in the reading column. */
+.course-trailer-view video,
+.course-trailer-view__wait {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: var(--mk-space-32) 0 0;
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-video-letterbox);
+}
+.course-trailer-view__wait {
+  display: grid;
+  place-items: center;
+  background: var(--mk-surface);
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-md);
+}
+
+/* ------------------------------------------------------ learning workspace */
+
+/* Once enrolled the stage keeps the course's name and facts at a smaller
+   scale, and the sheet starts close under it, so the lesson is in reach. */
+.course-page--learning .stage-intro {
+  padding-block-end: var(--mk-space-64);
+}
+.course-page--learning .stage-head__title {
+  font-size: var(--mk-display-2);
+}
+.course-page--learning .home-sheet__surface {
+  padding-block-start: var(--mk-space-48);
+}
+/* Narrower than the sheet's measure, so a lesson's video and the way to the
+   next lesson share one screen. */
+.learn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-24);
+  max-width: calc(1240px + 2 * var(--gutter));
+}
+
+/* Sections of the course and of a lesson: a line of names, the open one in
+   ink and underlined (the directory's chooser); a gated one shows its lock. */
+.learn-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mk-space-4) var(--mk-space-32);
+}
+.learn-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-8);
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--mk-radius-control);
+  background: none;
+  color: var(--mk-ink-muted);
+  font: inherit;
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+  cursor: pointer;
+  transition: color var(--mk-duration-fast) ease;
+}
+.learn-tabs button:hover:not(:disabled),
+.learn-tabs button[aria-current] {
+  color: var(--mk-ink);
+}
+.learn-tabs button[aria-current] {
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.45em;
+}
+.learn-tabs button:disabled {
+  color: color-mix(in srgb, var(--mk-ink-muted) 62%, var(--mk-page));
+  cursor: not-allowed;
+}
+.learn-tabs svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.learn-tabs--lesson {
+  gap: var(--mk-space-4) var(--mk-space-24);
+  padding-inline: var(--mk-space-4);
+}
+.learn-tabs--lesson button {
+  font-size: var(--mk-text-md);
+}
+.learn-tabs--lesson svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* The syllabus beside the lesson. */
+.learn-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--mk-space-32);
+}
+.learn-side {
+  position: sticky;
+  inset-block-start: var(--mk-space-24);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-16);
+  min-width: 0;
+}
+.learn-index {
+  --learn-ring: 36px;
+  padding: var(--mk-space-20);
+  border-radius: var(--mk-radius-dialog);
+  background: var(--mk-surface);
+}
+.learn-index__summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--mk-space-8) var(--mk-space-16);
+}
+.learn-index__summary h2 {
+  margin: 0;
+  font-size: var(--mk-text-xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.learn-index__summary span {
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--mk-leading-ui);
+}
+.learn-index__summary progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 6px;
+  margin: 0;
+  border: 0;
+  border-radius: var(--mk-radius-pill);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--mk-ink) 12%, var(--mk-surface));
+  color: var(--mk-ink);
+  appearance: none;
+}
+.learn-index__summary progress::-webkit-progress-bar {
+  border-radius: var(--mk-radius-pill);
+  background: color-mix(in srgb, var(--mk-ink) 12%, var(--mk-surface));
+}
+.learn-index__summary progress::-webkit-progress-value {
+  border-radius: var(--mk-radius-pill);
+  background: var(--mk-ink);
+}
+.learn-index__summary progress::-moz-progress-bar {
+  border-radius: var(--mk-radius-pill);
+  background: var(--mk-ink);
+}
+/* The list scrolls inside the panel; its inset keeps focus rings whole. */
+.learn-index__list {
+  display: grid;
+  gap: var(--mk-space-8);
+  max-height: 55vh;
+  margin: var(--mk-space-12) calc(-1 * var(--mk-space-8)) 0;
+  padding: var(--mk-space-8);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+/* Every lesson has its own ground; the current one is drawn in ink. */
+.learn-step {
+  display: grid;
+  gap: var(--mk-space-8);
+  width: 100%;
+  padding: var(--mk-space-12);
+  border: 2px solid transparent;
+  border-radius: var(--mk-radius-control);
+  background: var(--mk-page);
+  color: var(--mk-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background-color var(--mk-duration-fast) ease,
+    border-color var(--mk-duration-fast) ease;
+}
+.learn-step:hover:not(:disabled):not([aria-current]) {
+  background: color-mix(in srgb, var(--mk-ink) 5%, var(--mk-page));
+}
+.learn-step[aria-current] {
+  border-color: var(--mk-ink);
+}
+.learn-step:disabled {
+  background: color-mix(in srgb, var(--mk-ink) 5%, var(--mk-surface));
+  color: var(--mk-ink-muted);
+  cursor: not-allowed;
+}
+.learn-step__name {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-12);
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+  overflow-wrap: anywhere;
+}
+.learn-step__name > span {
+  min-width: 0;
+}
+.learn-step__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-4) var(--mk-space-16);
+  padding-inline-start: calc(var(--learn-ring) + var(--mk-space-12));
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-xs);
+  line-height: var(--mk-leading-ui);
+}
+.learn-step__meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-4);
+}
+.learn-step__meta svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.learn-step__meta small {
+  font-size: inherit;
+}
+.learn-step[aria-current] .learn-step__meta small {
+  color: var(--mk-ink);
+  font-weight: var(--mk-weight-semibold);
+}
+
+/* Per-lesson progress: the percent in a ring, or one check once complete. */
+.learn-ring {
+  width: var(--learn-ring, 36px);
+  height: var(--learn-ring, 36px);
+  flex: none;
+}
+.learn-ring circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+}
+.learn-ring__track {
+  opacity: 0.2;
+}
+.learn-ring__fill {
+  stroke-linecap: round;
+}
+.learn-ring text {
+  fill: currentColor;
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-semibold);
+}
+.learn-ring.is-complete {
+  color: var(--mk-success);
+}
+
+/* Phones choose a lesson from the list's own select. */
+.learn-picker {
+  display: none;
+  gap: var(--mk-space-8);
+  margin-block-start: var(--mk-space-16);
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+}
+
+/* The certificate under the syllabus: its state, then what it asks for. */
+.learn-cert {
+  border-radius: var(--mk-radius-dialog);
+  background: var(--mk-surface);
+}
+.learn-cert__entry {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-12);
+  min-height: 44px;
+  padding: var(--mk-space-16) var(--mk-space-20);
+  border-radius: var(--mk-radius-dialog);
+  cursor: pointer;
+  list-style: none;
+  transition: background-color var(--mk-duration-fast) ease;
+}
+.learn-cert__entry::-webkit-details-marker {
+  display: none;
+}
+.learn-cert__entry:hover {
+  background: color-mix(in srgb, var(--mk-ink) 5%, var(--mk-surface));
+}
+.learn-cert__entry > svg {
+  flex: none;
+}
+.learn-cert__entry > span {
+  display: grid;
+  flex: 1;
+  gap: var(--mk-space-4);
+  min-width: 0;
+}
+.learn-cert__entry strong {
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+}
+.learn-cert__entry small {
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-xs);
+  line-height: var(--mk-leading-ui);
+}
+.learn-cert[data-locked] .learn-cert__entry > svg,
+.learn-cert[data-locked] .learn-cert__entry strong {
+  color: var(--mk-ink-muted);
+}
+.learn-cert__toggle {
+  width: 20px;
+  height: 20px;
+  transition: rotate var(--mk-duration-base) ease;
+}
+.learn-cert[open] .learn-cert__toggle {
+  rotate: 180deg;
+}
+.learn-cert__details {
+  padding: 0 var(--mk-space-20) var(--mk-space-20);
+}
+.learn-cert__details .public-primary {
+  width: 100%;
+}
+.learn-cert__list {
+  display: grid;
+  gap: var(--mk-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.learn-cert__list li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mk-space-12);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-heading);
+}
+.learn-cert__list svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.learn-cert__list span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.learn-cert__list small {
+  display: block;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-xs);
+  line-height: var(--mk-leading-ui);
+}
+.learn-cert__list + .public-primary {
+  margin-block-start: var(--mk-space-16);
+}
+
+/* The lesson: a bounded pane with its title and index, the content on its
+   own ground, and the way between lessons below it. */
+.learn-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: clamp(420px, 68dvh, 780px);
+  padding: var(--mk-space-16) var(--mk-space-20) var(--mk-space-20);
+  border-radius: var(--mk-radius-dialog);
+  background: var(--mk-surface);
+}
+.learn-pane:has(.learn-video) {
+  height: auto;
+  min-height: clamp(420px, 68dvh, 780px);
+}
+.learn-pane__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--mk-space-16);
+  padding: var(--mk-space-4) var(--mk-space-4) var(--mk-space-12);
+}
+.learn-pane__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-8) var(--mk-space-12);
+  min-width: 0;
+}
+.learn-pane__title h2 {
+  margin: 0;
+  font-size: var(--mk-text-3xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+  overflow-wrap: anywhere;
+}
+.learn-pane__index {
+  flex: none;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--mk-leading-ui);
+}
+.learn-pane .learn-tabs--lesson {
+  margin-block-end: var(--mk-space-12);
+}
+.learn-pane__body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--mk-space-24);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-page);
+  scrollbar-gutter: stable;
+}
+.learn-pane:has(.learn-video) .learn-pane__body {
+  overflow: visible;
+}
+.learn-pane__body .course-text {
+  max-width: var(--mk-measure-article);
+  margin-block-start: 0;
+}
+.learn-pane__body .learn-video + .course-text {
+  margin-block-start: var(--mk-space-24);
+}
+.learn-pane__steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mk-space-12);
+  padding-block-start: var(--mk-space-16);
+}
+.learn-pane__steps > span {
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--mk-leading-ui);
+}
+.learn-pane__steps svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.learn-reading-status {
+  margin: var(--mk-space-24) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-ui);
+}
+
+/* The completion chip in the lesson heading: green on its own tint. */
+.learn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-4);
+  padding: var(--mk-space-4) var(--mk-space-12);
+  border-radius: var(--mk-radius-pill);
+  background: color-mix(in srgb, var(--mk-success) 12%, var(--mk-surface));
+  color: var(--mk-success);
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-ui);
+  white-space: nowrap;
+}
+.learn-chip svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+/* The lesson's video runs edge to edge on the content's ground; its controls
+   follow it. Download controls are hidden as a deterrent only. */
+.learn-video {
+  margin: calc(-1 * var(--mk-space-24)) calc(-1 * var(--mk-space-24)) 0;
+}
+.learn-video video,
+.learn-video__wait {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--mk-radius-media) var(--mk-radius-media) 0 0;
+  background: var(--mk-video-letterbox);
+  object-fit: contain;
+}
+.learn-video__wait {
+  display: grid;
+  place-items: center;
+  margin: 0;
+  background: var(--mk-surface);
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-md);
+}
+.learn-video__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-12);
+  padding: var(--mk-space-12) var(--mk-space-24) 0;
+}
+.learn-video > .course-alert {
+  padding-inline: var(--mk-space-24);
+}
+.learn-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mk-space-8);
+  min-height: 44px;
+  min-width: 44px;
+  padding: var(--mk-space-8) var(--mk-space-12);
+  border: 0;
+  border-radius: var(--mk-radius-control);
+  background: color-mix(in srgb, var(--mk-ink) 7%, transparent);
+  color: var(--mk-ink);
+  font: inherit;
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+  cursor: pointer;
+  transition: background-color var(--mk-duration-fast) ease;
+}
+.learn-control:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--mk-ink) 13%, transparent);
+}
+.learn-control:disabled {
+  background: color-mix(in srgb, var(--mk-ink) 4%, transparent);
+  color: var(--mk-ink-muted);
+  cursor: not-allowed;
+}
+.learn-control svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.learn-control bdi {
+  font-variant-numeric: tabular-nums;
+}
+.learn-marks {
+  display: grid;
+  gap: var(--mk-space-8);
+  padding: var(--mk-space-16) var(--mk-space-24) 0;
+}
+/* A note keeps its edit control at reading distance. */
+.learn-mark {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-12);
+  max-width: var(--mk-measure-article);
+}
+.learn-mark p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-body);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.learn-mark .learn-control {
+  flex: none;
+}
+.learn-mark-editor {
+  display: grid;
+  gap: var(--mk-space-12);
+  padding: var(--mk-space-16) var(--mk-space-24) 0;
+}
+/* «ملاحظة عند 0:04» stays one line above its field. */
+.learn-mark-editor label {
+  display: block;
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+}
+.learn-mark-editor textarea {
+  display: block;
+  margin-block-start: var(--mk-space-8);
+}
+.learn-mark-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-12) var(--mk-space-24);
+}
+
+/* Fields of the workspace: the account field recipe on the page's ground. */
+.course-page textarea,
+.course-page select {
+  width: 100%;
+  min-width: 0;
+  padding: var(--mk-space-12) var(--mk-space-16);
+  border: 1px solid var(--mk-border);
+  border-radius: var(--mk-radius-control);
+  background: var(--mk-page);
+  color: var(--mk-ink);
+  font: inherit;
+  font-size: var(--mk-text-base);
+  font-weight: var(--mk-weight-regular);
+  line-height: var(--mk-leading-body);
+}
+.course-page textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+.course-page select {
+  min-height: 48px;
+  cursor: pointer;
+}
+.course-page textarea:disabled {
+  background: var(--mk-surface);
+  color: var(--mk-ink-muted);
+}
+@supports (appearance: base-select) {
+  .course-page select,
+  .course-page select::picker(select) {
+    appearance: base-select;
+  }
+  .course-page select::picker(select) {
+    max-height: 320px;
+    margin-block: var(--mk-space-4);
+    padding: var(--mk-space-4);
+    border: 1px solid var(--mk-border-soft);
+    border-radius: var(--mk-radius-media);
+    background: var(--mk-page);
+    color: var(--mk-ink);
+  }
+  .course-page option {
+    gap: var(--mk-space-12);
+    padding: var(--mk-space-12);
+    border-radius: var(--mk-radius-control);
+  }
+  .course-page option:checked {
+    background: var(--mk-surface);
+    font-weight: var(--mk-weight-semibold);
+  }
+  .course-page option:hover {
+    background: var(--mk-surface-hover);
+  }
+  .course-page option:disabled {
+    color: var(--mk-ink-muted);
+  }
+}
+
+/* Files to download, apart from the lessons. */
+.learn-files {
+  display: grid;
+  gap: var(--mk-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.learn-file {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-12);
+  min-height: 52px;
+  padding: var(--mk-space-12) var(--mk-space-16);
+  border: 0;
+  border-radius: var(--mk-radius-control);
+  background: color-mix(in srgb, var(--mk-ink) 6%, transparent);
+  color: var(--mk-ink);
+  font: inherit;
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--mk-duration-fast) ease;
+}
+.learn-file:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--mk-ink) 11%, transparent);
+}
+.learn-file svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.learn-files + .course-message {
+  margin-block-start: var(--mk-space-12);
+}
+
+/* A quiz or a worksheet. */
+.learn-form {
+  display: grid;
+  gap: var(--mk-space-16);
+  max-width: var(--mk-measure-article);
+}
+.learn-form h3 {
+  margin: 0;
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.learn-form__note {
+  margin: 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-body);
+}
+.learn-form .course-text {
+  margin: 0;
+  font-size: var(--mk-text-lg);
+}
+.learn-form fieldset {
+  display: grid;
+  gap: var(--mk-space-8);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.learn-form legend {
+  margin-block-end: var(--mk-space-8);
+  padding: 0;
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+}
+.learn-form fieldset label {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-12);
+  min-height: 48px;
+  padding: var(--mk-space-8) var(--mk-space-16);
+  border-radius: var(--mk-radius-control);
+  background: color-mix(in srgb, var(--mk-ink) 5%, transparent);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-body);
+  cursor: pointer;
+  transition: background-color var(--mk-duration-fast) ease;
+}
+.learn-form fieldset label:hover,
+.learn-form fieldset label:has(input:checked) {
+  background: color-mix(in srgb, var(--mk-ink) 11%, transparent);
+}
+.learn-form input[type='radio'] {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin: 0;
+  accent-color: var(--mk-ink);
+}
+.learn-form__field {
+  display: grid;
+  gap: var(--mk-space-8);
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+}
+.learn-form > .public-primary {
+  justify-self: start;
+}
+
+/* The course's files, quiz, worksheet and certificate in one panel as wide
+   as the lesson view, so the workspace keeps its frame between sections. */
+.learn-panel {
+  padding: var(--mk-space-40);
+  border-radius: var(--mk-radius-dialog);
+  background: var(--mk-surface);
+}
+.learn-panel > h2 {
+  margin: 0 0 var(--mk-space-24);
+  font-size: var(--mk-text-3xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.learn-panel > p {
+  margin: var(--mk-space-16) 0 0;
+  color: var(--mk-ink-muted);
+}
+.learn-completion {
+  display: grid;
+  gap: var(--mk-space-24);
+}
+.learn-completion > .public-primary {
+  justify-self: center;
+}
+.learn-completion__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-16);
+}
+.learn-completion__head > svg {
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+.learn-completion__head > div {
+  flex: 1;
+  min-width: 0;
+}
+.learn-completion__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-8) var(--mk-space-12);
+}
+.learn-completion__head h2 {
+  margin: 0;
+  font-size: var(--mk-text-3xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.learn-completion__head p {
+  margin: var(--mk-space-4) 0 0;
+  color: var(--mk-ink-muted);
+  line-height: var(--mk-leading-body);
+}
+/* The certificate is a light cover in both appearances: the ground and ink
+   of a white programme cover, so it prints as it shows. */
+.learn-certificate {
+  justify-self: center;
+  width: 100%;
+  max-width: var(--mk-measure-article);
+  padding: var(--mk-space-64) var(--mk-space-48);
+  border: 3px solid var(--mk-cover-ink-on-light);
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-cover-ink-on-dark);
+  color: var(--mk-cover-ink-on-light);
+  text-align: center;
+}
+.learn-certificate img {
+  display: block;
+  margin: 0 auto var(--mk-space-24);
+}
+.learn-certificate h2 {
+  margin: 0;
+  font-size: var(--mk-display-2);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.learn-certificate h3 {
+  margin: var(--mk-space-24) 0;
+  font-size: var(--mk-text-5xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.learn-certificate p {
+  margin: var(--mk-space-8) 0 0;
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-body);
+}
+.learn-certificate small {
+  display: block;
+  margin-block-start: var(--mk-space-24);
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-ui);
+}
+
+/* Tablets: the syllabus above a full-width lesson; phones choose from a select. */
+@media (max-width: 1000px) {
+  .learn-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mk-space-16);
+  }
+  .learn-side {
+    position: static;
+  }
+}
+
+@media (max-width: 820px) {
+  .learn-index {
+    padding: var(--mk-space-16);
+  }
+  .learn-index__list {
+    display: none;
+  }
+  .learn-picker {
+    display: grid;
+  }
+  .learn-pane {
+    height: 65dvh;
+    min-height: 360px;
+    padding: var(--mk-space-12);
+  }
+  .learn-pane:has(.learn-video) {
+    min-height: 0;
+  }
+  .learn-pane__body {
+    padding: var(--mk-space-16);
+  }
+  .learn-video {
+    margin: calc(-1 * var(--mk-space-16)) calc(-1 * var(--mk-space-16)) 0;
+  }
+  .learn-video__controls,
+  .learn-marks,
+  .learn-mark-editor,
+  .learn-video > .course-alert {
+    padding-inline: var(--mk-space-16);
+  }
+  .learn-pane__body .learn-video + .course-text {
+    margin-block-start: var(--mk-space-16);
+  }
+  .learn-panel {
+    padding: var(--mk-space-24);
+  }
+  .learn-certificate {
+    padding: var(--mk-space-32) var(--mk-space-20);
+  }
+}
+
+@media (max-width: 600px) {
+  .course-syllabus__lesson {
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: var(--mk-space-4) var(--mk-space-12);
+    padding: var(--mk-space-12) var(--mk-space-16);
+  }
+  .course-syllabus__time {
+    grid-column: 2;
+  }
+  .course-syllabus__title {
+    font-size: var(--mk-text-lg);
+  }
+  .course-text {
+    font-size: var(--mk-text-lg);
+  }
+  .course-buy__row {
+    gap: var(--mk-space-16) var(--mk-space-24);
+  }
+  .learn-tabs {
+    gap: var(--mk-space-4) var(--mk-space-20);
+  }
+  .learn-tabs button {
+    font-size: var(--mk-text-md);
+  }
+  .learn-pane__title h2 {
+    font-size: var(--mk-text-2xl);
+  }
+  .learn-pane__steps .public-primary {
+    min-height: 44px;
+    padding-inline: var(--mk-space-16);
+  }
+  .learn-mark {
+    flex-wrap: wrap;
+  }
+  .learn-completion__head h2 {
+    font-size: var(--mk-text-2xl);
+  }
+}
+
+/* Printing the certificate prints only the certificate. */
+@media print {
+  body:has(.learn-certificate) * {
+    visibility: hidden;
+  }
+  .learn-certificate,
+  .learn-certificate * {
+    visibility: visible;
+  }
+  .learn-certificate {
+    position: absolute;
+    inset: 0;
+    max-width: none;
+    height: fit-content;
+    margin: 1cm;
+  }
+}

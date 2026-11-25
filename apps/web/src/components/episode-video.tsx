@@ -100,16 +100,19 @@ export function EpisodeVideo({
   videoId,
   title,
   initialSeconds = 0,
+  hideHeading = false,
 }: {
   videoId?: string | null;
   title: string;
   initialSeconds?: number;
+  /** Where the page already names the episode next to the video (D-24). */
+  hideHeading?: boolean;
 }) {
   const headingId = useId();
   if (!isYouTubeVideoId(videoId)) return null;
   return (
     <section id="episode-video" className={styles.video} aria-labelledby={headingId}>
-      <h2 id={headingId} className="episode-notes__title">
+      <h2 id={headingId} className={hideHeading ? 'visually-hidden' : 'episode-notes__title'}>
         مشاهدة الحلقة
       </h2>
       <div aria-label={`فيديو: ${title}`}>

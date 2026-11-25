@@ -47,7 +47,8 @@ instruction overrides any line here.
 - The default UI-kit grey or a cream "editorial" sheet as a surface. Use the
   page, surface and card tokens.
 - A hard colour seam between sections. Only the footer steps onto its own
-  darker floor, by decision.
+  darker floor (D-06), and the presentation pages' stage and sheet (D-24),
+  where the sheet's rounded edge is the boundary.
 
 ### Components and icons
 
