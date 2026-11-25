@@ -134,7 +134,7 @@ export function CourseVideo({
     };
   }, [api, courseId, lesson.id, lesson.durationSeconds, url]);
   return (
-    <div className="course-video">
+    <div className="learn-video">
       {url ? (
         <video
           ref={video}
@@ -148,45 +148,50 @@ export function CourseVideo({
           onError={() => setError('تعذّر تشغيل الفيديو. أعد تحميله.')}
         />
       ) : (
-        !error && <p role="status">جار تحميل الفيديو…</p>
+        !error && (
+          <p className="learn-video__wait" role="status">
+            جار تحميل الفيديو…
+          </p>
+        )
       )}
-      <div className="course-bookmark-controls">
-        <button className="course-control" disabled={!url || bookmarkBusy} onClick={() => {
+      <div className="learn-video__controls">
+        <button className="learn-control" disabled={!url || bookmarkBusy} onClick={() => {
           video.current?.pause();
           setBookmarkError('');
           setDraft({ id: crypto.randomUUID(), position: Math.min(video.current?.currentTime ?? 0, lesson.durationSeconds), note: '' });
         }}><BrandIcon name="save" />أضف علامة</button>
       </div>
       {draft && (
-        <form className="course-bookmark-editor" onSubmit={(event) => { event.preventDefault(); void writeBookmark(); }}>
+        <form className="learn-mark-editor" onSubmit={(event) => { event.preventDefault(); void writeBookmark(); }}>
           <label>ملاحظة عند <bdi>{timestamp(draft.position)}</bdi>
             <textarea maxLength={2000} value={draft.note} placeholder="ما الذي تريد تذكّره؟" onChange={(event) => setDraft({ ...draft, note: event.target.value })} disabled={bookmarkBusy} />
           </label>
-          <div className="course-bookmark-controls">
-            <BusyButton className="course-button" loadingMode="replace" aria-busy={bookmarkBusy} disabled={bookmarkBusy} type="submit"><BrandIcon name="save" />حفظ العلامة</BusyButton>
-            <button type="button" className="course-control" disabled={bookmarkBusy} onClick={() => setDraft(null)}>إلغاء</button>
-            {bookmarks?.[draft.id] && <BusyButton type="button" className="course-control" loadingMode="replace" aria-busy={bookmarkBusy} disabled={bookmarkBusy} onClick={() => void writeBookmark(true)}>حذف العلامة</BusyButton>}
+          <div className="learn-mark-editor__actions">
+            <BusyButton className="public-primary" loadingMode="replace" aria-busy={bookmarkBusy} disabled={bookmarkBusy} type="submit"><BrandIcon name="save" />حفظ العلامة</BusyButton>
+            <button type="button" className="course-text-action" disabled={bookmarkBusy} onClick={() => setDraft(null)}>إلغاء</button>
+            {bookmarks?.[draft.id] && <BusyButton type="button" className="course-text-action" loadingMode="replace" aria-busy={bookmarkBusy} disabled={bookmarkBusy} onClick={() => void writeBookmark(true)}>حذف العلامة</BusyButton>}
           </div>
-          {bookmarkError && <p role="alert">{bookmarkError}</p>}
+          {bookmarkError && <p role="alert" className="course-message course-message--error">{bookmarkError}</p>}
         </form>
       )}
       {marks.length > 0 && (
-        <div className="course-bookmarks" aria-label="علامات الفيديو">
+        <div className="learn-marks" aria-label="علامات الفيديو">
           {marks.map(([id, mark]) => (
-            <div className="course-bookmark" key={id}>
-              <button className="course-control" aria-label={`انتقل إلى ${timestamp(mark.position)}`} disabled={!url} onClick={() => {
+            <div className="learn-mark" key={id}>
+              <button className="learn-control" aria-label={`انتقل إلى ${timestamp(mark.position)}`} disabled={!url} onClick={() => {
                 if (video.current) { video.current.currentTime = mark.position; void video.current.play().catch(() => {}); }
               }}><BrandIcon name="play" /><bdi>{timestamp(mark.position)}</bdi></button>
               <p>{mark.note || 'علامة بدون ملاحظة'}</p>
-              <button className="course-control" aria-label="تعديل الملاحظة" title="تعديل الملاحظة" disabled={bookmarkBusy} onClick={() => { setBookmarkError(''); setDraft({ id, position: mark.position, note: mark.note }); }}><BrandIcon name="edit" /></button>
+              <button className="learn-control" aria-label="تعديل الملاحظة" title="تعديل الملاحظة" disabled={bookmarkBusy} onClick={() => { setBookmarkError(''); setDraft({ id, position: mark.position, note: mark.note }); }}><BrandIcon name="edit" /></button>
             </div>
           ))}
         </div>
       )}
       {error && (
-        <div role="alert">
-          <p>{error}</p>
+        <div role="alert" className="course-alert">
+          <p className="course-message course-message--error">{error}</p>
           <button
+            className="learn-control"
             onClick={() => {
               initial.current = video.current?.currentTime ?? initial.current;
               setRetry(retry + 1);

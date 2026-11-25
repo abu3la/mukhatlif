@@ -100,6 +100,11 @@ body:has(.cover-stage[data-tone='dark']) .site-header .brand-logo--dark {
 .stage-page {
   container-type: inline-size;
 }
+/* The sheet and the floor can meet on a fractional pixel; the ground under a
+   stage page is the floor's colour, so that join never lets the white through. */
+body:has(.stage-page) {
+  background: var(--mk-footer);
+}
 .stage-statement {
   margin: 0;
   font-size: var(--mk-display-1);
@@ -2152,6 +2157,1055 @@ body:has(.cover-stage[data-tone='light']) .site-header {
 }
 .auth-card .customer-auth-switch {
   font-size: var(--mk-text-base);
+}
+
+/* ------------------------------------------------------- main-menu pages */
+
+/* A maze that fills its whole stage fades out only at its foot, so the
+   stations near the bottom keep their walls. */
+.communities-map,
+.brief-stage {
+  --u: min(1px, calc(100cqi / 1440));
+  --up: min(1px, calc(100cqi / 390));
+  --foot-fade: linear-gradient(
+    to bottom,
+    currentColor 0%,
+    currentColor 84%,
+    color-mix(in srgb, currentColor 72%, transparent) 88%,
+    color-mix(in srgb, currentColor 42%, transparent) 92%,
+    color-mix(in srgb, currentColor 16%, transparent) 96%,
+    transparent 100%
+  );
+  position: relative;
+  overflow: hidden;
+  background: var(--mk-stage);
+}
+/* The title stands in the drawing's top right, where no wall runs, and keeps
+   clear of the header however small the drawing gets. */
+.communities-map__head,
+.brief-stage__head {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: max(calc(var(--mk-space-96) + var(--mk-space-16)), calc(112 * var(--u)));
+  right: calc(50% - 655.2 * var(--u));
+  width: calc(700 * var(--u));
+}
+/* The map's title is part of the drawing: its full stop is where every route
+   starts (map-maze.ts), on row 4's centre, so it scales with the drawing and
+   starts below the header at every wide size. */
+.communities-map__head {
+  inset-block-start: calc(160 * var(--u));
+}
+.communities-map__title {
+  font-size: calc(64 * var(--u));
+  white-space: nowrap;
+}
+.communities-map__lede,
+.brief-stage__lede {
+  margin: var(--mk-space-16) 0 0;
+  color: var(--mk-stage-ink-muted);
+  font-size: max(var(--mk-text-md), calc(20 * var(--u)));
+  line-height: var(--mk-leading-body);
+  text-wrap: pretty;
+}
+.communities-map__walls path,
+.communities-map__route path,
+.brief-field__walls path,
+.brief-field__route path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.communities-map__walls,
+.brief-field__walls {
+  mask-image: var(--foot-fade);
+}
+.communities-map__walls path,
+.brief-field__walls path {
+  stroke: var(--mk-stage-wall);
+  stroke-width: 20;
+}
+.communities-map__route path,
+.brief-field__route path {
+  stroke-width: 7;
+}
+.communities-map__route .stage-route__ink,
+.brief-field__route .stage-route__ink {
+  animation: stage-route calc(var(--mk-duration-route) * 0.6) cubic-bezier(0.45, 0.05, 0.2, 1)
+    backwards;
+}
+
+/* ---------------------------------------------------------------- «البرامج» */
+
+/* Every cover drifts across the stage's edge onto the sheet, half on each.
+   The band runs twice so its loop has no seam, and stops while pointed at. */
+.programmes-page {
+  --band-cover: 200px;
+  --band-half: calc(var(--band-cover) / 2);
+}
+.programmes-intro {
+  padding-block-end: 0;
+}
+.programmes-band {
+  position: relative;
+  z-index: 1;
+  margin-block: var(--mk-space-64) calc(-1 * var(--band-half));
+  overflow: hidden;
+}
+.programmes-band__track {
+  display: flex;
+  width: max-content;
+  animation: programmes-drift 210s linear infinite;
+}
+.programmes-band:hover .programmes-band__track {
+  animation-play-state: paused;
+}
+@keyframes programmes-drift {
+  to {
+    transform: translateX(50%);
+  }
+}
+.programmes-band__set {
+  display: flex;
+  gap: var(--mk-space-20);
+  margin: 0;
+  padding: 0;
+  padding-inline-end: var(--mk-space-20);
+  list-style: none;
+}
+.programmes-band__set a {
+  display: block;
+  width: var(--band-cover);
+  border-radius: var(--mk-radius-media);
+}
+.programmes-band__set img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: var(--mk-radius-media);
+  object-fit: cover;
+}
+.programmes-band__set [data-tone='light'] img {
+  outline: 1px solid var(--mk-border-soft);
+  outline-offset: -1px;
+}
+.programmes-page .home-sheet__surface {
+  padding-block-start: calc(var(--band-half) + var(--mk-space-96));
+}
+
+/* The directory's chooser: one line of names; the chosen one in ink, underlined. */
+.programme-directory__filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mk-space-4) var(--mk-space-32);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.programme-directory__filter button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--mk-space-8);
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--mk-radius-control);
+  background: none;
+  color: var(--mk-ink-muted);
+  font: inherit;
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-heading);
+  cursor: pointer;
+  transition: color var(--mk-duration-fast) ease;
+}
+.programme-directory__filter button:hover,
+.programme-directory__filter button[aria-pressed='true'] {
+  color: var(--mk-ink);
+}
+.programme-directory__filter button[aria-pressed='true'] {
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.45em;
+}
+.programme-directory__filter button:focus-visible {
+  outline: 3px solid var(--mk-ink);
+  outline-offset: 4px;
+}
+.programme-directory__filter bdi {
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+}
+/* One grid for the whole directory: each community's tile, then its programmes. */
+.programme-directory__groups {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--mk-space-48) var(--mk-space-32);
+  margin-block-start: var(--mk-space-48);
+}
+.directory-group,
+.directory-group__list {
+  display: contents;
+}
+.directory-group[hidden] {
+  display: none;
+}
+.directory-group__list {
+  list-style: none;
+}
+.directory-art {
+  position: relative;
+  display: block;
+  container-type: inline-size;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-stage);
+  color: var(--mk-stage-ink);
+}
+.directory-art--phone {
+  display: none;
+}
+.directory-art__drawing {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.directory-art__drawing path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.directory-art__walls {
+  stroke: var(--mk-stage-wall);
+  stroke-width: 12;
+}
+.directory-art .stage-route__trace,
+.directory-art .stage-route__ink {
+  stroke-width: 4.5;
+}
+.directory-community .programme-tile__link:hover .stage-route__ink,
+.directory-community .programme-tile__link:focus-visible .stage-route__ink {
+  animation: stage-route calc(var(--mk-duration-route) / 2) cubic-bezier(0.45, 0.05, 0.2, 1);
+}
+/* The name ends at the route's last point: its full stop on the row's centre. */
+.directory-art__name {
+  position: absolute;
+  inset-block-start: calc(var(--stop-top) - 0.876em);
+  right: var(--name-right);
+  font-size: var(--name-size);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- «المجتمعات» */
+
+.communities-map__field {
+  position: relative;
+  height: calc(var(--field-h) * var(--u));
+}
+.communities-map__field--phone {
+  display: none;
+}
+/* Centred physically: the frame is 1440 wide, the drawing runs past it on both sides. */
+.communities-map__walls,
+.communities-map__route {
+  position: absolute;
+  inset-block-start: 0;
+  left: calc(50% - (var(--frame-w) / 2 + var(--frame-left)) * var(--u));
+  display: block;
+  width: calc(var(--field-w) * var(--u));
+  max-width: none;
+  height: calc(var(--field-h) * var(--u));
+  overflow: visible;
+}
+.communities-map__names {
+  position: absolute;
+  inset-block: 0;
+  left: calc(50% - var(--frame-w) / 2 * var(--u));
+  width: calc(var(--frame-w) * var(--u));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Each name's full stop sits on its route's last point. */
+.communities-map__names li {
+  position: absolute;
+  inset-block-start: calc(var(--at-top) * var(--u) - 0.876em);
+  right: calc(var(--at-right) * var(--u));
+  font-size: calc(var(--name-size) * var(--u));
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+  white-space: nowrap;
+}
+.communities-map__name {
+  display: inline-block;
+  border-radius: var(--mk-radius-control);
+  color: var(--mk-stage-ink-muted);
+  text-decoration: none;
+  transition: color var(--mk-duration-fast) ease;
+}
+.communities-map__name:hover,
+.communities-map__name[data-lit] {
+  color: var(--mk-stage-ink);
+}
+.communities-map__name:focus-visible {
+  outline: 3px solid var(--mk-stage-ink);
+  outline-offset: 6px;
+}
+
+/* The legend, in the map's order and its three columns. */
+.communities-legend {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-64) var(--mk-space-40);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.communities-legend__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+.communities-legend__name {
+  margin: 0;
+  font-size: var(--mk-text-5xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.communities-legend__name a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--mk-duration-fast) ease;
+}
+.communities-legend__name a:hover {
+  color: var(--mk-ink-hover);
+}
+.communities-legend__count {
+  margin: var(--mk-space-4) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+}
+.communities-legend__text {
+  display: -webkit-box;
+  min-height: 2lh;
+  margin: var(--mk-space-12) 0 0;
+  overflow: hidden;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-base);
+  line-height: var(--mk-leading-body);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.communities-legend__covers {
+  display: flex;
+  gap: var(--mk-space-8);
+  min-height: 64px;
+  margin: var(--mk-space-20) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.communities-legend__covers a {
+  display: block;
+  border-radius: var(--mk-radius-control);
+}
+.communities-legend__covers img {
+  display: block;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--mk-radius-control);
+  object-fit: cover;
+}
+.communities-legend__covers [data-tone='light'] img {
+  outline: 1px solid var(--mk-border-soft);
+  outline-offset: -1px;
+}
+.communities-legend__item .stage-link {
+  margin-block-start: var(--mk-space-12);
+}
+
+/* ---------------------------------------------------------------- «الإنتاج» */
+
+.brief-field {
+  position: relative;
+  padding-block-end: var(--mk-section);
+}
+.brief-field--phone {
+  display: none;
+}
+.brief-field__walls,
+.brief-field__route {
+  position: absolute;
+  inset-block-start: 0;
+  left: calc(50% - (var(--frame-w) / 2 + var(--frame-left)) * var(--u));
+  display: block;
+  width: calc(var(--field-w) * var(--u));
+  max-width: none;
+  height: calc(var(--field-h) * var(--u));
+  overflow: visible;
+}
+.brief-field__frame {
+  position: relative;
+  width: calc(var(--frame-w) * var(--u));
+  height: calc((var(--button-row) + 1) * var(--pitch) * var(--u));
+  margin-inline: auto;
+}
+/* A form's full stop is where its route starts; it shows once chosen. */
+.brief-form {
+  position: absolute;
+  inset-block-start: calc(
+    (var(--form-row) + 0.5) * var(--pitch) * var(--u) - 0.876 * var(--form-size) * var(--u)
+  );
+  right: calc(var(--form-right) * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--mk-space-8);
+  width: calc(500 * var(--u));
+  padding: 0;
+  border: 0;
+  border-radius: var(--mk-radius-control);
+  background: none;
+  color: var(--mk-stage-ink-unlit);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.brief-form__name {
+  font-size: calc(var(--form-size) * var(--u));
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+  white-space: nowrap;
+  transition: color var(--mk-duration-base) ease;
+}
+.brief-form .stage-hero__stop {
+  visibility: hidden;
+}
+.brief-form:hover .brief-form__name {
+  color: var(--mk-stage-ink-muted);
+}
+.brief-form[aria-checked='true'] .brief-form__name {
+  color: var(--mk-stage-ink);
+}
+.brief-form[aria-checked='true'] .stage-hero__stop {
+  visibility: visible;
+}
+.brief-form__text {
+  color: var(--mk-stage-ink-muted);
+  font-size: max(var(--mk-text-base), calc(18 * var(--u)));
+  line-height: var(--mk-leading-body);
+}
+.brief-form:focus-visible {
+  outline: 3px solid var(--mk-stage-ink);
+  outline-offset: 8px;
+}
+/* The route arrives at the button's start; a wider label runs over its end. */
+.brief-go {
+  position: absolute;
+  inset-block-start: calc((var(--button-row) + 0.5) * var(--pitch) * var(--u));
+  right: calc(var(--form-right) * var(--u));
+  min-width: calc(var(--button-w) * var(--u));
+  translate: 0 -50%;
+}
+.brief-field__note {
+  position: relative;
+  width: calc(420 * var(--u));
+  margin-block: var(--mk-space-20) 0;
+  margin-inline-start: calc(50% - (var(--frame-w) / 2 - var(--form-right)) * var(--u));
+  color: var(--mk-stage-ink-muted);
+  font-size: max(var(--mk-text-md), calc(16 * var(--u)));
+  line-height: var(--mk-leading-body);
+}
+.production-work__lede {
+  margin: var(--mk-space-8) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-2xl);
+  line-height: var(--mk-leading-body);
+}
+.production-work__head {
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+/* -------------------------------------------------------------- «الأكاديمية» */
+
+/* A course's cover is drawn from its data on the sheet's own surface. */
+.course-cover {
+  position: relative;
+  display: block;
+  container-type: inline-size;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--mk-radius-media);
+  outline: 1px solid var(--mk-border-soft);
+  outline-offset: -1px;
+  background: var(--mk-surface);
+  color: var(--mk-ink);
+  text-align: start;
+}
+.course-cover--large {
+  border-radius: var(--mk-radius-dialog);
+}
+.course-cover__route {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.course-cover__route path:first-child {
+  fill: none;
+  stroke: var(--mk-ink);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.course-cover__stop {
+  fill: var(--mk-ink);
+}
+.course-cover__skill {
+  position: absolute;
+  inset-block-start: 9%;
+  right: 6.4%;
+  color: var(--mk-ink-muted);
+  font-size: 4cqi;
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-heading);
+}
+.course-cover__title {
+  position: absolute;
+  inset-block-start: 22%;
+  right: 6.4%;
+  left: 6.4%;
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 7.4cqi;
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+  text-wrap: balance;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.course-cover--large .course-cover__skill {
+  inset-block-start: 11%;
+  font-size: 2.2cqi;
+}
+.course-cover--large .course-cover__title {
+  inset-block-start: 19%;
+  font-size: 6.4cqi;
+}
+.course-cover__lessons {
+  position: absolute;
+  inset: 0;
+}
+.course-cover__lesson {
+  position: absolute;
+  inset-block-start: var(--y);
+  right: var(--x);
+  width: var(--w);
+  translate: 50% 0;
+  font-size: 1.5cqi;
+  font-weight: var(--mk-weight-semibold);
+  line-height: var(--mk-leading-ui);
+  text-align: center;
+  text-wrap: balance;
+}
+.academy-cross .course-cover {
+  border-radius: var(--mk-radius-dialog);
+}
+.academy-feature__text {
+  max-width: 40em;
+  margin: var(--mk-space-16) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-body);
+  text-wrap: pretty;
+}
+.course-facts-line {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--mk-space-8) var(--mk-space-24);
+  margin: var(--mk-space-20) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-ui);
+}
+.course-facts-line li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-8);
+}
+.course-facts-line svg {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+}
+.academy-feature__buy {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--mk-space-16) var(--mk-space-32);
+  margin-block-start: var(--mk-space-32);
+}
+.academy-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 0;
+}
+.academy-price small {
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-xs);
+  line-height: var(--mk-leading-ui);
+}
+.academy-price strong {
+  font-size: var(--mk-text-5xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+}
+/* Other courses three to a row; titles, lines and prices share their lines. */
+.academy-courses {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-48) var(--mk-space-32);
+  margin: var(--mk-space-40) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.academy-course {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.academy-course__cover {
+  display: block;
+  border-radius: var(--mk-radius-media);
+}
+.academy-course__title {
+  margin: var(--mk-space-16) 0 0;
+  font-size: var(--mk-text-3xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.academy-course__title a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--mk-duration-fast) ease;
+}
+.academy-course__title a:hover {
+  color: var(--mk-ink-hover);
+}
+.academy-course__text {
+  display: -webkit-box;
+  min-height: 2lh;
+  margin: var(--mk-space-8) 0 0;
+  overflow: hidden;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-body);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.academy-course .course-facts-line {
+  justify-content: flex-start;
+  margin-block-start: var(--mk-space-12);
+}
+.academy-course__buy {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--mk-space-12) var(--mk-space-24);
+  margin-block-start: auto;
+  padding-block-start: var(--mk-space-20);
+}
+/* «كيف تتعلّم»: three stops on a route that climbs a step between each. */
+.academy-stairs {
+  position: relative;
+  margin-block-start: var(--mk-space-48);
+}
+.academy-stairs__route {
+  position: absolute;
+  inset-block-start: 0;
+  left: 0;
+  display: block;
+  overflow: visible;
+}
+.academy-stairs__route--wide {
+  width: 100%;
+  height: 200px;
+}
+.academy-stairs__route--phone {
+  display: none;
+}
+.academy-stairs__route path {
+  fill: none;
+  stroke: var(--mk-ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.academy-stairs__steps {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.academy-step {
+  --step-y: var(--mk-space-32);
+  position: relative;
+  padding-block-start: calc(var(--step-y) + var(--mk-space-32));
+  padding-inline-end: var(--mk-space-32);
+}
+.academy-step:nth-child(1) {
+  --step-y: calc(var(--mk-space-96) + var(--mk-space-64));
+}
+.academy-step:nth-child(2) {
+  --step-y: var(--mk-space-96);
+}
+.academy-step__stop {
+  position: absolute;
+  inset-block-start: calc(var(--step-y) - 11px);
+  right: 0;
+  width: 22px;
+  height: 22px;
+  fill: var(--mk-ink);
+}
+.academy-step__title {
+  margin: 0;
+  font-size: var(--mk-text-4xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+}
+.academy-step__text {
+  max-width: 20em;
+  margin: var(--mk-space-8) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-body);
+}
+
+@media (max-width: 1000px) {
+  .programme-directory__groups {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .communities-legend,
+  .academy-courses {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* The chooser's forms need the room of a wide screen; below it the phone
+     composition stands at the page's right edge, its maze running left. */
+  .brief-stage__head {
+    position: static;
+    width: auto;
+    padding-block: calc(var(--mk-space-96) + var(--mk-space-32)) var(--mk-space-40);
+    padding-inline: var(--gutter);
+  }
+  .brief-field--wide {
+    display: none;
+  }
+  .brief-field--phone {
+    display: block;
+  }
+  .brief-field--phone {
+    --edge: calc(var(--gutter) - 20 * var(--up));
+  }
+  .brief-field--phone .brief-field__walls,
+  .brief-field--phone .brief-field__route {
+    right: var(--edge);
+    left: auto;
+    width: calc(var(--field-w) * var(--up));
+    height: calc(var(--field-h) * var(--up));
+  }
+  .brief-field--phone .brief-field__walls path {
+    stroke-width: 11;
+  }
+  .brief-field--phone .brief-field__route path {
+    stroke-width: 4.5;
+  }
+  .brief-field--phone .brief-field__frame {
+    width: calc(var(--frame-w) * var(--up));
+    height: calc((var(--button-row) + 1) * var(--pitch) * var(--up));
+    margin-inline: var(--edge) 0;
+  }
+  .brief-field--phone .brief-form {
+    inset-block-start: calc(
+      (var(--form-row) + 0.5) * var(--pitch) * var(--up) - 0.876 * var(--form-size) * var(--up)
+    );
+    right: calc(var(--form-right) * var(--up));
+    width: calc(214 * var(--up));
+    gap: var(--mk-space-4);
+  }
+  .brief-field--phone .brief-form__name {
+    font-size: calc(var(--form-size) * var(--up));
+  }
+  .brief-field--phone .brief-form__text {
+    font-size: calc(15 * var(--up));
+    line-height: var(--mk-leading-ui);
+  }
+  .brief-field--phone .brief-go {
+    inset-block-start: calc((var(--button-row) + 0.5) * var(--pitch) * var(--up));
+    right: calc(var(--form-right) * var(--up));
+    min-width: calc(var(--button-w) * var(--up));
+  }
+  .brief-field--phone .brief-field__note {
+    width: calc(250 * var(--up));
+    margin-inline-start: calc(var(--edge) + var(--form-right) * var(--up));
+    font-size: var(--mk-text-md);
+  }
+}
+
+@media (max-width: 820px) {
+  .programme-directory__groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .communities-map__title {
+    font-size: var(--mk-display-1);
+    white-space: normal;
+  }
+  .communities-map__head {
+    position: static;
+    width: auto;
+    padding-block: calc(var(--mk-space-96) + var(--mk-space-32)) var(--mk-space-40);
+    padding-inline: var(--gutter);
+  }
+  .communities-map__field--wide {
+    display: none;
+  }
+  .communities-map__field--phone {
+    display: block;
+    height: calc(var(--field-h) * var(--up));
+  }
+  /* The phone frame stands at the page's right edge; its maze runs left. */
+  /* Offset by the page's gutter, so the names line up with the title. */
+  .communities-map__field--phone {
+    --edge: calc(var(--gutter) - 20 * var(--up));
+  }
+  .communities-map__field--phone .communities-map__walls,
+  .communities-map__field--phone .communities-map__route {
+    right: var(--edge);
+    left: auto;
+    width: calc(var(--field-w) * var(--up));
+    height: calc(var(--field-h) * var(--up));
+  }
+  .communities-map__field--phone .communities-map__walls path {
+    stroke-width: 11;
+  }
+  .communities-map__field--phone .communities-map__route path {
+    stroke-width: 4.5;
+  }
+  .communities-map__field--phone .communities-map__names {
+    right: var(--edge);
+    left: auto;
+    width: calc(var(--frame-w) * var(--up));
+  }
+  .communities-map__field--phone .communities-map__names li {
+    inset-block-start: calc(var(--at-top) * var(--up) - 0.876em);
+    right: calc(var(--at-right) * var(--up));
+    font-size: calc(var(--name-size) * var(--up));
+  }
+  .course-cover__lessons {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .programmes-page {
+    --band-cover: 128px;
+  }
+  .programmes-band {
+    margin-block-start: var(--mk-space-48);
+  }
+  .programmes-page .home-sheet__surface {
+    padding-block-start: calc(var(--band-half) + var(--mk-space-48));
+  }
+  .programme-directory__filter {
+    flex-wrap: nowrap;
+    gap: 0 var(--mk-space-24);
+    margin-inline: calc(-1 * var(--gutter));
+    padding-inline: var(--gutter);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .programme-directory__filter::-webkit-scrollbar {
+    display: none;
+  }
+  .programme-directory__filter button {
+    white-space: nowrap;
+  }
+  /* Phones: each community is a band above a rail of its programmes. */
+  .programme-directory__groups {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mk-space-64);
+    margin-block-start: var(--mk-space-32);
+  }
+  .directory-group {
+    display: block;
+  }
+  .directory-art--wide {
+    display: none;
+  }
+  .directory-art--phone {
+    display: block;
+  }
+  .directory-group__list {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 220px;
+    gap: var(--mk-space-16);
+    margin-inline: calc(-1 * var(--gutter));
+    padding-block: var(--mk-space-24) var(--mk-space-12);
+    padding-inline: var(--gutter);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--gutter);
+    scrollbar-width: none;
+  }
+  .directory-group__list::-webkit-scrollbar {
+    display: none;
+  }
+  .directory-group__list .programme-tile__name {
+    font-size: var(--mk-text-2xl);
+  }
+  .communities-legend,
+  .academy-courses {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mk-space-48);
+  }
+  /* One to a row: no neighbour to line up with. */
+  .communities-legend__text,
+  .academy-course__text {
+    min-height: 0;
+  }
+  .communities-legend__covers:empty {
+    display: none;
+  }
+  .course-cover--large .course-cover__skill {
+    inset-block-start: 9%;
+    font-size: 4cqi;
+  }
+  .course-cover--large .course-cover__title {
+    inset-block-start: 22%;
+    font-size: 7.4cqi;
+  }
+  .academy-stairs__route--wide {
+    display: none;
+  }
+  .academy-stairs__route--phone {
+    right: 0;
+    left: auto;
+    display: block;
+    width: 350px;
+    height: 400px;
+  }
+  /* Phones: the steps go down the page, each a step further in. */
+  .academy-stairs__steps {
+    display: block;
+  }
+  .academy-step,
+  .academy-step:nth-child(n) {
+    --step-y: 11px;
+    height: 176px;
+    padding-block-start: 0;
+    padding-inline-start: var(--mk-space-40);
+    padding-inline-end: 0;
+  }
+  .academy-step:nth-child(2) {
+    margin-inline-start: var(--mk-space-32);
+  }
+  .academy-step:nth-child(3) {
+    height: auto;
+    margin-inline-start: var(--mk-space-64);
+  }
+  .academy-step__title {
+    font-size: var(--mk-text-3xl);
+  }
+  .academy-step__text {
+    font-size: var(--mk-text-base);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .programmes-band__track {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------- «قضيتنا» */
+
+.mission-cause {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-24);
+}
+.mission-cause__text {
+  max-width: 30em;
+  margin: 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-3xl);
+  line-height: var(--mk-leading-body);
+  text-wrap: pretty;
+}
+
+/* ------------------------------------------------------------ request forms */
+
+/* Every request form stands on the sign-in stage, where the route arrives.
+   The card is wider than the sign-in one but never wider than the cells
+   kept clear for it, so the route stays beside it at every width. */
+.auth-card.request-card {
+  display: block;
+  width: min(640px, calc(816 * var(--u)), 100%);
+  padding: var(--mk-space-48);
+}
+.request-card__title {
+  margin: 0;
+  font-size: var(--mk-display-2);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-heading);
+  text-wrap: balance;
+}
+.request-card__details {
+  margin-block-start: var(--mk-space-24);
+}
+.request-card .request-page__body {
+  margin-block-start: var(--mk-space-32);
+}
+/* The card is the form's surface; the form needs no second one inside it. */
+.request-card .request-form,
+.request-card .request-form__success,
+.request-card .public-production {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+}
+.request-card__note {
+  margin: var(--mk-space-32) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-md);
+  line-height: var(--mk-leading-body);
+}
+@media (max-width: 820px) {
+  .auth-card.request-card {
+    width: 100%;
+    padding-block: var(--mk-space-40) var(--mk-space-64);
+    padding-inline: var(--gutter);
+  }
 }
 
 /* ------------------------------------------------------------- breakpoints */

@@ -13,6 +13,9 @@ import './handoff.css';
 import './public-pages.css';
 import './communities.css';
 import './stage.css';
+import './stage-info.css';
+import './stage-account.css';
+import './stage-course.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(publicWebUrl()),

@@ -1,12 +1,10 @@
-import { CardSkeletonGrid, LoadingRegion } from '@/components/states';
+import { SkeletonSection, StageSkeleton } from '@/components/content-skeleton';
 
+/** The home: the hero's stage at its own height, then the programmes on the sheet. */
 export default function Loading() {
   return (
-    <div className="content-page">
-      <div className="content-container loading-page">
-        <LoadingRegion label="التحميل…" />
-        <CardSkeletonGrid />
-      </div>
-    </div>
+    <StageSkeleton label="التحميل…" hero>
+      <SkeletonSection shape="square" count={4} />
+    </StageSkeleton>
   );
 }

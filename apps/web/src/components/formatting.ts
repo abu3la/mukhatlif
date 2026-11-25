@@ -105,6 +105,33 @@ export const EPISODES_NOUN: CountedNoun = {
   gender: 'feminine',
 };
 
+export const COMMUNITIES_NOUN: CountedNoun = {
+  one: 'مجتمع واحد',
+  two: 'مجتمعان',
+  plural: 'مجتمعات',
+  accusative: 'مجتمعًا',
+  single: 'مجتمع',
+  gender: 'masculine',
+};
+
+export const LESSONS_NOUN: CountedNoun = {
+  one: 'درس واحد',
+  two: 'درسان',
+  plural: 'دروس',
+  accusative: 'درسًا',
+  single: 'درس',
+  gender: 'masculine',
+};
+
+export const MINUTES_NOUN: CountedNoun = {
+  one: 'دقيقة واحدة',
+  two: 'دقيقتان',
+  plural: 'دقائق',
+  accusative: 'دقيقة',
+  single: 'دقيقة',
+  gender: 'feminine',
+};
+
 export const RESULTS_NOUN: CountedNoun = {
   one: 'نتيجة واحدة',
   two: 'نتيجتان',

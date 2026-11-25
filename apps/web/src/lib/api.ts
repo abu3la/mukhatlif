@@ -171,6 +171,15 @@ export function listCourses(): Promise<CourseSummary[]> {
   return read<CourseSummary[]>('/courses');
 }
 
+/** A published course's outline: its summary and its lessons' titles, never their bodies. */
+export interface CourseOutline extends CourseSummary {
+  lessons: { id: string; title: string; durationSeconds: number }[];
+}
+
+export function getCourseOutline(id: string): Promise<CourseOutline> {
+  return read<CourseOutline>(`/courses/${encodeURIComponent(id)}`, { notFound: true });
+}
+
 /**
  * Resolves one reviewed WordPress-era path without exposing the redirect table
  * to the public site. The API returns only the destination and HTTP status.

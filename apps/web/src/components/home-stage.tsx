@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { PlatformMark } from '@/components/platform-mark';
 import { Diamond, MazeDrawing } from '@/components/maze-drawing';
+import { ProgrammeTileView, type ProgrammeTileData } from '@/components/programme-tile-view';
 import { ARRIVAL_PHONE, ARRIVAL_WIDE, HERO_PHONE, HERO_WIDE, communityHero } from '@/lib/home-maze';
 import {
   communityLogo,
@@ -22,7 +23,12 @@ import { SERVICES, STORY, TEAM } from '@/lib/site-facts';
  * manifesto and the community picker are the only client islands.
  */
 
-export function HomeHero() {
+export function HomeHero({
+  lede = 'حوارات عن المهن والناس الذين يمارسونها، في أكثر من 30 برنامجًا.',
+}: {
+  /** The line under the headline; «قضيتنا» tells its own. */
+  lede?: string;
+}) {
   return (
     <section className="stage-hero" aria-labelledby="home-title">
       <MazeDrawing maze={HERO_WIDE} variant="wide" />
@@ -34,9 +40,7 @@ export function HomeHero() {
           <Diamond className="stage-hero__stop" />
         </span>
       </h1>
-      <p className="stage-hero__lede">
-        حوارات عن المهن والناس الذين يمارسونها، في أكثر من 30 برنامجًا.
-      </p>
+      <p className="stage-hero__lede">{lede}</p>
     </section>
   );
 }
@@ -161,30 +165,20 @@ export const presenterLine = (programme: Programme) => {
   return names.length ? `تقديم ${names.join(' و')}` : '';
 };
 
+/** A programme's tile, worked out here so a client list can show it too. */
+export const programmeTileData = (programme: Programme): ProgrammeTileData => ({
+  slug: programme.slug,
+  name: programme.name,
+  description: programme.description,
+  hosts: presenterLine(programme),
+  href: programmeHref(programme),
+  cover: programmeCover(programme),
+  tone: coverTone(programme),
+});
+
 /** A programme as the rails show it: the whole cover, its name, approved line and hosts. */
 export function ProgrammeTile({ programme }: { programme: Programme }) {
-  const hosts = presenterLine(programme);
-  return (
-    <li className="programme-tile" data-tone={coverTone(programme)}>
-      <Link className="programme-tile__link" href={programmeHref(programme)}>
-        <img
-          className="programme-tile__cover"
-          src={programmeCover(programme)}
-          alt=""
-          width="480"
-          height="480"
-          loading="lazy"
-          decoding="async"
-        />
-        <span className="programme-tile__name">{programme.name}</span>
-        <span className="programme-tile__text">{programme.description}</span>
-        {/* The hosts line keeps its height when a presenter is not confirmed yet. */}
-        <span className="programme-tile__hosts" aria-hidden={!hosts}>
-          {hosts || ' '}
-        </span>
-      </Link>
-    </li>
-  );
+  return <ProgrammeTileView programme={programmeTileData(programme)} />;
 }
 
 export function ProgrammeRail({

@@ -294,6 +294,9 @@ button:disabled {
 .handoff-episode-card__art {
   display: block;
   aspect-ratio: 16/9;
+  /* A square programme cover standing in for a video still keeps the 16:9 frame. */
+  min-height: 0;
+  overflow: hidden;
 }
 .handoff-episode-card__art img {
   width: 100%;

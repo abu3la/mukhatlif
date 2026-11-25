@@ -27,15 +27,22 @@ const editTitles: Record<AccountEdit, string> = {
 };
 const genderNames = { male: 'ذكر', female: 'أنثى', prefer_not_to_say: 'أفضل عدم الإجابة' };
 
+/**
+ * One detail of the account: its name, its value and the way into its dialog
+ * on one line, so every row's value starts at the same place. `note` follows
+ * the value (the Google sign-in beside the address).
+ */
 function AccountRow({
   label,
   value,
+  note,
   onClick,
   danger = false,
   busy = false,
 }: {
   label: string;
   value?: string;
+  note?: string;
   onClick: () => void;
   danger?: boolean;
   busy?: boolean;
@@ -44,22 +51,53 @@ function AccountRow({
     <BusyButton
       aria-busy={busy}
       type="button"
-      className={`customer-account-row${danger ? ' customer-danger-row' : ''}`}
+      className={
+        'account-row' + (danger ? ' account-row--danger' : '') + (value ? '' : ' account-row--bare')
+      }
       onClick={onClick}
     >
-      <span>{label}</span>
-      <bdi className="customer-account-value">{value}</bdi>
+      <span className="account-row__label">{label}</span>
+      {value ? (
+        <span className="account-row__value">
+          <bdi>{value}</bdi>
+          {note ? <span className="account-row__note">{note}</span> : null}
+        </span>
+      ) : null}
       <CustomerIcon name="back" />
     </BusyButton>
   );
 }
 
+/**
+ * «حسابي» on the presentation site (D-24), a view of the library: the night
+ * stage carries its place and its name, and keeps them while the account
+ * loads; the sheet holds the details and the account's actions as rows in a
+ * column at the reading measure, each opening its own dialog.
+ */
 export function CustomerAccount() {
   const { user } = useCustomer();
   return (
-    <CustomerGate>
-      <AccountContent key={user?.id} />
-    </CustomerGate>
+    <div className="stage-page library-page account-page">
+      <div className="stage-scope">
+        <section className="stage-intro" aria-labelledby="account-title">
+          <div className="content-container stage-head">
+            <p className="stage-head__crumbs">
+              <Link href="/library">مكتبتي</Link>
+            </p>
+            <h1 id="account-title" className="stage-head__title">
+              حسابي
+            </h1>
+          </div>
+        </section>
+      </div>
+      <div className="home-sheet">
+        <div className="home-sheet__surface">
+          <CustomerGate bare>
+            <AccountContent key={user?.id} />
+          </CustomerGate>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -89,34 +127,17 @@ function AccountContent() {
   }
 
   return (
-    <div className="page customer-page customer-account-page">
-      <header className="customer-page-head">
-        <h1>حسابي</h1>
-      </header>
-      <div className="customer-account-layout">
-        <section className="customer-account-card">
-          <div className="customer-account-identity">
-            <span className="customer-account-avatar" aria-hidden="true">
-              {profile.displayName.trim().charAt(0)}
-            </span>
-            <div>
-              <h2>{profile.displayName}</h2>
-              <p>
-                <bdi>{customer.user?.email || profile.email}</bdi>
-                {googleLinked && <span className="metadata-item">Google</span>}
-              </p>
-            </div>
-          </div>
-          <Link className="customer-primary" href="/library">
-            مكتبتي
-          </Link>
-        </section>
-        <section className="customer-account-card customer-account-rows">
-          <h2>بياناتي</h2>
+    <div className="content-container account-view">
+      <section aria-labelledby="account-details">
+        <h2 className="cover-section__title" id="account-details">
+          بياناتي
+        </h2>
+        <div className="account-rows">
           <AccountRow label="الاسم" value={profile.displayName} onClick={() => setEdit('name')} />
           <AccountRow
             label="البريد الإلكتروني"
             value={customer.user?.email || profile.email}
+            note={googleLinked ? 'Google' : undefined}
             onClick={() => setEdit('email')}
           />
           <AccountRow
@@ -132,9 +153,13 @@ function AccountContent() {
           {!googleLinked && (
             <AccountRow label="كلمة المرور" value="••••••••" onClick={() => setEdit('password')} />
           )}
-        </section>
-        <section className="customer-account-card customer-account-rows">
-          <h2>الحساب</h2>
+        </div>
+      </section>
+      <section aria-labelledby="account-actions">
+        <h2 className="cover-section__title" id="account-actions">
+          الحساب
+        </h2>
+        <div className="account-rows">
           <AccountRow
             busy={busy}
             label={busy ? 'جار تسجيل الخروج…' : 'تسجيل الخروج'}
@@ -146,13 +171,13 @@ function AccountContent() {
             danger
             onClick={() => setEdit('clear')}
           />
-          {error && (
-            <p className="customer-error" role="alert">
-              {error}
-            </p>
-          )}
-        </section>
-      </div>
+        </div>
+        {error && (
+          <p className="customer-error account-error" role="alert">
+            {error}
+          </p>
+        )}
+      </section>
       {edit && <AccountEditDialog key={edit} edit={edit} onClose={() => setEdit(null)} />}
     </div>
   );

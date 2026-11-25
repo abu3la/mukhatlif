@@ -1,5 +1,5 @@
-import { CourseCatalog } from '@/components/courses/catalog';
+import { MyCourses } from '@/components/courses/my-courses';
 export const metadata = { title: 'دوراتي', robots: { index: false, follow: false } };
 export default function MyCoursesPage() {
-  return <CourseCatalog mine />;
+  return <MyCourses />;
 }

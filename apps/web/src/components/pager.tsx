@@ -28,12 +28,15 @@ export function Pager({
   basePath,
   query,
   hash = '',
+  labels = { previous: 'الأحدث', next: 'الأقدم' },
 }: {
   pageInfo: PageInfo;
   basePath: string;
   query?: Readonly<Record<string, string | undefined>>;
   /** Where the next page opens, e.g. `#all`, when the list sits below a stage. */
   hash?: string;
+  /** Lists not in date order (the guests, by name) say «السابق» and «التالي». */
+  labels?: { previous: string; next: string };
 }) {
   if (pageInfo.totalPages <= 1) return null;
   const href = (page: number) => pageHref(basePath, page, query) + hash;
@@ -42,7 +45,7 @@ export function Pager({
     <nav className="pager" aria-label="تنقل بين الصفحات">
       {pageInfo.hasPreviousPage ? (
         <Link className="pager__link" href={href(pageInfo.page - 1)} rel="prev">
-          الأحدث
+          {labels.previous}
         </Link>
       ) : null}
       <span className="pager__status" aria-current="page">
@@ -50,7 +53,7 @@ export function Pager({
       </span>
       {pageInfo.hasNextPage ? (
         <Link className="pager__link" href={href(pageInfo.page + 1)} rel="next">
-          الأقدم
+          {labels.next}
         </Link>
       ) : null}
     </nav>

@@ -1,0 +1,602 @@
+/*
+ * Direction C (DECISIONS D-24), continued from stage.css: stage-account.
+ * Tokens only, the same rules as stage.css.
+ *
+ * The account's own pages under the library's stage («حسابي», «دوراتي», a
+ * playlist) and the placeholders every page shows while it loads.
+ */
+
+/* ------------------------------------------------------------------ «حسابي» */
+
+/* The account's details as rows in a column at the reading measure. Each row
+   is a button that opens its dialog: its name, its value and the way in share
+   a line, and every value starts at the same place. */
+.account-view {
+  display: grid;
+  gap: var(--mk-space-96);
+  max-width: calc(var(--mk-measure-article) + 2 * var(--gutter));
+}
+.account-rows {
+  display: grid;
+  gap: var(--mk-space-12);
+  margin-block-start: var(--mk-space-32);
+}
+.account-row {
+  display: grid;
+  grid-template-columns: minmax(0, 10em) minmax(0, 1fr) auto;
+  grid-template-areas: 'label value way';
+  align-items: center;
+  gap: var(--mk-space-4) var(--mk-space-24);
+  width: 100%;
+  min-height: 64px;
+  padding: var(--mk-space-16) var(--mk-space-24);
+  border: 0;
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-surface);
+  color: var(--mk-ink);
+  font: inherit;
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-ui);
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--mk-duration-fast) ease;
+}
+.account-row:hover {
+  background: var(--mk-surface-hover);
+}
+.account-row:disabled {
+  cursor: default;
+}
+.account-row__label {
+  grid-area: label;
+  font-weight: var(--mk-weight-semibold);
+}
+.account-row--danger .account-row__label {
+  color: var(--mk-danger-text);
+}
+.account-row__value {
+  display: flex;
+  grid-area: value;
+  align-items: baseline;
+  gap: var(--mk-space-12);
+  min-width: 0;
+  color: var(--mk-ink-muted);
+}
+.account-row__value bdi {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-row__note {
+  flex: none;
+  color: var(--mk-ink);
+  font-size: var(--mk-text-md);
+  font-weight: var(--mk-weight-semibold);
+}
+/* The way in, and the busy indicator in its place while signing out. */
+.account-row > .customer-icon,
+.account-row > .action-loading-indicator {
+  grid-area: way;
+}
+.account-row > .customer-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--mk-ink-muted);
+}
+.account-row > .action-loading-indicator {
+  margin: 0;
+}
+.account-row[aria-busy='true'] > .customer-icon {
+  display: none;
+}
+.account-error {
+  margin-block-start: var(--mk-space-16);
+}
+
+/* ------------------------------------------------------------------ «دوراتي» */
+
+/* The course the learner has not finished crosses at the library's size, with
+   how many of its lessons are done along its foot: done in ink on a quiet
+   track, in both appearances. */
+.my-course__track {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 8px;
+  background: var(--mk-border-soft);
+}
+.my-course__done {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  background: var(--mk-ink);
+}
+/* The crossing's place while the account and the courses load: the cover's
+   own surface and edge, still. */
+.my-course__waiting {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--mk-radius-dialog);
+  outline: 1px solid var(--mk-border-soft);
+  outline-offset: -1px;
+  background: var(--mk-surface);
+  animation: none;
+}
+/* The other courses: cover, a title held to two lines, how far, then the
+   action at the foot, so every row shares its lines. */
+.my-course__picture {
+  position: relative;
+  overflow: hidden;
+}
+.my-course__picture .my-course__track {
+  height: 6px;
+}
+.my-course__title {
+  display: -webkit-box;
+  min-height: 2lh;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.my-course__where {
+  margin-block-start: var(--mk-space-8);
+}
+.my-course__go {
+  margin-block-start: auto;
+  padding-block-start: var(--mk-space-12);
+}
+/* The way back to the academy, and a lone empty or failed state, on the
+   page's axis like the course above them. */
+.my-courses__more {
+  display: flex;
+  justify-content: center;
+}
+.my-courses__note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+/* The account's waiting, sign-in and error states stand on the same axis as
+   the column they wait for. */
+.account-page .customer-empty,
+.my-courses .customer-empty {
+  margin-inline: auto;
+}
+
+/* -------------------------------------------------------------- a playlist */
+
+/* The playlist's first four stills cross onto the sheet (one still when it
+   holds fewer); the raised surface holds their place while they load. */
+.playlist-cross {
+  display: grid;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--mk-radius-dialog);
+  background: var(--surface);
+}
+.playlist-cross--four {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: var(--mk-space-4);
+}
+.playlist-cross img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
+  border-radius: 0;
+  object-fit: cover;
+}
+/* The text actions on the stage beside the playlist's one filled action; they
+   wrap together under it on a narrow screen. */
+.playlist-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--mk-space-8) var(--mk-space-16);
+}
+.playlist-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-8);
+  min-height: 44px;
+  padding-block: 0;
+  padding-inline: var(--mk-space-8);
+  border: 0;
+  border-radius: var(--mk-radius-control);
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+  cursor: pointer;
+  transition: color var(--mk-duration-fast) ease;
+}
+.playlist-action svg {
+  width: 1.2em;
+  height: 1.2em;
+  flex: none;
+}
+.playlist-action:hover {
+  color: var(--ink-hover);
+}
+/* Its episodes in order at the episode measure: each a row on the sheet's
+   surface with its place, the episode and the tools that move it. */
+.playlist-view {
+  max-width: calc(var(--mk-measure-episode) + 2 * var(--gutter));
+}
+.playlist-rows {
+  display: grid;
+  gap: var(--mk-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.playlist-row {
+  display: grid;
+  grid-template-columns: 2.5em minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--mk-space-12) var(--mk-space-16);
+  padding: var(--mk-space-16) var(--mk-space-20);
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-surface);
+}
+.playlist-row__number {
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--mk-leading-ui);
+  text-align: center;
+}
+.playlist-row .customer-episode-row {
+  padding: 0;
+  background: none;
+}
+.playlist-row .customer-episode-actions {
+  display: none;
+}
+.playlist-row__missing {
+  margin: 0;
+  color: var(--mk-ink-muted);
+}
+.playlist-row__tools {
+  display: flex;
+  gap: var(--mk-space-8);
+}
+
+/* ------------------------------------------------------- waiting placeholders */
+
+/* A page that waits keeps its stage, with each placeholder at the size of the
+   text it stands for: the bar is the height of a glyph and its margins make up
+   the rest of that text's line box, so nothing moves when the page arrives. */
+.stage-skeleton__crumbs {
+  width: 4.5em;
+  max-width: 100%;
+  height: 0.6em;
+  margin-block: calc((var(--mk-space-48) - var(--mk-space-4) - 0.6em) / 2);
+  font-size: var(--mk-text-lg);
+}
+.stage-skeleton__title {
+  display: block;
+  width: 4.6em;
+  max-width: 100%;
+  height: 0.56em;
+  margin-block: calc((var(--mk-leading-tight) * 1em - 0.56em) / 2);
+  margin-inline: auto;
+  font-size: var(--mk-display-1);
+}
+.stage-skeleton__crumbs + .stage-skeleton__title {
+  margin-block-start: calc(var(--mk-space-8) + (var(--mk-leading-tight) * 1em - 0.56em) / 2);
+}
+.stage-skeleton__lede {
+  display: block;
+  width: 20em;
+  max-width: 100%;
+  height: 0.6em;
+  margin-block: calc(var(--mk-space-20) + (var(--mk-leading-body) * 1em - 0.6em) / 2)
+    calc((var(--mk-leading-body) * 1em - 0.6em) / 2);
+  font-size: var(--mk-text-2xl);
+}
+.stage-skeleton__lede--more {
+  display: none;
+  width: 12em;
+  margin-block-start: calc((var(--mk-leading-body) * 1em - 0.6em) / 2);
+}
+/* The crossing's place is the surface the picture loads on, and it stays
+   still: a breathing box half over the sheet would flicker against it. */
+/* A size («6 حلقات») rather than a sentence. */
+.stage-skeleton__lede--count {
+  width: 4em;
+}
+.stage-skeleton__cross {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--mk-radius-dialog);
+  background: var(--surface);
+  animation: none;
+}
+/* A search field on the stage: its label's line, then the field. */
+.stage-skeleton__field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: min(760px, 100%);
+  margin-block-start: var(--mk-space-40);
+}
+.stage-skeleton__field .stage-skeleton__line {
+  margin-block: calc((var(--mk-leading-ui) * 1em - 0.6em) / 2)
+    calc(var(--mk-space-12) + (var(--mk-leading-ui) * 1em - 0.6em) / 2);
+}
+.stage-skeleton__box {
+  width: 100%;
+  height: 64px;
+  border-radius: var(--mk-radius-media);
+}
+/* The home's hero: its drawing's height, the headline and line where they
+   stand. The stage runs on to the foot of the screen, where the home's next
+   part still stands on it. */
+.stage-skeleton__hero {
+  height: auto;
+  min-height: max(calc(900 * var(--u)), 100svh);
+}
+.stage-skeleton__hero-title,
+.stage-skeleton__hero-lede {
+  position: absolute;
+  inset-inline: 0;
+  margin-inline: auto;
+}
+.stage-skeleton__hero-title {
+  inset-block-start: calc(356 * var(--u));
+  width: calc(820 * var(--u));
+  height: calc(60 * var(--u));
+}
+.stage-skeleton__hero-lede {
+  inset-block-start: calc(486 * var(--u));
+  width: calc(620 * var(--u));
+  height: max(var(--mk-space-12), calc(14 * var(--u)));
+}
+/* The sheet's shapes. */
+.stage-skeleton__line {
+  width: 14em;
+  max-width: 100%;
+  height: 0.6em;
+  margin-block: calc((var(--mk-leading-ui) * 1em - 0.6em) / 2);
+  font-size: var(--mk-text-md);
+}
+.stage-skeleton__line--short {
+  width: 8em;
+}
+.stage-skeleton__heading {
+  width: 9em;
+  max-width: 100%;
+  height: 0.56em;
+  margin-block: calc(var(--mk-space-8) + (var(--mk-leading-heading) * 1em - 0.56em) / 2)
+    calc((var(--mk-leading-heading) * 1em - 0.56em) / 2);
+  font-size: var(--mk-display-2);
+}
+.stage-skeleton__heading--section {
+  display: block;
+  width: 6em;
+  margin-block-start: calc((var(--mk-leading-heading) * 1em - 0.56em) / 2);
+}
+.stage-skeleton__feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: calc(var(--mk-measure-article) + 2 * var(--gutter));
+}
+.stage-skeleton__action {
+  width: 168px;
+  height: 52px;
+  margin-block-start: var(--mk-space-32);
+  border-radius: var(--mk-radius-pill);
+}
+.stage-skeleton__covers {
+  display: flex;
+  gap: var(--mk-space-20);
+  margin-block-start: var(--mk-space-32);
+  overflow: hidden;
+}
+.stage-skeleton__choice {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mk-space-12);
+}
+.stage-skeleton__cover {
+  width: 104px;
+  aspect-ratio: 1;
+  border-radius: var(--mk-radius-media);
+}
+.stage-skeleton__choice .stage-skeleton__line--short {
+  width: 4em;
+}
+/* The search under the covers. */
+.stage-skeleton__bar {
+  display: block;
+  width: 420px;
+  max-width: 100%;
+  height: 52px;
+  margin-block-start: var(--mk-space-40);
+  border-radius: var(--mk-radius-control);
+}
+.stage-skeleton__cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-48) var(--mk-space-32);
+  margin-block-start: var(--mk-space-40);
+}
+.stage-skeleton__cards--square {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.stage-skeleton__card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.stage-skeleton__art {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-block-end: var(--mk-space-8);
+  border-radius: var(--mk-radius-media);
+}
+.stage-skeleton__cards--square .stage-skeleton__art {
+  aspect-ratio: 1;
+}
+.stage-skeleton__card .stage-skeleton__line {
+  width: 80%;
+  font-size: var(--mk-text-2xl);
+}
+.stage-skeleton__card .stage-skeleton__line--short {
+  width: 50%;
+  font-size: var(--mk-text-sm);
+}
+/* A person by name: the name, two lines for what they do, the count. */
+.stage-skeleton__name {
+  width: 60%;
+  height: 0.56em;
+  margin-block: calc((var(--mk-leading-heading) * 1em - 0.56em) / 2);
+  font-size: var(--mk-text-3xl);
+}
+.stage-skeleton__cards--names .stage-skeleton__line {
+  width: 90%;
+  margin-block: calc((var(--mk-leading-body) * 1em - 0.6em) / 2);
+  font-size: var(--mk-text-base);
+}
+.stage-skeleton__cards--names .stage-skeleton__line--more {
+  width: 70%;
+}
+.stage-skeleton__cards--names .stage-skeleton__line--short {
+  width: 35%;
+  margin-block: calc(var(--mk-space-4) + (var(--mk-leading-ui) * 1em - 0.6em) / 2)
+    calc((var(--mk-leading-ui) * 1em - 0.6em) / 2);
+  font-size: var(--mk-text-sm);
+}
+/* On the sheet, the account's waiting rows take the shape of its rows, in
+   the column every account page centres. */
+.home-sheet__surface .content-skeleton--account {
+  max-inline-size: var(--mk-measure-article);
+  margin-inline: auto;
+}
+.home-sheet__surface .content-skeleton--account .content-skeleton__items {
+  gap: var(--mk-space-12);
+}
+.home-sheet__surface .content-skeleton--account .content-skeleton__item {
+  min-height: 64px;
+  padding: var(--mk-space-16) var(--mk-space-24);
+  border-radius: var(--mk-radius-media);
+  background: var(--mk-surface);
+}
+.home-sheet__surface .content-skeleton--account .content-skeleton__copy {
+  grid-template-columns: minmax(0, 10em) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--mk-space-24);
+}
+.home-sheet__surface .content-skeleton--account .content-skeleton__line {
+  inline-size: 70%;
+  block-size: 0.6em;
+  font-size: var(--mk-text-lg);
+}
+.home-sheet__surface .content-skeleton--account .content-skeleton__field {
+  display: none;
+}
+
+/* ------------------------------------------------------------- breakpoints */
+
+@media (max-width: 1000px) {
+  .stage-skeleton__cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .stage-skeleton__cards--square {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .stage-skeleton__hero {
+    min-height: max(calc(702 * var(--up)), 100svh);
+  }
+  .stage-skeleton__hero-title {
+    inset-block-start: calc(300 * var(--up));
+    width: calc(250 * var(--up));
+    height: calc(30 * var(--up));
+  }
+  .stage-skeleton__hero-lede {
+    inset-block-start: calc(452 * var(--up));
+    width: calc(280 * var(--up));
+    height: var(--mk-space-12);
+  }
+  .stage-skeleton__cover {
+    width: 88px;
+  }
+  .stage-skeleton__field {
+    margin-block-start: var(--mk-space-32);
+  }
+  .stage-skeleton__box {
+    height: 56px;
+  }
+  .stage-skeleton__covers {
+    gap: var(--mk-space-16);
+    margin-block-start: var(--mk-space-24);
+  }
+}
+
+@media (max-width: 600px) {
+  .account-view {
+    gap: var(--mk-space-64);
+  }
+  .account-rows {
+    margin-block-start: var(--mk-space-24);
+  }
+  /* Phones: the value under its name, the way in beside both. */
+  .account-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'label way'
+      'value way';
+    gap: var(--mk-space-4) var(--mk-space-16);
+    padding: var(--mk-space-12) var(--mk-space-20);
+  }
+  .account-row--bare {
+    grid-template-areas: 'label way';
+  }
+  /* One to a row: no neighbour to line up with, so the title is whole. */
+  .my-course__title {
+    display: block;
+    min-height: 0;
+  }
+  .playlist-row {
+    grid-template-columns: 1.75em minmax(0, 1fr);
+    gap: var(--mk-space-12);
+    padding: var(--mk-space-16);
+  }
+  .playlist-row__number {
+    align-self: start;
+    font-size: var(--mk-text-xl);
+  }
+  .playlist-row__tools {
+    grid-column: 2;
+    justify-content: flex-end;
+  }
+  .stage-skeleton__lede--more {
+    display: block;
+  }
+  .stage-skeleton__cards,
+  .stage-skeleton__cards--names {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mk-space-40);
+  }
+  .stage-skeleton__cards--square {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--mk-space-24) var(--mk-space-16);
+  }
+  .home-sheet__surface .content-skeleton--account .content-skeleton__item {
+    padding: var(--mk-space-12) var(--mk-space-20);
+  }
+  .home-sheet__surface .content-skeleton--account .content-skeleton__copy {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mk-space-8);
+  }
+}

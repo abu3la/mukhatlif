@@ -35,6 +35,10 @@ describe('guest copy helpers', () => {
     expect(guestAppearanceLabel(14)).toBe('ظهر في 14 حلقة على يوتيوب');
     expect(guestCountLabel(2)).toBe('ضيفان');
     expect(guestCountLabel(8)).toBe('8 ضيوف');
+    expect(guestCountLabel(42)).toBe('42 ضيفًا');
+    expect(guestCountLabel(375)).toBe('375 ضيفًا');
+    expect(guestCountLabel(105)).toBe('105 ضيوف');
+    expect(guestCountLabel(300)).toBe('300 ضيف');
   });
 
   it('normalizes repeated and overlong search input before calling the API', () => {

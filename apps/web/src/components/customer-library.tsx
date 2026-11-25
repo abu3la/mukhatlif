@@ -1048,39 +1048,145 @@ export function PlaylistNameDialog({
   );
 }
 
-export function CustomerPlaylistPage({ playlistId }: { playlistId: string }) {
+/** Where a playlist belongs: the library, then its playlists. */
+function PlaylistCrumbs() {
   return (
-    <CustomerGate>
-      <PlaylistContent playlistId={playlistId} />
-    </CustomerGate>
+    <p className="stage-head__crumbs">
+      <Link href="/library">مكتبتي</Link>
+      <Link href="/library?tab=playlists">قوائم التشغيل</Link>
+    </p>
   );
 }
 
-function PlaylistContent({ playlistId }: { playlistId: string }) {
+/**
+ * A playlist on the presentation site (D-24), under the library's stage: its
+ * name, size and actions stand on the night stage and its first four stills
+ * cross onto the sheet, where its episodes follow in order with the tools that
+ * move and remove them. While the account loads the stage keeps a placeholder
+ * at the title's size; a playlist that is not this account's says so on the
+ * sheet.
+ */
+export function CustomerPlaylistPage({ playlistId }: { playlistId: string }) {
+  const customer = useCustomer();
+  const ready =
+    !customer.loading && Boolean(customer.user) && Boolean(customer.profile) && !customer.error;
+  const playlist = ready
+    ? customer.library.playlists.find((item) => item.id === playlistId)
+    : undefined;
+  if (playlist) return <PlaylistContent playlist={playlist} />;
+  // While the account loads, the stage keeps the places of the name, the size,
+  // the actions and the stills.
+  const waiting = customer.loading;
+  return (
+    <div className={'stage-page library-page playlist-page' + (waiting ? ' has-cross' : '')}>
+      <div className="stage-scope">
+        <section className="stage-intro" aria-labelledby="playlist-title">
+          <div className="content-container stage-head">
+            <PlaylistCrumbs />
+            <h1 id="playlist-title" className="stage-head__title">
+              {waiting ? (
+                <>
+                  <span className="visually-hidden">قائمة التشغيل</span>
+                  <span className="skeleton stage-skeleton__title" aria-hidden="true" />
+                </>
+              ) : (
+                'قائمة التشغيل'
+              )}
+            </h1>
+            {waiting ? (
+              <>
+                <span
+                  className="skeleton stage-skeleton__lede stage-skeleton__lede--count"
+                  aria-hidden="true"
+                />
+                <span className="skeleton stage-skeleton__action" aria-hidden="true" />
+              </>
+            ) : null}
+          </div>
+          {waiting ? (
+            <span className="skeleton stage-cross stage-skeleton__cross" aria-hidden="true" />
+          ) : null}
+        </section>
+      </div>
+      <div className="home-sheet">
+        <div className="home-sheet__surface">
+          <CustomerGate bare>
+            <div className="content-container playlist-view">
+              <CustomerEmpty
+                title="قائمة التشغيل غير متاحة"
+                href="/library?tab=playlists"
+                action="قوائم التشغيل"
+              >
+                ربما حُذفت القائمة أو أنها مرتبطة بحساب آخر.
+              </CustomerEmpty>
+            </div>
+          </CustomerGate>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The playlist's first four stills, or its first when it holds fewer. While
+ * its episodes load, the raised surface holds their place.
+ */
+function PlaylistCross({ episodes }: { episodes: Episode[] }) {
+  const stills = episodes
+    .filter((episode) => !episode.premium && isYouTubeVideoId(episode.youtubeVideoId))
+    .map((episode) => episode.youtubeVideoId);
+  const shown = stills.length >= 4 ? stills.slice(0, 4) : stills.slice(0, 1);
+  return (
+    <div
+      className={'stage-cross playlist-cross' + (shown.length === 4 ? ' playlist-cross--four' : '')}
+      aria-hidden="true"
+    >
+      {shown.map((videoId, index) => (
+        <YouTubeStill key={`${videoId}-${index}`} videoId={videoId} priority={index === 0} />
+      ))}
+    </div>
+  );
+}
+
+function PlaylistContent({ playlist }: { playlist: CustomerPlaylist }) {
   const customer = useCustomer();
   const player = usePlayer();
   const router = useRouter();
-  const playlist = customer.library.playlists.find((item) => item.id === playlistId);
-  const { episodes, shows, loading, error } = useCustomerEpisodes(playlist?.episodeIds || []);
+  const playlistId = playlist.id;
+  const { episodes, shows, loading, error } = useCustomerEpisodes(playlist.episodeIds);
   const playableEpisodes = loading || error ? [] : episodes.filter((episode) => !episode.premium);
   const [dialog, setDialog] = useState<'rename' | 'add' | 'delete' | null>(null);
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState('');
-  if (!playlist)
-    return (
-      <div className="page customer-page">
-        <CustomerEmpty
-          title="قائمة التشغيل غير متاحة"
-          href="/library?tab=playlists"
-          action="قوائم التشغيل"
-        >
-          ربما حُذفت القائمة أو أنها مرتبطة بحساب آخر.
-        </CustomerEmpty>
-      </div>
-    );
+  const [starting, setStarting] = useState(false);
+  // The stills cross while they load; a playlist with none to show keeps its stage.
+  const crosses =
+    playlist.episodeIds.length > 0 &&
+    (loading ||
+      episodes.some((episode) => !episode.premium && isYouTubeVideoId(episode.youtubeVideoId)));
+
+  async function playAll() {
+    if (!customer.config.apiOrigin || starting) return;
+    setStarting(true);
+    try {
+      await customer.updateQueue(playableEpisodes.slice(1).map((item) => item.id));
+      const first = playableEpisodes[0];
+      player.toggle(
+        customerPlayerEpisode(
+          first,
+          shows.find((show) => show.id === first.showId),
+          customer.config.apiOrigin,
+        ),
+      );
+    } catch (failure) {
+      customer.notify(customerError(failure));
+    } finally {
+      setStarting(false);
+    }
+  }
 
   async function reorder(id: string, direction: number) {
-    if (!playlist || busy) return;
+    if (busy) return;
     const ids = [...playlist.episodeIds];
     const index = ids.indexOf(id);
     const target = index + direction;
@@ -1102,7 +1208,7 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
   }
 
   async function remove(id: string) {
-    if (!playlist || busy) return;
+    if (busy) return;
     setBusy(true);
     setPendingAction(`remove:${id}`);
     try {
@@ -1119,110 +1225,118 @@ function PlaylistContent({ playlistId }: { playlistId: string }) {
   }
 
   return (
-    <div className="page customer-page">
-      <Link className="customer-form-link" href="/library?tab=playlists">
-        قوائم التشغيل
-      </Link>
-      <header className="customer-playlist-detail-head">
-        <PlaylistArt playlist={playlist} />
-        <div>
-          <h1>{playlist.name}</h1>
-          <p>{episodeCount(playlist.episodeIds.length)}</p>
-          <div className="customer-action-row">
-            {!!playableEpisodes.length && customer.config.apiOrigin && (
-              <button
-                className="customer-primary"
-                onClick={async () => {
-                  if (!customer.config.apiOrigin) return;
-                  try {
-                    await customer.updateQueue(playableEpisodes.slice(1).map((item) => item.id));
-                    const first = playableEpisodes[0];
-                    player.toggle(
-                      customerPlayerEpisode(
-                        first,
-                        shows.find((show) => show.id === first.showId),
-                        customer.config.apiOrigin,
-                      ),
-                    );
-                  } catch (failure) {
-                    customer.notify(customerError(failure));
-                  }
-                }}
-              >
-                <CustomerIcon name="play" />
-                تشغيل القائمة
-              </button>
+    <div className={'stage-page library-page playlist-page' + (crosses ? ' has-cross' : '')}>
+      <div className="stage-scope">
+        <section className="stage-intro" aria-labelledby="playlist-title">
+          <div className="content-container stage-head">
+            <PlaylistCrumbs />
+            <h1 id="playlist-title" className="stage-head__title">
+              {playlist.name}
+            </h1>
+            <p className="stage-head__lede">{episodeCount(playlist.episodeIds.length)}</p>
+            <div className="stage-head__actions">
+              {!!playableEpisodes.length && customer.config.apiOrigin && (
+                <BusyButton
+                  type="button"
+                  loadingMode="replace"
+                  aria-busy={starting}
+                  className="public-primary"
+                  onClick={() => void playAll()}
+                >
+                  <CustomerIcon name="play" />
+                  تشغيل القائمة
+                </BusyButton>
+              )}
+              <span className="playlist-actions">
+                <button
+                  type="button"
+                  className="playlist-action"
+                  onClick={() => setDialog('rename')}
+                >
+                  <BrandIcon name="edit" />
+                  تعديل الاسم
+                </button>
+                <button type="button" className="playlist-action" onClick={() => setDialog('add')}>
+                  <BrandIcon name="plus" />
+                  إضافة حلقة
+                </button>
+              </span>
+            </div>
+          </div>
+          {crosses ? <PlaylistCross episodes={episodes} /> : null}
+        </section>
+      </div>
+      <div className="home-sheet">
+        <div className="home-sheet__surface">
+          <div className="content-container playlist-view">
+            {loading ? (
+              <ContentSkeleton label="تحميل الحلقات" variant="rows" />
+            ) : error ? (
+              <p role="alert" className="customer-error">
+                {error}
+              </p>
+            ) : playlist.episodeIds.length ? (
+              <ol className="playlist-rows">
+                {playlist.episodeIds.map((id, index) => {
+                  const episode = episodes.find((item) => item.id === id);
+                  return (
+                    <li className="playlist-row" key={id}>
+                      <span className="playlist-row__number" aria-hidden="true">
+                        {formatNumber(index + 1)}
+                      </span>
+                      {episode ? (
+                        <CustomerEpisodeRow
+                          episode={episode}
+                          show={shows.find((show) => show.id === episode.showId)}
+                        />
+                      ) : (
+                        <p className="playlist-row__missing">هذه الحلقة غير متاحة الآن.</p>
+                      )}
+                      <div className="playlist-row__tools">
+                        <BusyButton
+                          aria-busy={pendingAction === `-1:${id}`}
+                          className="customer-icon-button"
+                          disabled={busy || index === 0}
+                          aria-label={`نقل ${episode?.titleAr || 'الحلقة'} للأعلى`}
+                          onClick={() => void reorder(id, -1)}
+                        >
+                          <CustomerIcon name="up" />
+                        </BusyButton>
+                        <BusyButton
+                          aria-busy={pendingAction === `1:${id}`}
+                          className="customer-icon-button"
+                          disabled={busy || index === playlist.episodeIds.length - 1}
+                          aria-label={`نقل ${episode?.titleAr || 'الحلقة'} للأسفل`}
+                          onClick={() => void reorder(id, 1)}
+                        >
+                          <CustomerIcon name="down" />
+                        </BusyButton>
+                        <BusyButton
+                          aria-busy={pendingAction === `remove:${id}`}
+                          className="customer-icon-button"
+                          disabled={busy}
+                          aria-label={`إزالة ${episode?.titleAr || 'الحلقة'} من القائمة`}
+                          onClick={() => void remove(id)}
+                        >
+                          <CustomerIcon name="close" />
+                        </BusyButton>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : (
+              <CustomerEmpty title="لا توجد حلقات في القائمة">
+                اختيار «إضافة حلقة» يفتح البحث في الحلقات.
+              </CustomerEmpty>
             )}
-            <button className="customer-text-button" onClick={() => setDialog('rename')}>
-              تعديل الاسم
-            </button>
-            <button className="customer-text-button" onClick={() => setDialog('add')}>
-              إضافة حلقة
-            </button>
+            <div className="customer-history-foot">
+              <button className="customer-text-button" onClick={() => setDialog('delete')}>
+                حذف القائمة
+              </button>
+            </div>
           </div>
         </div>
-      </header>
-      {loading ? (
-        <ContentSkeleton label="تحميل الحلقات" variant="rows" />
-      ) : error ? (
-        <p role="alert" className="customer-error">
-          {error}
-        </p>
-      ) : playlist.episodeIds.length ? (
-        playlist.episodeIds.map((id, index) => {
-          const episode = episodes.find((item) => item.id === id);
-          return (
-            <div className="customer-playlist-row" key={id}>
-              <span className="customer-playlist-number">{index + 1}</span>
-              {episode ? (
-                <CustomerEpisodeRow
-                  episode={episode}
-                  show={shows.find((show) => show.id === episode.showId)}
-                />
-              ) : (
-                <p>هذه الحلقة غير متاحة الآن.</p>
-              )}
-              <div className="customer-playlist-tools">
-                <BusyButton
-                  aria-busy={pendingAction === `-1:${id}`}
-                  className="customer-icon-button"
-                  disabled={busy || index === 0}
-                  aria-label={`نقل ${episode?.titleAr || 'الحلقة'} للأعلى`}
-                  onClick={() => void reorder(id, -1)}
-                >
-                  <CustomerIcon name="up" />
-                </BusyButton>
-                <BusyButton
-                  aria-busy={pendingAction === `1:${id}`}
-                  className="customer-icon-button"
-                  disabled={busy || index === playlist.episodeIds.length - 1}
-                  aria-label={`نقل ${episode?.titleAr || 'الحلقة'} للأسفل`}
-                  onClick={() => void reorder(id, 1)}
-                >
-                  <CustomerIcon name="down" />
-                </BusyButton>
-                <BusyButton
-                  aria-busy={pendingAction === `remove:${id}`}
-                  className="customer-icon-button"
-                  disabled={busy}
-                  aria-label={`إزالة ${episode?.titleAr || 'الحلقة'} من القائمة`}
-                  onClick={() => void remove(id)}
-                >
-                  <CustomerIcon name="close" />
-                </BusyButton>
-              </div>
-            </div>
-          );
-        })
-      ) : (
-        <CustomerEmpty title="لا توجد حلقات في القائمة">
-          اختيار «إضافة حلقة» يفتح البحث في الحلقات.
-        </CustomerEmpty>
-      )}
-      <div className="customer-history-foot">
-        <button className="customer-text-button" onClick={() => setDialog('delete')}>
-          حذف القائمة
-        </button>
       </div>
       {dialog === 'rename' && (
         <PlaylistNameDialog playlist={playlist} onClose={() => setDialog(null)} />
@@ -1264,10 +1378,12 @@ function PlaylistPicker({
   useEffect(() => {
     let active = true;
     setLoading(true);
+    // The API refuses an empty search, so the first page of all episodes asks without one.
+    const query = search.trim();
     const timer = window.setTimeout(() => {
       void customer
         .publicRead<PaginatedList<Episode>>(
-          `/episodes?page=${page}&perPage=12&search=${encodeURIComponent(search.trim())}`,
+          `/episodes?page=${page}&perPage=12${query ? `&search=${encodeURIComponent(query)}` : ''}`,
         )
         .then((value) => {
           if (active) {

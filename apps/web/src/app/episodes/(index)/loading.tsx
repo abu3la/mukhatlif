@@ -1,12 +1,11 @@
-import { LoadingRegion, RowSkeletonList } from '@/components/states';
+import { SkeletonFeature, SkeletonSection, StageSkeleton } from '@/components/content-skeleton';
 
+/** «استمع»: the newest still crossing, its introduction, the programmes, then the episodes. */
 export default function Loading() {
   return (
-    <div className="content-page">
-      <div className="content-container loading-page">
-        <LoadingRegion label="تحميل الحلقات…" />
-        <RowSkeletonList />
-      </div>
-    </div>
+    <StageSkeleton label="تحميل الحلقات…" cross>
+      <SkeletonFeature />
+      <SkeletonSection covers={8} />
+    </StageSkeleton>
   );
 }

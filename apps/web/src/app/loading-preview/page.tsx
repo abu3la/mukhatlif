@@ -1,11 +1,33 @@
+import Link from 'next/link';
 import { LoadingButtonPreview } from '@/components/loading-button-preview';
 import { UploadProgress } from '@/components/upload-progress';
 import { notFound } from 'next/navigation';
 import { BusyButton } from '@/components/busy-button';
 import { ContentSkeleton } from '@/components/content-skeleton';
+import RootLoading from '../loading';
+import HomeLoading from '../(home)/loading';
+import ArticlesLoading from '../articles/(index)/loading';
+import EpisodesLoading from '../episodes/(index)/loading';
+import GuestsLoading from '../guests/(index)/loading';
 
-export default function LoadingPreview() {
+/** Each route's loading placeholder, shown whole at `?view=<name>`. */
+const ROUTES = {
+  root: RootLoading,
+  home: HomeLoading,
+  articles: ArticlesLoading,
+  episodes: EpisodesLoading,
+  guests: GuestsLoading,
+} as const;
+
+export default async function LoadingPreview({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
   if (process.env.NODE_ENV !== 'development') notFound();
+  const { view } = await searchParams;
+  const Route = view && view in ROUTES ? ROUTES[view as keyof typeof ROUTES] : null;
+  if (Route) return <Route />;
 
   return (
     <div className="content-page">
@@ -16,9 +38,15 @@ export default function LoadingPreview() {
           <p>معاينة تصميم فقط، لا تُرسل بيانات.</p>
           <div>
             <LoadingButtonPreview />
-            <BusyButton className="customer-primary" aria-busy>جار التحقق…</BusyButton>
-            <BusyButton className="customer-primary" aria-busy>جار الحفظ…</BusyButton>
-            <BusyButton className="customer-primary" disabled>غير متاح</BusyButton>
+            <BusyButton className="customer-primary" aria-busy>
+              جار التحقق…
+            </BusyButton>
+            <BusyButton className="customer-primary" aria-busy>
+              جار الحفظ…
+            </BusyButton>
+            <BusyButton className="customer-primary" disabled>
+              غير متاح
+            </BusyButton>
           </div>
         </section>
         <div style={{ maxWidth: 640, marginBlock: 32 }}>
@@ -35,6 +63,16 @@ export default function LoadingPreview() {
         <section style={{ marginBlock: 40 }}>
           <h2>الحساب</h2>
           <ContentSkeleton variant="account" count={2} />
+        </section>
+        <section style={{ marginBlock: 40 }}>
+          <h2>الصفحات</h2>
+          <ul>
+            {Object.keys(ROUTES).map((name) => (
+              <li key={name}>
+                <Link href={`/loading-preview?view=${name}`}>{name}</Link>
+              </li>
+            ))}
+          </ul>
         </section>
       </div>
     </div>

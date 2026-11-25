@@ -126,9 +126,8 @@ Format: `D-nn · date · decision · why / source`.
   (https://claude.ai/artifact/44WWRh2CUhAHRiw1CsEpDS): the site introduces
   Mukhtalif before it plays media. Built on the home, the header, the footer,
   the programme, community, episode, articles, article and newsletter pages,
-  then «استمع», search, «مكتبتي» and the sign-in pages; account settings
-  («حسابي») and the academy keep their current look until they are redrawn in
-  this language.
+  then «استمع», search, «مكتبتي» and the sign-in pages, and on 24 November
+  (the owner: «ابني كل شي») every remaining page.
   - **The night stage, the sheet, the floor.** A page may open on a night stage
     (`--mk-stage*`: indigo night in light, the footer's green-black in dark),
     continue on a white sheet whose rounded top (`--mk-radius-sheet`) slides
@@ -200,6 +199,31 @@ Format: `D-nn · date · decision · why / source`.
     arrives at the diamond above the form (`lib/auth-maze.ts`, tested to stay
     clear of the form at every wide size); on phones the form is the sheet.
     The password field says «إظهار» and «إخفاء» instead of drawing an eye.
+  - **Everything else (fifth round, from canvas version 23).** «البرامج»: every
+    cover drifts across the stage's edge onto the sheet (one seamless loop that
+    stops while pointed at and holds still with reduced motion); the directory
+    runs community by community in one grid, each community opening with a
+    night tile where a route arrives at its name (`lib/directory-maze.ts`, a
+    seed per community), and a chooser keeps one community. «المجتمعات»: the
+    stage is a map; every route leaves the title's full stop and arrives at a
+    community's name, and the pointed or focused name draws its way
+    (`lib/map-maze.ts`, the most direct seed; the title is part of the drawing
+    on wide screens); the sheet is the map's legend in the same order.
+    «الإنتاج»: the page is the brief's first step; the three forms are a radio
+    group in large type and the chosen one's route walks the maze to «تابع إلى
+    الطلب», which carries the choice to the form (`lib/brief-maze.ts`).
+    «الأكاديمية»: a course has no artwork, so its cover is drawn from its data
+    (skill, title, one stop per lesson) and crosses onto the sheet, where the
+    first course with a description is introduced with its price and one
+    action; «كيف تتعلّم» climbs as a staircase. The course page stands the same
+    cover on its stage and keeps the learning workspace's rules. The five request
+    forms stand on the sign-in stage, where the route arrives at the form.
+    «من نحن» and «قضيتنا» retell the home's pieces around their own text;
+    presenters read as closing credits; guests, work, contact and the legal
+    pages take the index stage; «حسابي», «دوراتي», a playlist and the loading
+    placeholders take the stage and the sheet. The wide drawings run past their
+    frame, so wider screens see more maze; phones and tablets get a composition
+    anchored to the right edge. Seeds are tested (`lib/menu-mazes.test.ts`).
   - **Header and footer.** The bar gains «البرامج» and «الإنتاج», «قضيتنا»
     joins «عن مختلف», and «استمع» is the bar's one filled action; search,
     «مكتبتي» and the menu stay as the owner's rules require. Over a stage the

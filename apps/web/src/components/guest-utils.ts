@@ -86,6 +86,8 @@ export function guestCountLabel(value: number): string {
   if (count === 1) return 'ضيف واحد';
   if (count === 2) return 'ضيفان';
   if (count <= 10) return `${formatNumber(count)} ضيوف`;
-  if (count < 100) return `${formatNumber(count)} ضيفًا`;
-  return `${formatNumber(count)} ضيف`;
+  // Past a hundred the noun follows the last two digits: «375 ضيفًا», «105 ضيوف», «300 ضيف».
+  const tens = count % 100;
+  const noun = tens >= 3 && tens <= 10 ? 'ضيوف' : tens >= 11 ? 'ضيفًا' : 'ضيف';
+  return `${formatNumber(count)} ${noun}`;
 }
